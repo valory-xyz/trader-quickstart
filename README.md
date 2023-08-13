@@ -24,3 +24,18 @@ Ensure your machine satisfies the requirements:
 chmod +x run_service.sh
 ./run_service.sh
 ```
+
+## Observe your agents:
+
+1. Check out this handy app: https://prediction-agents.replit.app/
+
+2. Use this command to investigate your agent's logs:
+
+```bash
+cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0; cd ..
+```
+
+For more options on the above command run:
+```bash
+cd trader; poetry run autonomy analyse logs --help; cd ..
+```
