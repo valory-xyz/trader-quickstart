@@ -248,24 +248,28 @@ export SAFE_CONTRACT_ADDRESS=$safe
 echo "Your service's safe address: $safe"
 
 # Check the safe's balance
-safe_balance=$(curl -s -S -X POST \
-  -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$SAFE_CONTRACT_ADDRESS"'","latest"],"id":1}' "$rpc" | \
-  python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
-safe_balance=$((16#${safe_balance#??}))
+get_balance() {
+    curl -s -S -X POST \
+        -H "Content-Type: application/json" \
+        --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$SAFE_CONTRACT_ADDRESS"'","latest"],"id":1}' "$rpc" | \
+        python3 -c "import sys, json; print(json.load(sys.stdin)['result'])"
+}
+
+convert_hex_to_decimal() {
+    python3 -c "print(int('$1', 16))"
+}
+
 suggested_amount=500000000000000000
-until [[ $safe_balance -gt $suggested_amount ]]
-do
-    safe_balance=$(curl -s -S -X POST \
-      -H "Content-Type: application/json" \
-      --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$SAFE_CONTRACT_ADDRESS"'","latest"],"id":1}' "$rpc" | \
-      python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
-    safe_balance=$((16#${safe_balance#??}))
+safe_balance_hex=$(get_balance)
+safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
+while (( $safe_balance < $suggested_amount )); do
     echo "Safe's balance: $safe_balance WEI."
     echo "The safe address needs to be funded."
     echo "Please fund it with the amount you want to use for trading (at least 0.5 xDAI) to continue."
     echo "Checking again in 10s..."
     sleep 10
+    safe_balance_hex=$(get_balance)
+    safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
 done
 
 # Set environment variables. Tweak these to modify your strategy
