@@ -7,7 +7,6 @@ A quickstart for the trader agent for AI prediction markets on Gnosis at https:/
 Ensure your machine satisfies the requirements:
 
   - Python `== 3.10`
-  - [Tendermint](https://docs.tendermint.com/v0.34/introduction/install.html) `==0.34.19`
   - [Poetry](https://python-poetry.org/docs/) `>=1.4.0`
   - [Docker Engine](https://docs.docker.com/engine/install/)
   - [Docker Compose](https://docs.docker.com/compose/install/)
