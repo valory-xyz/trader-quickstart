@@ -30,7 +30,7 @@ chmod +x run_service.sh
 2. Use the `trades` command to display information about placed trades by a given address:
 
     ```bash
-    python trades.py YOUR_SAFE_ADDRESS
+    cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS; cd ..
     ```
 
     Please be aware that this script does not keep track of whether the redeemable amounts have been claimed.
