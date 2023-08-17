@@ -27,11 +27,13 @@ chmod +x run_service.sh
 
 1. Check out this handy app: https://prediction-agents.replit.app/
 
-2. Use the `trades` command to display information about placed trades:
+2. Use the `trades` command to display information about placed trades by a given address:
 
     ```bash
     python trades.py YOUR_SAFE_ADDRESS
     ```
+
+    Please be aware that this script does not keep track of whether the redeemable amounts have been claimed.
 
 3. Use this command to investigate your agent's logs:
 
