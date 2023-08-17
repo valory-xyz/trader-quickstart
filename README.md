@@ -27,7 +27,13 @@ chmod +x run_service.sh
 
 1. Check out this handy app: https://prediction-agents.replit.app/
 
-2. Use this command to investigate your agent's logs:
+2. Use the `trades` command to display information about placed trades:
+
+    ```bash
+    python trades.py YOUR_SAFE_ADDRESS
+    ```
+
+3. Use this command to investigate your agent's logs:
 
     ```bash
     cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0; cd ..
@@ -60,6 +66,7 @@ git pull origin
 ```
 
 Remove the existing trader folder:
+
 ```bash
 rm -rf trader
 ```
