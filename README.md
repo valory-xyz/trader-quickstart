@@ -38,3 +38,17 @@ For more options on the above command run:
 ```bash
 cd trader; poetry run autonomy analyse logs --help; cd ..
 ```
+
+## Update between versions
+
+Simply pull the latest script:
+```bash
+git pull origin
+```
+
+Remove the existing trader folder:
+```bash
+rm -rf trader
+```
+
+Then continue above with "Run the script".
