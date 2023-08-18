@@ -25,7 +25,7 @@ chmod +x run_service.sh
 
 ## Observe your agents
 
-1. Check out this handy app: https://prediction-agents.replit.app/
+1. Check out this handy app: https://predictions.oaksprout.repl.co/
 
 2. Use the `trades` command to display information about placed trades by a given address:
 
