@@ -23,6 +23,18 @@ chmod +x run_service.sh
 ./run_service.sh
 ```
 
+Once the command has completed, i.e. the service is running, you can see the live logs with:
+
+```bash
+docker logs trader_abci_0 --follow
+```
+
+To stop your agent, use:
+
+```bash
+cd trader; poetry run autonomy deploy stop --build-dir trader; cd .. 
+```
+
 ## Observe your agents
 
 1. Check out this handy app: https://predictions.oaksprout.repl.co/

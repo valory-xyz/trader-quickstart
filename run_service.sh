@@ -77,7 +77,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.4.0"
+service_version="v0.4.1"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -321,4 +321,4 @@ poetry run autonomy deploy build --n $n_agents -ltm
 cd ..
 
 # Run the deployment
-poetry run autonomy deploy run --build-dir $directory
+poetry run autonomy deploy run --build-dir $directory --detach
