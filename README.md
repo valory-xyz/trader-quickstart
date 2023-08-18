@@ -32,7 +32,7 @@ docker logs trader_abci_0 --follow
 To stop your agent, use:
 
 ```bash
-cd trader; poetry run autonomy deploy stop --build-dir trader; cd .. 
+cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd .. 
 ```
 
 ## Observe your agents
