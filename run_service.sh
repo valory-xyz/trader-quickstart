@@ -77,7 +77,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.4.0"
+service_version="v0.4.1"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -142,7 +142,7 @@ then
     agent_balance=0
     operator_balance=0
     suggested_amount=50000000000000000
-    until [[ $agent_balance -gt $suggested_amount-1 && $operator_balance -gt $suggested_amount-1 ]]
+    until [[ $(python -c "print($agent_balance > ($suggested_amount-1))") == "True" && $(python -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
     do
         echo "Agent instance's balance: $agent_balance WEI."
         echo "Operator's balance: $operator_balance WEI."
@@ -262,7 +262,7 @@ convert_hex_to_decimal() {
 suggested_amount=500000000000000000
 safe_balance_hex=$(get_balance)
 safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
-while (( $safe_balance < $suggested_amount )); do
+while [ "$(python -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
     echo "Safe's balance: $safe_balance WEI."
     echo "The safe address needs to be funded."
     echo "Please fund it with the amount you want to use for trading (at least 0.5 xDAI) to continue."
@@ -321,4 +321,4 @@ poetry run autonomy deploy build --n $n_agents -ltm
 cd ..
 
 # Run the deployment
-poetry run autonomy deploy run --build-dir $directory
+poetry run autonomy deploy run --build-dir $directory --detach
