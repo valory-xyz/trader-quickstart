@@ -142,7 +142,7 @@ then
     agent_balance=0
     operator_balance=0
     suggested_amount=50000000000000000
-    until [[ $(python -c "print($agent_balance > ($suggested_amount-1))") == "True" && $(python -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
+    until [[ $(python3 -c "print($agent_balance > ($suggested_amount-1))") == "True" && $(python3 -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
     do
         echo "Agent instance's balance: $agent_balance WEI."
         echo "Operator's balance: $operator_balance WEI."
