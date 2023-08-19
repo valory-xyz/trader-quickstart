@@ -262,7 +262,7 @@ convert_hex_to_decimal() {
 suggested_amount=500000000000000000
 safe_balance_hex=$(get_balance)
 safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
-while [ "$(python -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
+while [ "$(python3 -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
     echo "Safe's balance: $safe_balance WEI."
     echo "The safe address needs to be funded."
     echo "Please fund it with the amount you want to use for trading (at least 0.5 xDAI) to continue."
