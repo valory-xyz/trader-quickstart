@@ -86,3 +86,9 @@ rm -rf trader
 ```
 
 Then continue above with "Run the script".
+
+## Mac users
+
+In Docker Desktop make sure that in `Settings -> Advanced` the following boxes are ticked
+
+![Docker Desktop settings](images/docker.png)
