@@ -50,13 +50,13 @@ cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build
 3. Use this command to investigate your agent's logs:
 
     ```bash
-    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0; cd ..
+    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --reset-db; cd ..
     ```
 
     For example, inspect the state transitions using this command:
 
     ```bash
-    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --fsm; cd ..
+    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --fsm --reset-db; cd ..
     ```
 
     This will output the different state transitions of your agent per period, for example:
