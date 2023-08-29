@@ -28,6 +28,7 @@ import requests
 
 
 QUERY_BATCH_SIZE = 1000
+DUST_THRESHOLD = 10000000000000
 INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
 headers = {
@@ -247,6 +248,9 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
 
                 if is_invalid:
                     output += "Market has been resolved as invalid.\n"
+                
+                if earnings > 0 and earnings  < DUST_THRESHOLD:
+                    output += "Earnings are dust.\n"
             else:
                 output += "Market not yet finalized.\n"
                 total_pending_finalization += 1
