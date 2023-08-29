@@ -248,8 +248,8 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
 
                 if is_invalid:
                     output += "Market has been resolved as invalid.\n"
-                
-                if earnings > 0 and earnings  < DUST_THRESHOLD:
+
+                if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
             else:
                 output += "Market not yet finalized.\n"
