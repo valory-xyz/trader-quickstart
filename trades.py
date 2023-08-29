@@ -32,38 +32,67 @@ headers = {
     "Content-Type": "application/json",
 }
 
-trades_query = Template(
+
+omen_xdai_trades_query = Template(
     """
     {
-      fpmmTrades(
-        where: {type: Buy, creator: "${creator}"}
-      ) {
-        id
-        title
-        collateralToken
-        outcomeTokenMarginalPrice
-        oldOutcomeTokenMarginalPrice
-        type
-        creator {
-          id
+        fpmmTrades(
+            where: {type: Buy, creator: "${creator}"}
+            first: 1000
+            skip: 0
+        ) {
+            id
+            title
+            collateralToken
+            outcomeTokenMarginalPrice
+            oldOutcomeTokenMarginalPrice
+            type
+            creator {
+                id
+            }
+            creationTimestamp
+            collateralAmount
+            collateralAmountUSD
+            feeAmount
+            outcomeIndex
+            outcomeTokensTraded
+            transactionHash
+            fpmm {
+                id
+                outcomes
+                title
+                answerFinalizedTimestamp
+                currentAnswer
+                isPendingArbitration
+                arbitrationOccurred
+                condition {
+                    id
+                }
+            }
         }
-        creationTimestamp
-        collateralAmount
-        collateralAmountUSD
-        feeAmount
-        outcomeIndex
-        outcomeTokensTraded
-        transactionHash
-        fpmm {
-          id
-          outcomes
-          title
-          answerFinalizedTimestamp
-          currentAnswer
-          isPendingArbitration
-          arbitrationOccurred
+    }
+    """
+)
+
+
+conditional_tokens_gc_user_query = Template(
+    """
+    {
+        user(id: "${creator}") {
+            userPositions(
+                first: 1000
+                skip: 0
+            ) {
+                balance
+                id
+                position {
+                    id
+                    conditionIds
+                }
+                totalBalance
+                wrappedBalance
+            }
         }
-      }
     }
     """
 )
@@ -87,12 +116,22 @@ def to_content(q: str) -> dict[str, Any]:
     return finalized_query
 
 
-def query_subgraph() -> requests.Response:
+def query_omen_xdai_subgraph() -> dict[str, Any]:
     """Query the subgraph."""
-    query = trades_query.substitute(creator=creator.lower())
+    query = omen_xdai_trades_query.substitute(creator=creator.lower())
     content_json = to_content(query)
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
-    return requests.post(url, headers=headers, json=content_json)
+    res = requests.post(url, headers=headers, json=content_json)
+    return res.json()
+
+
+def query_conditional_tokens_gc_subgraph() -> dict[str, Any]:
+    """Query the subgraph."""
+    query = conditional_tokens_gc_user_query.substitute(creator=creator.lower())
+    content_json = to_content(query)
+    url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
+    res = requests.post(url, headers=headers, json=content_json)
+    return res.json()
 
 
 def _wei_to_dai(wei: int) -> str:
@@ -101,19 +140,33 @@ def _wei_to_dai(wei: int) -> str:
     return f"{formatted_dai} DAI"
 
 
-def parse_response(res: requests.Response) -> str:  # pylint: disable=too-many-locals
+def _is_redeemed(user_json: dict[str, Any], condition_id: str) -> bool:
+    user_positions = user_json["data"]["user"]["userPositions"]
+
+    for position in user_positions:
+        position_condition_ids = position["position"]["conditionIds"]
+        balance = int(position["balance"])
+
+        if condition_id in position_condition_ids and balance == 0:
+            return True
+
+    return False
+
+
+def parse_response(  # pylint: disable=too-many-locals
+    trades_json: dict[str, Any], user_json: dict[str, Any]
+) -> str:
     """Parse the trades from the response."""
     output = "------\n"
     output += "Trades\n"
     output += "------\n"
-    res_json = res.json()
 
     total_collateral_amount = 0
     total_fee_amount = 0
-    total_profits = 0
-    total_losses = 0
+    total_earnings = 0
+    total_redeemed = 0
     total_pending_finalization = 0
-    for fpmmTrade in res_json["data"]["fpmmTrades"]:
+    for fpmmTrade in trades_json["data"]["fpmmTrades"]:
         try:
             collateral_amount = int(fpmmTrade["collateralAmount"])
             total_collateral_amount += collateral_amount
@@ -125,6 +178,7 @@ def parse_response(res: requests.Response) -> str:  # pylint: disable=too-many-l
             fpmm = fpmmTrade["fpmm"]
             answer_finalized_timestamp = fpmm["answerFinalizedTimestamp"]
             is_pending_arbitration = fpmm["isPendingArbitration"]
+            condition_id = fpmm["condition"]["id"]
 
             output += f'Market:   https://aiomen.eth.limo/#/{fpmm["id"]}\n'
             output += f'Question: {fpmmTrade["title"]}\n'
@@ -134,12 +188,17 @@ def parse_response(res: requests.Response) -> str:  # pylint: disable=too-many-l
             if answer_finalized_timestamp is not None and not is_pending_arbitration:
                 current_answer = int(fpmm["currentAnswer"], 16)
                 if outcome_index == current_answer:
-                    profit = outcomes_tokens_traded - collateral_amount
-                    output += f"Profit:   {_wei_to_dai(profit)}\n"
-                    total_profits += profit
+                    earnings = outcomes_tokens_traded
                 else:
-                    output += f"Loss:     {_wei_to_dai(collateral_amount)}\n"
-                    total_losses += collateral_amount
+                    earnings = 0
+
+                output += f"Earnings: {_wei_to_dai(earnings)}\n"
+                total_earnings += earnings
+                redeemed = _is_redeemed(user_json, condition_id)
+                output += f"Redeemed: {redeemed}\n"
+
+                if redeemed:
+                    total_redeemed += earnings
             else:
                 output += "Market not yet finalized.\n"
                 total_pending_finalization += 1
@@ -152,17 +211,18 @@ def parse_response(res: requests.Response) -> str:  # pylint: disable=too-many-l
     output += "Summary\n"
     output += "-------\n"
 
-    output += f'Num. trades: {len(res_json["data"]["fpmmTrades"])} ({total_pending_finalization} pending finalization)\n'
+    output += f'Num. trades: {len(trades_json["data"]["fpmmTrades"])} ({total_pending_finalization} pending finalization)\n'
     output += f"Invested:    {_wei_to_dai(total_collateral_amount)}\n"
     output += f"Fees:        {_wei_to_dai(total_fee_amount)}\n"
-    output += f"Profits:     {_wei_to_dai(total_profits)}\n"
-    output += f"Losses:      {_wei_to_dai(total_losses)}\n"
+    output += f"Earnings:    {_wei_to_dai(total_earnings)} (net earnings {_wei_to_dai(total_earnings-total_fee_amount-total_collateral_amount)})\n"
+    output += f"Redeemed:    {_wei_to_dai(total_redeemed)}\n"
 
     return output
 
 
 if __name__ == "__main__":
     creator = parse_arg()
-    response = query_subgraph()
-    parsed = parse_response(response)
+    _trades_json = query_omen_xdai_subgraph()
+    _user_json = query_conditional_tokens_gc_subgraph()
+    parsed = parse_response(_trades_json, _user_json)
     print(parsed)
