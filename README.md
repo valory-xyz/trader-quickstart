@@ -45,8 +45,6 @@ cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build
     cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS; cd ..
     ```
 
-    Please be aware that this script does not keep track of whether the redeemable amounts have been claimed.
-
 3. Use this command to investigate your agent's logs:
 
     ```bash
