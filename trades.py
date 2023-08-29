@@ -79,7 +79,10 @@ conditional_tokens_gc_user_query = Template(
     """
     {
         user(id: "${creator}") {
-            userPositions {
+            userPositions(
+                first: 1000
+                skip: 0
+            ) {
                 balance
                 id
                 position {
