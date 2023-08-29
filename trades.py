@@ -27,6 +27,9 @@ from typing import Any
 import requests
 
 
+QUERY_BATCH_SIZE = 1000
+INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+
 headers = {
     "Accept": "application/json, multipart/mixed",
     "Content-Type": "application/json",
@@ -38,8 +41,8 @@ omen_xdai_trades_query = Template(
     {
         fpmmTrades(
             where: {type: Buy, creator: "${creator}"}
-            first: 1000
-            skip: 0
+            first: ${first}
+            skip: ${skip}
         ) {
             id
             title
@@ -78,10 +81,10 @@ omen_xdai_trades_query = Template(
 conditional_tokens_gc_user_query = Template(
     """
     {
-        user(id: "${creator}") {
+        user(id: "${id}") {
             userPositions(
-                first: 1000
-                skip: 0
+                first: ${first}
+                skip: ${skip}
             ) {
                 balance
                 id
@@ -118,20 +121,58 @@ def to_content(q: str) -> dict[str, Any]:
 
 def query_omen_xdai_subgraph() -> dict[str, Any]:
     """Query the subgraph."""
-    query = omen_xdai_trades_query.substitute(creator=creator.lower())
-    content_json = to_content(query)
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
-    res = requests.post(url, headers=headers, json=content_json)
-    return res.json()
+
+    all_results: dict[str, Any] = {"data": {"fpmmTrades": []}}
+    skip = 0
+    while True:
+        query = omen_xdai_trades_query.substitute(
+            creator=creator.lower(), first=QUERY_BATCH_SIZE, skip=skip
+        )
+        content_json = to_content(query)
+        res = requests.post(url, headers=headers, json=content_json)
+        result_json = res.json()
+        trades = result_json.get("data", {}).get("fpmmTrades", [])
+
+        if not trades:
+            break
+
+        all_results["data"]["fpmmTrades"].extend(trades)
+        skip += QUERY_BATCH_SIZE
+
+    return all_results
 
 
 def query_conditional_tokens_gc_subgraph() -> dict[str, Any]:
     """Query the subgraph."""
-    query = conditional_tokens_gc_user_query.substitute(creator=creator.lower())
-    content_json = to_content(query)
     url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
-    res = requests.post(url, headers=headers, json=content_json)
-    return res.json()
+
+    all_results: dict[str, Any] = {"data": {"user": {"userPositions": []}}}
+    skip = 0
+    while True:
+        query = conditional_tokens_gc_user_query.substitute(
+            id=creator.lower(), first=QUERY_BATCH_SIZE, skip=skip
+        )
+        content_json = {"query": query}
+        res = requests.post(url, headers=headers, json=content_json)
+        result_json = res.json()
+        user_data = result_json.get("data", {}).get("user", {})
+
+        if not user_data:
+            break
+
+        user_positions = user_data.get("userPositions", [])
+
+        if user_positions:
+            all_results["data"]["user"]["userPositions"].extend(user_positions)
+            skip += QUERY_BATCH_SIZE
+        else:
+            break
+
+    if len(all_results["data"]["user"]["userPositions"]) == 0:
+        return {"data": {"user": None}}
+
+    return all_results
 
 
 def _wei_to_dai(wei: int) -> str:
@@ -153,7 +194,7 @@ def _is_redeemed(user_json: dict[str, Any], condition_id: str) -> bool:
     return False
 
 
-def parse_response(  # pylint: disable=too-many-locals
+def parse_response(  # pylint: disable=too-many-locals,too-many-statements
     trades_json: dict[str, Any], user_json: dict[str, Any]
 ) -> str:
     """Parse the trades from the response."""
@@ -187,7 +228,11 @@ def parse_response(  # pylint: disable=too-many-locals
 
             if answer_finalized_timestamp is not None and not is_pending_arbitration:
                 current_answer = int(fpmm["currentAnswer"], 16)
-                if outcome_index == current_answer:
+                is_invalid = current_answer == INVALID_ANSWER
+
+                if is_invalid:
+                    earnings = collateral_amount
+                elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                 else:
                     earnings = 0
@@ -199,6 +244,9 @@ def parse_response(  # pylint: disable=too-many-locals
 
                 if redeemed:
                     total_redeemed += earnings
+
+                if is_invalid:
+                    output += "Market has been resolved as invalid.\n"
             else:
                 output += "Market not yet finalized.\n"
                 total_pending_finalization += 1
