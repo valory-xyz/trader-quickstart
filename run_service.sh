@@ -10,6 +10,12 @@ then
 fi
 
 # Check dependencies
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+else
+    PYTHON_CMD="python"
+fi
+
 command -v git >/dev/null 2>&1 ||
 { echo >&2 "Git is not installed!";
   exit 1
@@ -63,7 +69,7 @@ fi
 new_filter_supported=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc" | \
-  python3 -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='The method eth_newFilter does not exist/is not available')")
+  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='The method eth_newFilter does not exist/is not available')")
 
 if [ "$new_filter_supported" = True ]
 then
@@ -142,7 +148,7 @@ then
     agent_balance=0
     operator_balance=0
     suggested_amount=50000000000000000
-    until [[ $(python3 -c "print($agent_balance > ($suggested_amount-1))") == "True" && $(python3 -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
+    until [[ $($PYTHON_CMD -c "print($agent_balance > ($suggested_amount-1))") == "True" && $($PYTHON_CMD -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
     do
         echo "Agent instance's balance: $agent_balance WEI."
         echo "Operator's balance: $operator_balance WEI."
@@ -153,11 +159,11 @@ then
         agent_balance=$(curl -s -S -X POST \
           -H "Content-Type: application/json" \
           --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$agent_address"'","latest"],"id":1}' "$rpc" | \
-          python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
+          $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])")
         operator_balance=$(curl -s -S -X POST \
           -H "Content-Type: application/json" \
           --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$operator_address"'","latest"],"id":1}' "$rpc" | \
-          python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
+          $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])")
         agent_balance=$((16#${agent_balance#??}))
         operator_balance=$((16#${operator_balance#??}))
     done
@@ -252,17 +258,17 @@ get_balance() {
     curl -s -S -X POST \
         -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$SAFE_CONTRACT_ADDRESS"'","latest"],"id":1}' "$rpc" | \
-        python3 -c "import sys, json; print(json.load(sys.stdin)['result'])"
+        $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])"
 }
 
 convert_hex_to_decimal() {
-    python3 -c "print(int('$1', 16))"
+    $PYTHON_CMD -c "print(int('$1', 16))"
 }
 
 suggested_amount=500000000000000000
 safe_balance_hex=$(get_balance)
 safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
-while [ "$(python3 -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
+while [ "$($PYTHON_CMD -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
     echo "Safe's balance: $safe_balance WEI."
     echo "The safe address needs to be funded."
     echo "Please fund it with the amount you want to use for trading (at least 0.5 xDAI) to continue."
@@ -299,8 +305,15 @@ if [ -d $directory ]
 then
     echo "Detected an existing build. Using this one..."
     cd $service_dir
-    echo "You will need to provide sudo password in order for the script to delete part of the build artifacts."
-    sudo rm -rf $build_dir
+
+    if rm -rf "$build_dir"; then
+        echo "Directory "$build_dir" removed successfully."
+    else
+        # If the above command fails, use sudo to remove
+        echo "You will need to provide sudo password in order for the script to delete part of the build artifacts."
+        sudo rm -rf "$build_dir"
+        echo "Directory "$build_dir" removed successfully."
+    fi
 else
     echo "Setting up the service..."
 
