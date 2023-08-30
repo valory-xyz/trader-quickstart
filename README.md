@@ -85,8 +85,55 @@ rm -rf trader
 
 Then continue above with "Run the script".
 
-## Mac users
+## Advice for Mac users
 
 In Docker Desktop make sure that in `Settings -> Advanced` the following boxes are ticked
 
 ![Docker Desktop settings](images/docker.png)
+
+## Advice for Windows users
+
+We provide some hints to have your Windows system ready to run the agent. The instructions below have been tested in Windows 11.
+
+Execute the following steps in a PowerShell terminal:
+
+1. Install [Git](https://git-scm.com/download/win) and Git Bash:
+
+    ```bash
+    winget install --id Git.Git -e --source winget
+    ```
+
+2. Install Python 3.10:
+
+    ```bash
+    winget install Python.Python.3.10
+    ```
+3. Close and re-open the PowerShell terminal.
+
+4. Install [Poetry](https://python-poetry.org/docs/):
+
+    ```bash
+    curl.exe -sSL https://install.python-poetry.org | python -
+    ```
+
+5. Add Poetry to your user's path:
+
+    ```bash
+    $existingUserPath = (Get-Item -Path HKCU:\Environment).GetValue("PATH", $null, "DoNotExpandEnvironmentNames")
+
+    $newUserPath = "$existingUserPath;$Env:APPDATA\Python\Scripts"
+
+    [System.Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+    ```
+
+6. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/):
+
+    ```bash
+    winget install -e --id Docker.DockerDesktop
+    ```
+
+7. Log out of your Windows session and then log back in.
+
+8. Open [Docker Desktop](https://www.docker.com/products/docker-desktop/) and leave it opened in the background.
+
+Now, open a Git Bash terminal and follow the instructions in the "[Run the script](#run-the-script)" section as well as the subsequent sections. You might need to install Microsoft Visual C++ 14.0 or greater.
