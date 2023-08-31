@@ -160,8 +160,8 @@ then
     suggested_amount=50000000000000000
     until [[ $($PYTHON_CMD -c "print($agent_balance > ($suggested_amount-1))") == "True" && $($PYTHON_CMD -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
     do
-        echo "Agent address: $agent_address. Balance: $agent_balance WEI."
-        echo "Operator address: $operator_address. Balance: $operator_balance WEI."
+        echo "Agent instance's address: $agent_address. Balance: $agent_balance WEI."
+        echo "Operator's address: $operator_address. Balance: $operator_balance WEI."
         echo "Both of the addresses need to be funded to cover gas costs."
         echo "Please fund them with at least 0.05 xDAI each to continue."
         echo "Checking again in 10s..."
