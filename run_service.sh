@@ -2,6 +2,8 @@
 
 set -e  # Exit script on first error
 
+echo "Starting the script..."
+
 # Check if user is inside a venv
 if [[ "$VIRTUAL_ENV" != "" ]]
 then
@@ -12,8 +14,16 @@ fi
 # Check dependencies
 if command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
-else
+elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
+else
+    echo >&2 "Python is not installed!";
+    exit 1
+fi
+
+if [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.10."* ]]; then
+    echo >&2 "Python version 3.10.* is required but found $($PYTHON_CMD --version 2>&1)";
+    exit 1
 fi
 
 command -v git >/dev/null 2>&1 ||
@@ -150,8 +160,8 @@ then
     suggested_amount=50000000000000000
     until [[ $($PYTHON_CMD -c "print($agent_balance > ($suggested_amount-1))") == "True" && $($PYTHON_CMD -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
     do
-        echo "Agent instance's balance: $agent_balance WEI."
-        echo "Operator's balance: $operator_balance WEI."
+        echo "Agent address: $agent_address. Balance: $agent_balance WEI."
+        echo "Operator address: $operator_address. Balance: $operator_balance WEI."
         echo "Both of the addresses need to be funded to cover gas costs."
         echo "Please fund them with at least 0.05 xDAI each to continue."
         echo "Checking again in 10s..."
@@ -270,7 +280,7 @@ safe_balance_hex=$(get_balance)
 safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
 while [ "$($PYTHON_CMD -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
     echo "Safe's balance: $safe_balance WEI."
-    echo "The safe address needs to be funded."
+    echo "The safe address $safe needs to be funded."
     echo "Please fund it with the amount you want to use for trading (at least 0.5 xDAI) to continue."
     echo "Checking again in 10s..."
     sleep 10
