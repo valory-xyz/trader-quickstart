@@ -90,3 +90,9 @@ Then continue above with "Run the script".
 In Docker Desktop make sure that in `Settings -> Advanced` the following boxes are ticked
 
 ![Docker Desktop settings](images/docker.png)
+
+## Windows users
+
+A guide with helpful advice for Windows users is coming soon. In the meantime check out
+[this blog post](https://mirror.xyz/quantumtekh.eth/j9Jgz5yaRSwMZNr2VSIITF5ZeUrDgU0mOzOMGI0o2lk) by user [tekh](https://mirror.xyz/quantumtekh.eth),
+which contains a lot of useful information.
