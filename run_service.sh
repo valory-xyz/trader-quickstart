@@ -41,8 +41,10 @@ command -v docker >/dev/null 2>&1 ||
   exit 1
 }
 
-echo "Please make sure Docker is running."
-docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null
+docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
+{ echo >&2 "Please make sure Docker is running.";
+  exit 1
+}
 
 store=".trader_runner"
 rpc_path="$store/rpc.txt"
