@@ -2,6 +2,8 @@
 
 set -e  # Exit script on first error
 
+echo "Starting the script..."
+
 # Check if user is inside a venv
 if [[ "$VIRTUAL_ENV" != "" ]]
 then
@@ -10,6 +12,20 @@ then
 fi
 
 # Check dependencies
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_CMD="python"
+else
+    echo >&2 "Python is not installed!";
+    exit 1
+fi
+
+if [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.10."* ]]; then
+    echo >&2 "Python version 3.10.* is required but found $($PYTHON_CMD --version 2>&1)";
+    exit 1
+fi
+
 command -v git >/dev/null 2>&1 ||
 { echo >&2 "Git is not installed!";
   exit 1
@@ -25,7 +41,10 @@ command -v docker >/dev/null 2>&1 ||
   exit 1
 }
 
-docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null
+docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
+{ echo >&2 "Please make sure Docker is running.";
+  exit 1
+}
 
 store=".trader_runner"
 rpc_path="$store/rpc.txt"
@@ -63,7 +82,7 @@ fi
 new_filter_supported=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc" | \
-  python3 -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='The method eth_newFilter does not exist/is not available')")
+  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='The method eth_newFilter does not exist/is not available')")
 
 if [ "$new_filter_supported" = True ]
 then
@@ -77,7 +96,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.5.0"
+service_version="v0.5.1"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -142,10 +161,10 @@ then
     agent_balance=0
     operator_balance=0
     suggested_amount=50000000000000000
-    until [[ $(python3 -c "print($agent_balance > ($suggested_amount-1))") == "True" && $(python3 -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
+    until [[ $($PYTHON_CMD -c "print($agent_balance > ($suggested_amount-1))") == "True" && $($PYTHON_CMD -c "print($operator_balance > ($suggested_amount-1))") == "True" ]];
     do
-        echo "Agent instance's balance: $agent_balance WEI."
-        echo "Operator's balance: $operator_balance WEI."
+        echo "Agent instance's address: $agent_address. Balance: $agent_balance WEI."
+        echo "Operator's address: $operator_address. Balance: $operator_balance WEI."
         echo "Both of the addresses need to be funded to cover gas costs."
         echo "Please fund them with at least 0.05 xDAI each to continue."
         echo "Checking again in 10s..."
@@ -153,11 +172,11 @@ then
         agent_balance=$(curl -s -S -X POST \
           -H "Content-Type: application/json" \
           --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$agent_address"'","latest"],"id":1}' "$rpc" | \
-          python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
+          $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])")
         operator_balance=$(curl -s -S -X POST \
           -H "Content-Type: application/json" \
           --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$operator_address"'","latest"],"id":1}' "$rpc" | \
-          python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
+          $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])")
         agent_balance=$((16#${agent_balance#??}))
         operator_balance=$((16#${operator_balance#??}))
     done
@@ -252,19 +271,19 @@ get_balance() {
     curl -s -S -X POST \
         -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","method":"eth_getBalance","params":["'"$SAFE_CONTRACT_ADDRESS"'","latest"],"id":1}' "$rpc" | \
-        python3 -c "import sys, json; print(json.load(sys.stdin)['result'])"
+        $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])"
 }
 
 convert_hex_to_decimal() {
-    python3 -c "print(int('$1', 16))"
+    $PYTHON_CMD -c "print(int('$1', 16))"
 }
 
 suggested_amount=500000000000000000
 safe_balance_hex=$(get_balance)
 safe_balance=$(convert_hex_to_decimal $safe_balance_hex)
-while [ "$(python3 -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
+while [ "$($PYTHON_CMD -c "print($safe_balance < $suggested_amount)")" == "True" ]; do
     echo "Safe's balance: $safe_balance WEI."
-    echo "The safe address needs to be funded."
+    echo "The safe address $safe needs to be funded."
     echo "Please fund it with the amount you want to use for trading (at least 0.5 xDAI) to continue."
     echo "Checking again in 10s..."
     sleep 10
@@ -299,8 +318,15 @@ if [ -d $directory ]
 then
     echo "Detected an existing build. Using this one..."
     cd $service_dir
-    echo "You will need to provide sudo password in order for the script to delete part of the build artifacts."
-    sudo rm -rf $build_dir
+
+    if rm -rf "$build_dir"; then
+        echo "Directory "$build_dir" removed successfully."
+    else
+        # If the above command fails, use sudo to remove
+        echo "You will need to provide sudo password in order for the script to delete part of the build artifacts."
+        sudo rm -rf "$build_dir"
+        echo "Directory "$build_dir" removed successfully."
+    fi
 else
     echo "Setting up the service..."
 
