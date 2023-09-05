@@ -110,8 +110,8 @@ else
     exit 1
 fi
 
-if [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.10."* ]]; then
-    echo >&2 "Python version 3.10.* is required but found $($PYTHON_CMD --version 2>&1)";
+if [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.10."* ]] && [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.11."* ]]; then
+    echo >&2 "Python version >=3.10.0, <3.12.0 is required but found $($PYTHON_CMD --version 2>&1)";
     exit 1
 fi
 
