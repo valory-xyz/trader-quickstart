@@ -142,6 +142,7 @@ keys_json="keys.json"
 keys_json_path="$store/$keys_json"
 agent_address_path="$store/agent_address.txt"
 service_id_path="$store/service_id.txt"
+service_safe_address_path="$store/service_safe_address.txt"
 
 if [ -d $store ]; then
     first_run=false
@@ -338,6 +339,7 @@ address_start_position=31
 safe=$(echo "$safe" |
   awk '{ print substr( $0, '$address_start_position', length($0) - '$address_start_position' - 3 ) }')
 export SAFE_CONTRACT_ADDRESS=$safe
+echo -n "$safe" > "../$service_safe_address_path"
 
 echo "Your agent instance's address: $agent_address"
 echo "Your service's Safe address: $safe"
