@@ -44,40 +44,42 @@ get_balance() {
 ensure_minimum_balance() {
     local address="$1"
     local minimum_balance="$2"
-    local message="$3"
+    local address_description="$3"
 
     balance_hex=$(get_balance "$address")
     balance=$(hex_to_decimal "$balance_hex")
 
-    echo "$message"
-    echo "    - Address: $address"
-    echo "    - Balance: $(wei_to_dai $balance) DAI"
+    echo "Checking balance of $address_description (minimum required $(wei_to_dai $minimum_balance) DAI):"
+    echo "  - Address: $address"
+    echo "  - Balance: $(wei_to_dai $balance) DAI"
 
-    local spin='-\|/'
-    local i=0
-    local cycle_count=0
-    local waited=false
-    while [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; do
-        printf "\r      Waiting... ${spin:$i:1} "
-        i=$(( (i+1) %4 ))
-        sleep .1
+    if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
+        echo ""
+        echo "    Please, fund address $address with at least $(wei_to_dai $minimum_balance) DAI."
 
-        # This will be checked every 10 seconds (100 cycles).
-        cycle_count=$((cycle_count + 1))        
-        if [ "$cycle_count" -eq 100 ]; then
-            balance_hex=$(get_balance "$address")
-            balance=$(hex_to_decimal "$balance_hex")
-            cycle_count=0
-            waited=true
-        fi
-    done
+        local spin='-\|/'
+        local i=0
+        local cycle_count=0
+        while [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; do
+            printf "\r    Waiting... ${spin:$i:1} "
+            i=$(( (i+1) %4 ))
+            sleep .1
 
-    if [ "$waited" = true ]; then
-        printf "\r      Waiting...   \n"
-        echo "    - Updated balance: $(wei_to_dai $balance) DAI"
+            # This will be checked every 10 seconds (100 cycles).
+            cycle_count=$((cycle_count + 1))        
+            if [ "$cycle_count" -eq 100 ]; then
+                balance_hex=$(get_balance "$address")
+                balance=$(hex_to_decimal "$balance_hex")
+                cycle_count=0
+            fi
+        done
+
+        printf "\r    Waiting...   \n"
+        echo ""
+        echo "  - Updated balance: $(wei_to_dai $balance) DAI"
     fi
 
-    echo "      OK."
+    echo "    OK."
     echo ""
 }
 
@@ -260,7 +262,7 @@ then
     operator_balance=0
     suggested_amount=50000000000000000
 
-    ensure_minimum_balance $operator_address $suggested_amount "Please, fund the operator's address with at least $(wei_to_dai $suggested_amount) DAI."
+    ensure_minimum_balance $operator_address $suggested_amount "operator's address"
 
     echo "Minting your service on the Gnosis chain..."
 
@@ -351,10 +353,10 @@ echo "Your service's Safe address: $safe"
 echo ""
 
 suggested_amount=50000000000000000
-ensure_minimum_balance $agent_address $suggested_amount "Please, fund your agent instance's address with at least $(wei_to_dai $suggested_amount) DAI."    
+ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
 suggested_amount=500000000000000000
-ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "Please, fund your service Safe's address with at least $(wei_to_dai $suggested_amount) DAI."
+ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
 
 # Set environment variables. Tweak these to modify your strategy
 export RPC_0="$rpc"
