@@ -20,7 +20,9 @@
 
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
+import time
 from argparse import ArgumentParser
+from enum import Enum
 from string import Template
 from typing import Any
 
@@ -44,6 +46,8 @@ omen_xdai_trades_query = Template(
             where: {type: Buy, creator: "${creator}"}
             first: ${first}
             skip: ${skip}
+            orderBy: creationTimestamp
+            orderDirection: asc
         ) {
             id
             title
@@ -69,6 +73,7 @@ omen_xdai_trades_query = Template(
                 currentAnswer
                 isPendingArbitration
                 arbitrationOccurred
+                openingTimestamp
                 condition {
                     id
                 }
@@ -100,6 +105,21 @@ conditional_tokens_gc_user_query = Template(
     }
     """
 )
+
+
+class MarketStatus(Enum):
+    """Market status"""
+
+    UNDEFINED = 0
+    OPEN = 1
+    PENDING = 2
+    FINALIZING = 3
+    ARBITRATING = 4
+    CLOSED = 5
+
+    def __str__(self) -> str:
+        """Prints the market status."""
+        return self.name.capitalize()
 
 
 def parse_arg() -> str:
@@ -207,7 +227,7 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
     total_fee_amount = 0
     total_earnings = 0
     total_redeemed = 0
-    total_pending_finalization = 0
+    total_unclosed = 0
     for fpmmTrade in trades_json["data"]["fpmmTrades"]:
         try:
             collateral_amount = int(fpmmTrade["collateralAmount"])
@@ -220,50 +240,70 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
             fpmm = fpmmTrade["fpmm"]
             answer_finalized_timestamp = fpmm["answerFinalizedTimestamp"]
             is_pending_arbitration = fpmm["isPendingArbitration"]
+            opening_timestamp = fpmm["openingTimestamp"]
             condition_id = fpmm["condition"]["id"]
 
-            output += f'Market:   https://aiomen.eth.limo/#/{fpmm["id"]}\n'
-            output += f'Question: {fpmmTrade["title"]}\n'
-            output += f"Bought:   {_wei_to_dai(collateral_amount)} for {_wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
-            output += f"Fee:      {_wei_to_dai(fee_amount)}\n"
+            output += f'       MARKET: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
+            output += f'     Question: {fpmmTrade["title"]}\n'
 
-            if answer_finalized_timestamp is not None and not is_pending_arbitration:
-                current_answer = int(fpmm["currentAnswer"], 16)
+            market_status = MarketStatus.UNDEFINED
+            if fpmm["currentAnswer"] is None and time.time() >= float(
+                opening_timestamp
+            ):
+                market_status = MarketStatus.PENDING
+                total_unclosed += 1
+            elif fpmm["currentAnswer"] is None:
+                market_status = MarketStatus.OPEN
+                total_unclosed += 1
+            elif is_pending_arbitration:
+                market_status = MarketStatus.ARBITRATING
+                total_unclosed += 1
+            elif time.time() < float(answer_finalized_timestamp):
+                market_status = MarketStatus.FINALIZING
+                total_unclosed += 1
+            else:
+                market_status = MarketStatus.CLOSED
+
+            output += f"Market status: {market_status}\n"
+            output += f"       Bought: {_wei_to_dai(collateral_amount)} for {_wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
+            output += f"          Fee: {_wei_to_dai(fee_amount)}\n"
+
+            if market_status == MarketStatus.CLOSED:
+                current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
                 is_invalid = current_answer == INVALID_ANSWER
+
+                output += f"  Your answer: {fpmm['outcomes'][outcome_index]!r}\n"
 
                 if is_invalid:
                     earnings = collateral_amount
+                    output += " Final answer: Market has been declared invalid.\n"
+                    output += f"     Earnings: {_wei_to_dai(earnings)}\n"
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
+                    output += f" Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the correct answer.\n"
+                    output += f"     Earnings: {_wei_to_dai(earnings)}\n"
+                    redeemed = _is_redeemed(user_json, condition_id)
+                    output += f"     Redeemed: {redeemed}\n"
+                    if redeemed:
+                        total_redeemed += earnings
                 else:
                     earnings = 0
+                    output += f" Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the incorrect answer.\n"
 
-                output += f"Earnings: {_wei_to_dai(earnings)}\n"
                 total_earnings += earnings
-                redeemed = _is_redeemed(user_json, condition_id)
-                output += f"Redeemed: {redeemed}\n"
-
-                if redeemed:
-                    total_redeemed += earnings
-
-                if is_invalid:
-                    output += "Market has been resolved as invalid.\n"
 
                 if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
-            else:
-                output += "Market not yet finalized.\n"
-                total_pending_finalization += 1
 
             output += "\n"
         except TypeError:
-            output += "ERROR RETRIEVING TRADE INFORMATION.\n"
+            output += "ERROR RETRIEVING TRADE INFORMATION.\n\n"
 
     output += "-------\n"
     output += "Summary\n"
     output += "-------\n"
 
-    output += f'Num. trades: {len(trades_json["data"]["fpmmTrades"])} ({total_pending_finalization} pending finalization)\n'
+    output += f'Num. trades: {len(trades_json["data"]["fpmmTrades"])} ({total_unclosed} on markets not yet closed)\n'
     output += f"Invested:    {_wei_to_dai(total_collateral_amount)}\n"
     output += f"Fees:        {_wei_to_dai(total_fee_amount)}\n"
     output += f"Earnings:    {_wei_to_dai(total_earnings)} (net earnings {_wei_to_dai(total_earnings-total_fee_amount-total_collateral_amount)})\n"
