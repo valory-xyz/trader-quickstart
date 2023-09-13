@@ -243,8 +243,8 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
             opening_timestamp = fpmm["openingTimestamp"]
             condition_id = fpmm["condition"]["id"]
 
-            output += f'       MARKET: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
-            output += f'     Question: {fpmmTrade["title"]}\n'
+            output += f'      Question: {fpmmTrade["title"]}\n'
+            output += f'    Market URL: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
 
             market_status = MarketStatus.UNDEFINED
             if fpmm["currentAnswer"] is None and time.time() >= float(
@@ -264,31 +264,38 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
             else:
                 market_status = MarketStatus.CLOSED
 
-            output += f"Market status: {market_status}\n"
-            output += f"       Bought: {_wei_to_dai(collateral_amount)} for {_wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
-            output += f"          Fee: {_wei_to_dai(fee_amount)}\n"
+            output += f" Market status: {market_status}\n"
+            output += f"        Bought: {_wei_to_dai(collateral_amount)} for {_wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
+            output += f"           Fee: {_wei_to_dai(fee_amount)}\n"
+            output += f"   Your answer: {fpmm['outcomes'][outcome_index]!r}\n"
 
-            if market_status == MarketStatus.CLOSED:
+            if market_status == MarketStatus.FINALIZING:
                 current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
                 is_invalid = current_answer == INVALID_ANSWER
 
-                output += f"  Your answer: {fpmm['outcomes'][outcome_index]!r}\n"
+                if is_invalid:
+                    output += "Current answer: Market has been declared invalid.\n"
+                else:
+                    output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
+            elif market_status == MarketStatus.CLOSED:
+                current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
+                is_invalid = current_answer == INVALID_ANSWER
 
                 if is_invalid:
                     earnings = collateral_amount
-                    output += " Final answer: Market has been declared invalid.\n"
-                    output += f"     Earnings: {_wei_to_dai(earnings)}\n"
+                    output += "  Final answer: Market has been declared invalid.\n"
+                    output += f"      Earnings: {_wei_to_dai(earnings)}\n"
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
-                    output += f" Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the correct answer.\n"
-                    output += f"     Earnings: {_wei_to_dai(earnings)}\n"
+                    output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the correct answer.\n"
+                    output += f"      Earnings: {_wei_to_dai(earnings)}\n"
                     redeemed = _is_redeemed(user_json, condition_id)
-                    output += f"     Redeemed: {redeemed}\n"
+                    output += f"      Redeemed: {redeemed}\n"
                     if redeemed:
                         total_redeemed += earnings
                 else:
                     earnings = 0
-                    output += f" Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the incorrect answer.\n"
+                    output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the incorrect answer.\n"
 
                 total_earnings += earnings
 
