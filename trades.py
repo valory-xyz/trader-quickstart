@@ -107,8 +107,8 @@ conditional_tokens_gc_user_query = Template(
 )
 
 
-class MarketStatus(Enum):
-    """Market status"""
+class MarketState(Enum):
+    """Market state"""
 
     UNDEFINED = 0
     OPEN = 1
@@ -122,7 +122,23 @@ class MarketStatus(Enum):
         return self.name.capitalize()
 
 
-def parse_arg() -> str:
+class MarketAttribute(Enum):
+    """Market status"""
+
+    NUM_TRADES = "Num. trades"
+    INVESTMENT = "Invested"
+    FEES = "Fees"
+    EARNINGS = "Earnings"
+    NET_EARNINGS = "Net earnings"
+    REDEMPTIONS = "Redeemed"
+    ROI = "ROI"
+
+    def __str__(self) -> str:
+        """Prints the market status."""
+        return self.value
+
+
+def _parse_arg() -> str:
     """Parse the creator positional argument."""
     parser = ArgumentParser()
     parser.add_argument("creator")
@@ -130,7 +146,7 @@ def parse_arg() -> str:
     return args.creator
 
 
-def to_content(q: str) -> dict[str, Any]:
+def _to_content(q: str) -> dict[str, Any]:
     """Convert the given query string to payload content, i.e., add it under a `queries` key and convert it to bytes."""
     finalized_query = {
         "query": q,
@@ -140,7 +156,7 @@ def to_content(q: str) -> dict[str, Any]:
     return finalized_query
 
 
-def query_omen_xdai_subgraph() -> dict[str, Any]:
+def _query_omen_xdai_subgraph() -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
@@ -150,7 +166,7 @@ def query_omen_xdai_subgraph() -> dict[str, Any]:
         query = omen_xdai_trades_query.substitute(
             creator=creator.lower(), first=QUERY_BATCH_SIZE, skip=skip
         )
-        content_json = to_content(query)
+        content_json = _to_content(query)
         res = requests.post(url, headers=headers, json=content_json)
         result_json = res.json()
         trades = result_json.get("data", {}).get("fpmmTrades", [])
@@ -164,7 +180,7 @@ def query_omen_xdai_subgraph() -> dict[str, Any]:
     return all_results
 
 
-def query_conditional_tokens_gc_subgraph() -> dict[str, Any]:
+def _query_conditional_tokens_gc_subgraph() -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
 
@@ -198,7 +214,7 @@ def query_conditional_tokens_gc_subgraph() -> dict[str, Any]:
 
 def _wei_to_dai(wei: int) -> str:
     dai = wei / 10**18
-    formatted_dai = "{:.4f}".format(dai)
+    formatted_dai = "{:.2f}".format(dai)
     return f"{formatted_dai} DAI"
 
 
@@ -215,10 +231,155 @@ def _is_redeemed(user_json: dict[str, Any], condition_id: str) -> bool:
     return False
 
 
-def parse_response(  # pylint: disable=too-many-locals,too-many-statements
+def _compute_roi(investment: int, net_earnings: int) -> float:
+    if investment != 0:
+        roi = ((net_earnings) / investment) * 100.0
+    else:
+        roi = 0.0
+
+    return roi
+
+
+def _compute_totals(table: dict[Any, dict[Any, Any]]) -> None:
+    columns = [
+        MarketState.OPEN,
+        MarketState.PENDING,
+        MarketState.FINALIZING,
+        MarketState.ARBITRATING,
+        MarketState.CLOSED,
+        "TOTAL",
+    ]
+
+    for row in table.keys():
+        total = sum(table[row][c] for c in table[row])
+        table[row]["TOTAL"] = total
+
+    for col in columns:
+        table[MarketAttribute.NET_EARNINGS][col] = (
+            table[MarketAttribute.EARNINGS][col]
+            - table[MarketAttribute.FEES][col]
+            - table[MarketAttribute.INVESTMENT][col]
+        )
+        table[MarketAttribute.ROI][col] = _compute_roi(
+            table[MarketAttribute.INVESTMENT][col],
+            table[MarketAttribute.NET_EARNINGS][col],
+        )
+
+
+def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
+    columns = [
+        MarketState.OPEN,
+        MarketState.PENDING,
+        MarketState.FINALIZING,
+        MarketState.ARBITRATING,
+        MarketState.CLOSED,
+        "TOTAL",
+    ]
+    column_width = 14
+
+    table_str = " " * column_width
+
+    for col in columns:
+        table_str += f"{col:>{column_width}}"
+
+    table_str += "\n"
+    table_str += "-" * column_width * (len(columns) + 1) + "\n"
+
+    table_str += (
+        f"{MarketAttribute.NUM_TRADES:<{column_width}}"
+        + "".join(
+            [f"{table[MarketAttribute.NUM_TRADES][c]:>{column_width}}" for c in columns]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.INVESTMENT:<{column_width}}"
+        + "".join(
+            [
+                f"{_wei_to_dai(table[MarketAttribute.INVESTMENT][c]):>{column_width}}"
+                for c in columns
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.FEES:<{column_width}}"
+        + "".join(
+            [
+                f"{_wei_to_dai(table[MarketAttribute.FEES][c]):>{column_width}}"
+                for c in columns
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.EARNINGS:<{column_width}}"
+        + "".join(
+            [
+                f"{_wei_to_dai(table[MarketAttribute.EARNINGS][c]):>{column_width}}"
+                for c in columns
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.NET_EARNINGS:<{column_width}}"
+        + "".join(
+            [
+                f"{_wei_to_dai(table[MarketAttribute.NET_EARNINGS][c]):>{column_width}}"
+                for c in columns
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.REDEMPTIONS:<{column_width}}"
+        + "".join(
+            [
+                f"{_wei_to_dai(table[MarketAttribute.REDEMPTIONS][c]):>{column_width}}"
+                for c in columns
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.ROI:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.ROI][c]:>{column_width-4}.2f} %  "
+                for c in columns
+            ]
+        )
+        + "\n"
+    )
+
+    return table_str
+
+
+def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
     trades_json: dict[str, Any], user_json: dict[str, Any]
 ) -> str:
     """Parse the trades from the response."""
+
+    columns = [
+        MarketState.OPEN,
+        MarketState.PENDING,
+        MarketState.FINALIZING,
+        MarketState.ARBITRATING,
+        MarketState.CLOSED,
+        "TOTAL",
+    ]
+    rows = [
+        MarketAttribute.NUM_TRADES,
+        MarketAttribute.INVESTMENT,
+        MarketAttribute.FEES,
+        MarketAttribute.EARNINGS,
+        MarketAttribute.NET_EARNINGS,
+        MarketAttribute.REDEMPTIONS,
+        MarketAttribute.ROI,
+    ]
+    statistics_table = {row: {col: 0 for col in columns} for row in rows}
+
     output = "------\n"
     output += "Trades\n"
     output += "------\n"
@@ -246,30 +407,36 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
             output += f'      Question: {fpmmTrade["title"]}\n'
             output += f'    Market URL: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
 
-            market_status = MarketStatus.UNDEFINED
+            market_status = MarketState.UNDEFINED
             if fpmm["currentAnswer"] is None and time.time() >= float(
                 opening_timestamp
             ):
-                market_status = MarketStatus.PENDING
+                market_status = MarketState.PENDING
                 total_unclosed += 1
             elif fpmm["currentAnswer"] is None:
-                market_status = MarketStatus.OPEN
+                market_status = MarketState.OPEN
                 total_unclosed += 1
             elif is_pending_arbitration:
-                market_status = MarketStatus.ARBITRATING
+                market_status = MarketState.ARBITRATING
                 total_unclosed += 1
             elif time.time() < float(answer_finalized_timestamp):
-                market_status = MarketStatus.FINALIZING
+                market_status = MarketState.FINALIZING
                 total_unclosed += 1
             else:
-                market_status = MarketStatus.CLOSED
+                market_status = MarketState.CLOSED
+
+            statistics_table[MarketAttribute.NUM_TRADES][market_status] += 1
+            statistics_table[MarketAttribute.INVESTMENT][
+                market_status
+            ] += collateral_amount
+            statistics_table[MarketAttribute.FEES][market_status] += fee_amount
 
             output += f" Market status: {market_status}\n"
             output += f"        Bought: {_wei_to_dai(collateral_amount)} for {_wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
             output += f"           Fee: {_wei_to_dai(fee_amount)}\n"
             output += f"   Your answer: {fpmm['outcomes'][outcome_index]!r}\n"
 
-            if market_status == MarketStatus.FINALIZING:
+            if market_status == MarketState.FINALIZING:
                 current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
                 is_invalid = current_answer == INVALID_ANSWER
 
@@ -277,7 +444,7 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
                     output += "Current answer: Market has been declared invalid.\n"
                 else:
                     output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
-            elif market_status == MarketStatus.CLOSED:
+            elif market_status == MarketState.CLOSED:
                 current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
                 is_invalid = current_answer == INVALID_ANSWER
 
@@ -292,10 +459,15 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
                     redeemed = _is_redeemed(user_json, condition_id)
                     output += f"      Redeemed: {redeemed}\n"
                     if redeemed:
+                        statistics_table[MarketAttribute.REDEMPTIONS][
+                            market_status
+                        ] += earnings
                         total_redeemed += earnings
                 else:
                     earnings = 0
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the incorrect answer.\n"
+
+                statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
 
                 total_earnings += earnings
 
@@ -306,22 +478,21 @@ def parse_response(  # pylint: disable=too-many-locals,too-many-statements
         except TypeError:
             output += "ERROR RETRIEVING TRADE INFORMATION.\n\n"
 
-    output += "-------\n"
-    output += "Summary\n"
-    output += "-------\n"
+    output += "\n"
+    output += "--------------------------\n"
+    output += "Summary (per market state)\n"
+    output += "--------------------------\n"
+    output += "\n"
 
-    output += f'Num. trades: {len(trades_json["data"]["fpmmTrades"])} ({total_unclosed} on markets not yet closed)\n'
-    output += f"Invested:    {_wei_to_dai(total_collateral_amount)}\n"
-    output += f"Fees:        {_wei_to_dai(total_fee_amount)}\n"
-    output += f"Earnings:    {_wei_to_dai(total_earnings)} (net earnings {_wei_to_dai(total_earnings-total_fee_amount-total_collateral_amount)})\n"
-    output += f"Redeemed:    {_wei_to_dai(total_redeemed)}\n"
+    _compute_totals(statistics_table)
+    output += _format_table(statistics_table)
 
     return output
 
 
 if __name__ == "__main__":
-    creator = parse_arg()
-    _trades_json = query_omen_xdai_subgraph()
-    _user_json = query_conditional_tokens_gc_subgraph()
-    parsed = parse_response(_trades_json, _user_json)
+    creator = _parse_arg()
+    _trades_json = _query_omen_xdai_subgraph()
+    _user_json = _query_conditional_tokens_gc_subgraph()
+    parsed = _parse_response(_trades_json, _user_json)
     print(parsed)
