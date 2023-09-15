@@ -170,7 +170,7 @@ def _query_omen_xdai_subgraph() -> dict[str, Any]:
     while True:
         query = omen_xdai_trades_query.substitute(
             creator=creator.lower(),
-            fpmm_creator=FPMM_CREATOR,
+            fpmm_creator=FPMM_CREATOR.lower(),
             first=QUERY_BATCH_SIZE,
             skip=skip
         )
