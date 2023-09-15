@@ -32,6 +32,7 @@ import requests
 QUERY_BATCH_SIZE = 1000
 DUST_THRESHOLD = 10000000000000
 INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+FPMM_CREATOR = "0x89c5cc945dd550bcffb72fe42bff002429f46fec"
 
 headers = {
     "Accept": "application/json, multipart/mixed",
@@ -43,7 +44,7 @@ omen_xdai_trades_query = Template(
     """
     {
         fpmmTrades(
-            where: {type: Buy, creator: "${creator}"}
+            where: {type: Buy, creator: "${creator}" fpmm_: {creator: "${fpmm_creator}"} }
             first: ${first}
             skip: ${skip}
             orderBy: creationTimestamp
@@ -168,7 +169,10 @@ def _query_omen_xdai_subgraph() -> dict[str, Any]:
     skip = 0
     while True:
         query = omen_xdai_trades_query.substitute(
-            creator=creator.lower(), first=QUERY_BATCH_SIZE, skip=skip
+            creator=creator.lower(),
+            fpmm_creator=FPMM_CREATOR,
+            first=QUERY_BATCH_SIZE,
+            skip=skip
         )
         content_json = _to_content(query)
         res = requests.post(url, headers=headers, json=content_json)
