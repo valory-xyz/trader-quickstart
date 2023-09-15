@@ -110,7 +110,6 @@ conditional_tokens_gc_user_query = Template(
 class MarketState(Enum):
     """Market state"""
 
-    UNDEFINED = 0
     OPEN = 1
     PENDING = 2
     FINALIZING = 3
@@ -126,6 +125,7 @@ class MarketAttribute(Enum):
     """Market status"""
 
     NUM_TRADES = "Num. trades"
+    WINNER_TRADES = "Winner trades"
     INVESTMENT = "Invested"
     FEES = "Fees"
     EARNINGS = "Earnings"
@@ -138,9 +138,13 @@ class MarketAttribute(Enum):
         return self.value
 
 
+STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
+STATS_TABLE_ROWS = list(MarketAttribute)
+
+
 def _parse_arg() -> str:
     """Parse the creator positional argument."""
-    parser = ArgumentParser()
+    parser = ArgumentParser(description="Get trades on Omen for a Safe address.")
     parser.add_argument("creator")
     args = parser.parse_args()
     return args.creator
@@ -233,7 +237,7 @@ def _is_redeemed(user_json: dict[str, Any], condition_id: str) -> bool:
 
 def _compute_roi(investment: int, net_earnings: int) -> float:
     if investment != 0:
-        roi = ((net_earnings) / investment) * 100.0
+        roi = (net_earnings / investment) * 100.0
     else:
         roi = 0.0
 
@@ -241,20 +245,11 @@ def _compute_roi(investment: int, net_earnings: int) -> float:
 
 
 def _compute_totals(table: dict[Any, dict[Any, Any]]) -> None:
-    columns = [
-        MarketState.OPEN,
-        MarketState.PENDING,
-        MarketState.FINALIZING,
-        MarketState.ARBITRATING,
-        MarketState.CLOSED,
-        "TOTAL",
-    ]
-
     for row in table.keys():
         total = sum(table[row][c] for c in table[row])
         table[row]["TOTAL"] = total
 
-    for col in columns:
+    for col in STATS_TABLE_COLS:
         table[MarketAttribute.NET_EARNINGS][col] = (
             table[MarketAttribute.EARNINGS][col]
             - table[MarketAttribute.FEES][col]
@@ -267,28 +262,33 @@ def _compute_totals(table: dict[Any, dict[Any, Any]]) -> None:
 
 
 def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
-    columns = [
-        MarketState.OPEN,
-        MarketState.PENDING,
-        MarketState.FINALIZING,
-        MarketState.ARBITRATING,
-        MarketState.CLOSED,
-        "TOTAL",
-    ]
     column_width = 14
 
     table_str = " " * column_width
 
-    for col in columns:
+    for col in STATS_TABLE_COLS:
         table_str += f"{col:>{column_width}}"
 
     table_str += "\n"
-    table_str += "-" * column_width * (len(columns) + 1) + "\n"
+    table_str += "-" * column_width * (len(STATS_TABLE_COLS) + 1) + "\n"
 
     table_str += (
         f"{MarketAttribute.NUM_TRADES:<{column_width}}"
         + "".join(
-            [f"{table[MarketAttribute.NUM_TRADES][c]:>{column_width}}" for c in columns]
+            [
+                f"{table[MarketAttribute.NUM_TRADES][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.WINNER_TRADES:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.WINNER_TRADES][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
         )
         + "\n"
     )
@@ -297,7 +297,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{_wei_to_dai(table[MarketAttribute.INVESTMENT][c]):>{column_width}}"
-                for c in columns
+                for c in STATS_TABLE_COLS
             ]
         )
         + "\n"
@@ -307,7 +307,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{_wei_to_dai(table[MarketAttribute.FEES][c]):>{column_width}}"
-                for c in columns
+                for c in STATS_TABLE_COLS
             ]
         )
         + "\n"
@@ -317,7 +317,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{_wei_to_dai(table[MarketAttribute.EARNINGS][c]):>{column_width}}"
-                for c in columns
+                for c in STATS_TABLE_COLS
             ]
         )
         + "\n"
@@ -327,7 +327,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{_wei_to_dai(table[MarketAttribute.NET_EARNINGS][c]):>{column_width}}"
-                for c in columns
+                for c in STATS_TABLE_COLS
             ]
         )
         + "\n"
@@ -337,7 +337,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{_wei_to_dai(table[MarketAttribute.REDEMPTIONS][c]):>{column_width}}"
-                for c in columns
+                for c in STATS_TABLE_COLS
             ]
         )
         + "\n"
@@ -347,7 +347,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{table[MarketAttribute.ROI][c]:>{column_width-4}.2f} %  "
-                for c in columns
+                for c in STATS_TABLE_COLS
             ]
         )
         + "\n"
@@ -361,41 +361,19 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
 ) -> str:
     """Parse the trades from the response."""
 
-    columns = [
-        MarketState.OPEN,
-        MarketState.PENDING,
-        MarketState.FINALIZING,
-        MarketState.ARBITRATING,
-        MarketState.CLOSED,
-        "TOTAL",
-    ]
-    rows = [
-        MarketAttribute.NUM_TRADES,
-        MarketAttribute.INVESTMENT,
-        MarketAttribute.FEES,
-        MarketAttribute.EARNINGS,
-        MarketAttribute.NET_EARNINGS,
-        MarketAttribute.REDEMPTIONS,
-        MarketAttribute.ROI,
-    ]
-    statistics_table = {row: {col: 0 for col in columns} for row in rows}
+    statistics_table = {
+        row: {col: 0 for col in STATS_TABLE_COLS} for row in STATS_TABLE_ROWS
+    }
 
     output = "------\n"
     output += "Trades\n"
     output += "------\n"
 
-    total_collateral_amount = 0
-    total_fee_amount = 0
-    total_earnings = 0
-    total_redeemed = 0
-    total_unclosed = 0
     for fpmmTrade in trades_json["data"]["fpmmTrades"]:
         try:
             collateral_amount = int(fpmmTrade["collateralAmount"])
-            total_collateral_amount += collateral_amount
             outcome_index = int(fpmmTrade["outcomeIndex"])
             fee_amount = int(fpmmTrade["feeAmount"])
-            total_fee_amount += fee_amount
             outcomes_tokens_traded = int(fpmmTrade["outcomeTokensTraded"])
 
             fpmm = fpmmTrade["fpmm"]
@@ -407,23 +385,17 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
             output += f'      Question: {fpmmTrade["title"]}\n'
             output += f'    Market URL: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
 
-            market_status = MarketState.UNDEFINED
+            market_status = MarketState.CLOSED
             if fpmm["currentAnswer"] is None and time.time() >= float(
                 opening_timestamp
             ):
                 market_status = MarketState.PENDING
-                total_unclosed += 1
             elif fpmm["currentAnswer"] is None:
                 market_status = MarketState.OPEN
-                total_unclosed += 1
             elif is_pending_arbitration:
                 market_status = MarketState.ARBITRATING
-                total_unclosed += 1
             elif time.time() < float(answer_finalized_timestamp):
                 market_status = MarketState.FINALIZING
-                total_unclosed += 1
-            else:
-                market_status = MarketState.CLOSED
 
             statistics_table[MarketAttribute.NUM_TRADES][market_status] += 1
             statistics_table[MarketAttribute.INVESTMENT][
@@ -441,9 +413,18 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
                 is_invalid = current_answer == INVALID_ANSWER
 
                 if is_invalid:
+                    earnings = collateral_amount
                     output += "Current answer: Market has been declared invalid.\n"
-                else:
+                elif outcome_index == current_answer:
+                    earnings = outcomes_tokens_traded
                     output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
+                    statistics_table[MarketAttribute.WINNER_TRADES][market_status] += 1
+                else:
+                    earnings = 0
+                    output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
+
+                statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
+
             elif market_status == MarketState.CLOSED:
                 current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
                 is_invalid = current_answer == INVALID_ANSWER
@@ -454,22 +435,21 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
                     output += f"      Earnings: {_wei_to_dai(earnings)}\n"
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
-                    output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the correct answer.\n"
+                    output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
                     output += f"      Earnings: {_wei_to_dai(earnings)}\n"
                     redeemed = _is_redeemed(user_json, condition_id)
                     output += f"      Redeemed: {redeemed}\n"
+                    statistics_table[MarketAttribute.WINNER_TRADES][market_status] += 1
+
                     if redeemed:
                         statistics_table[MarketAttribute.REDEMPTIONS][
                             market_status
                         ] += earnings
-                        total_redeemed += earnings
                 else:
                     earnings = 0
-                    output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the incorrect answer.\n"
+                    output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the loser answer.\n"
 
                 statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
-
-                total_earnings += earnings
 
                 if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
