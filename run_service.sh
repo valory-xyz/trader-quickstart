@@ -311,7 +311,7 @@ then
     # deploy service
     deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
     # validate deployment
-    if ! [[ "$deployment" = "Service deployed succesfully" ]]
+    if ! [[ "$deployment" = "Service deployed successfully" ]]
     then
         echo "Service deployment failed: $deployment"
         exit 1
