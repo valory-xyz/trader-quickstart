@@ -258,11 +258,8 @@ then
     echo ""
 
     # Check balances
-    agent_balance=0
-    operator_balance=0
     suggested_amount=50000000000000000
-
-    ensure_minimum_balance $operator_address $suggested_amount "operator's address"
+    ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
     echo "Minting your service on the Gnosis chain..."
 
