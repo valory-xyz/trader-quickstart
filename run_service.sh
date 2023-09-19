@@ -109,6 +109,54 @@ extract_private_key() {
   echo -n "$private_key"
 }
 
+# Brings a minted on-chain service from "pre-registration" state to "deployed" state
+deploy_on_chain_service() {
+    local service_id="$1"
+    local service_owner_pkey="$2"
+    local operator_pkey="$3"
+    local agent_id="$4"
+    local agent_address="$5"
+
+    local service_owner_pkey_file="tmp_service_owner_pkey.txt"
+    echo -n $"${service_owner_pkey_file#0x}" > "$service_owner_pkey_file"
+
+    local operator_pkey_file="tmp_operator_pkey.txt"
+    echo -n "${operator_private_key#0x}" > "$operator_pkey_file"
+
+    # activate service
+    echo "[Service owner] Activating registration for on-chain service $service_id..."
+    local output=$(poetry run autonomy service --use-custom-chain activate --key "$service_owner_pkey_file" "$service_id")
+    if [[ $? -ne 0 ]];
+    then
+        echo "Activating service failed.\n$output"
+        rm $service_owner_pkey_file
+        rm $operator_pkey_file
+        exit 1
+    fi
+
+    # register agent instance
+    echo "[Operator] Registering agent instance for on-chain service $service_id..."
+    local output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    if [[ $? -ne 0 ]];
+    then
+        echo "Registering agent instance failed.\n$output"
+        rm $service_owner_pkey_file
+        rm $operator_pkey_file
+        exit 1
+    fi
+
+    # deploy service
+    echo "[Service owner] Deploying on-chain service $service_id..."
+    local output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
+    if [[ $? -ne 0 ]];
+    then
+        echo "Deploying service failed.\n$output"
+        rm $service_owner_pkey_file
+        rm $operator_pkey_file
+        exit 1
+    fi
+}
+
 
 # ------------------
 # Script starts here
@@ -316,40 +364,8 @@ then
         exit 1
     fi
 
-    echo "[Service owner] Activating registration for on-chain service $service_id..."
-    # activate service
-    activation=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-    # validate activation
-    if ! [[ "$activation" = "Service activated succesfully" ]]
-    then
-        echo "Service registration activation failed: $activation"
-        exit 1
-    fi
-
-    echo "[Service owner] Registering agent instance for on-chain service $service_id..."
-    # register agent instance
-    registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-    # validate registration
-    if ! [[ "$registration" = "Agent instance registered succesfully" ]]
-    then
-        echo "Service registration failed: $registration"
-        exit 1
-    fi
-
-    echo "[Service owner] Deploying on-chain service $service_id..."
-    # deploy service
-    echo $operator_pkey_file
-    echo $service_id
-    cat $operator_pkey_file
-    echo ""
-    echo "-------..."
-    deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
-    # validate deployment
-    if ! [[ "$deployment" = "Service deployed successfully" ]]
-    then
-        echo "Service deployment failed: $deployment"
-        exit 1
-    fi
+    # Bring the service to the "deployed" state (service_owner_private_key = operator_private_key)
+    deploy_on_chain_service $service_id $operator_private_key $operator_private_key $agent_id $agent_address
 
     # delete the operator's pkey file
     rm $operator_pkey_file
@@ -359,7 +375,7 @@ else
     packages=packages/packages.json
     local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
     remote_service_hash=$(poetry run python "../scripts/service_hash.py")
-    if [ "$local_service_hash" != "$remote_service_hash" ];
+    if [ "$local_service_hash" == "$remote_service_hash" ];
     then
         echo ""
         echo "WARNING: Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
@@ -389,8 +405,7 @@ else
             # generate private key file in the format required by the CLI tool
             operator_pkey_file="operator_pkey.txt"
             operator_private_key=$(extract_private_key "../$operator_keys_file")
-            operator_private_key="${operator_private_key#0x}"
-            echo -n $operator_private_key > "$operator_pkey_file"
+            echo -n "${operator_private_key#0x}" > "$operator_pkey_file"
 
             # terminate current service
             echo "[Service owner] Terminating on-chain service $service_id..."
@@ -444,42 +459,8 @@ else
                 exit 1
             fi
 
-            # activate service
-            echo "[Service owner] Activating registration for on-chain service $service_id..."
-            output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-            if [[ $? -ne 0 ]];
-            then
-                echo "Activating service failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
-
-            # register agent instance
-            echo "[Service owner] Registering agent instance for on-chain service $service_id..."
-            agent_address=$(extract_address "../$keys_json_path")
-            output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-            if [[ $? -ne 0 ]];
-            then
-                echo "Registering agent instance failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
-
-            # deploy service
-            echo "[Service owner] Deploying on-chain service $service_id..."
-            echo $operator_pkey_file
-            echo $service_id
-            cat $operator_pkey_file
-            echo ""
-            echo "..."
-            echo $service_id
-            output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
-            if [[ $? -ne 0 ]];
-            then
-                echo "Deploying service failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
+            # Bring the service to the "deployed" state (service_owner_private_key = operator_private_key)
+            deploy_on_chain_service $service_id $operator_private_key $operator_private_key $agent_id $agent_address
 
             # delete the operator's pkey file
             rm $operator_pkey_file
