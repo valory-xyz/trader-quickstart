@@ -219,7 +219,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.0"
+service_version="v0.6.1"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -249,6 +249,7 @@ export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0xE3607b00E75f6405248323A9417ff6b39B244b50"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
+export CUSTOM_GNOSIS_SAFE_MULTISIG_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415df3D2D8232B3d3D31e44"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
@@ -363,15 +364,18 @@ else
     if [ "$local_service_hash" != "$remote_service_hash" ];
     then
         echo ""
-        echo "WARNING:"
-        echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service (version $service_version)."
+        echo "WARNING: Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
+        echo "  - Local service hash ($service_version): $local_service_hash"
+        echo "  - On-chain service hash (id $service_id): $remote_service_hash"
+        echo ""
         echo "This is most likely caused due to an update of the code of the service."
         echo "Is it recommended that you update your on-chain service."
-        echo "If you continue updating your on-chain service, you might be required to fund your service owner/operator wallet."
+        echo "If you want to update your on-chain service, you might be required to fund your service owner/operator wallet."
         echo "You can also continue without updating your on-chain service, but it is not recommended."
         echo ""
 
         read -p "Do you want to update your on-chain service $service_id? (Y/N): " response
+        echo ""
 
         response_lowercase=$(echo "$response" | tr '[:upper:]' '[:lower:]')
         if [ "$response_lowercase" = "y" ] || [ "$response_lowercase" = "yes" ]; then
@@ -392,76 +396,76 @@ else
 
             # terminate current service
             echo "[Service owner] Terminating on-chain service $service_id..."
-            # output=$(poetry run autonomy service \
-            #     --use-custom-chain \
-            #     terminate "$service_id" \
-            #     --key "$operator_pkey_file" \
-            # )
-            # if [[ $? -ne 0 ]];
-            # then
-            #     echo "Terminating service failed.\n$output"
-            #     rm $operator_pkey_file
-            #     exit 1
-            # fi
+            output=$(poetry run autonomy service \
+                --use-custom-chain \
+                terminate "$service_id" \
+                --key "$operator_pkey_file" \
+            )
+            if [[ $? -ne 0 ]];
+            then
+                echo "Terminating service failed.\n$output"
+                rm $operator_pkey_file
+                exit 1
+            fi
 
             # unbond current service
             echo "[Operator] Unbonding on-chain service $service_id..."
-            # output=$(poetry run autonomy service \
-            #     --use-custom-chain \
-            #     unbond "$service_id" \
-            #     --key "$operator_pkey_file" \
-            # )
-            # if [[ $? -ne 0 ]];
-            # then
-            #     echo "Unbonding service failed.\n$output"
-            #     rm $operator_pkey_file
-            #     exit 1
-            # fi
+            output=$(poetry run autonomy service \
+                --use-custom-chain \
+                unbond "$service_id" \
+                --key "$operator_pkey_file" \
+            )
+            if [[ $? -ne 0 ]];
+            then
+                echo "Unbonding service failed.\n$output"
+                rm $operator_pkey_file
+                exit 1
+            fi
 
             # update service
             echo "[Service owner] Updating on-chain service $service_id..."
             agent_id=12
-            # cost_of_bonding=10000000000000000
-            # nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-            # output=$(poetry run autonomy mint \
-            #     --skip-hash-check \
-            #     --use-custom-chain \
-            #     service packages/valory/services/$directory/ \
-            #     --key "$operator_pkey_file" \
-            #     --nft $nft \
-            #     -a $agent_id \
-            #     -n $n_agents \
-            #     --threshold $n_agents \
-            #     -c $cost_of_bonding \
-            #     --update "$service_id"
-            # )
-            # if [[ $? -ne 0 ]];
-            # then
-            #     echo "Updating service failed.\n$output"
-            #     rm $operator_pkey_file
-            #     exit 1
-            # fi
+            cost_of_bonding=10000000000000000
+            nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
+            output=$(poetry run autonomy mint \
+                --skip-hash-check \
+                --use-custom-chain \
+                service packages/valory/services/$directory/ \
+                --key "$operator_pkey_file" \
+                --nft $nft \
+                -a $agent_id \
+                -n $n_agents \
+                --threshold $n_agents \
+                -c $cost_of_bonding \
+                --update "$service_id"
+            )
+            if [[ $? -ne 0 ]];
+            then
+                echo "Updating service failed.\n$output"
+                rm $operator_pkey_file
+                exit 1
+            fi
 
             # activate service
             echo "[Service owner] Activating registration for on-chain service $service_id..."
-            # output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-            # if [[ $? -ne 0 ]];
-            # then
-            #     echo "Activating service failed.\n$output"
-            #     rm $operator_pkey_file
-            #     exit 1
-            # fi
+            output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
+            if [[ $? -ne 0 ]];
+            then
+                echo "Activating service failed.\n$output"
+                rm $operator_pkey_file
+                exit 1
+            fi
 
             # register agent instance
             echo "[Service owner] Registering agent instance for on-chain service $service_id..."
             agent_address=$(extract_address "../$keys_json_path")
-            # output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-            # if [[ $? -ne 0 ]];
-            # then
-            #     echo "Registering agent instance failed.\n$output"
-            #     rm $operator_pkey_file
-            #     exit 1
-            # fi
+            output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+            if [[ $? -ne 0 ]];
+            then
+                echo "Registering agent instance failed.\n$output"
+                rm $operator_pkey_file
+                exit 1
+            fi
 
             # deploy service
             echo "[Service owner] Deploying on-chain service $service_id..."
