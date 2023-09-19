@@ -83,7 +83,7 @@ ensure_minimum_balance() {
     echo ""
 }
 
-# Extract the address key from a keys.json file
+# Extract the address from a keys.json file
 extract_address() {
   local keys_json_path="$1"
 
