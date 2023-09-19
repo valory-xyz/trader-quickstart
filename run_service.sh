@@ -219,7 +219,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.1"
+service_version="v0.6.0"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -327,6 +327,8 @@ then
 
     echo "[Service owner] Registering agent instance for on-chain service $service_id..."
     # register agent instance
+    echo "!!!!!"
+    echo $agent_address
     registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
     # validate registration
     if ! [[ "$registration" = "Agent instance registered succesfully" ]]
@@ -337,6 +339,11 @@ then
 
     echo "[Service owner] Deploying on-chain service $service_id..."
     # deploy service
+    echo $operator_pkey_file
+    echo $service_id
+    cat $operator_pkey_file
+    echo ""
+    echo "-------..."
     deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
     # validate deployment
     if ! [[ "$deployment" = "Service deployed successfully" ]]
@@ -353,7 +360,7 @@ else
     packages=packages/packages.json
     local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
     remote_service_hash=$(poetry run python "../scripts/service_hash.py")
-    if [ "$local_service_hash" == "$remote_service_hash" ];
+    if [ "$local_service_hash" != "$remote_service_hash" ];
     then
         echo ""
         echo "WARNING:"
@@ -413,7 +420,7 @@ else
 
             # update service
             echo "[Service owner] Updating on-chain service $service_id..."
-            # agent_id=12
+            agent_id=12
             # cost_of_bonding=10000000000000000
             # nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
             # output=$(poetry run autonomy mint \
@@ -437,27 +444,34 @@ else
 
             # activate service
             echo "[Service owner] Activating registration for on-chain service $service_id..."
-            output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-            if [[ $? -ne 0 ]];
-            then
-                echo "Activating service failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
+            # output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
+            # if [[ $? -ne 0 ]];
+            # then
+            #     echo "Activating service failed.\n$output"
+            #     rm $operator_pkey_file
+            #     exit 1
+            # fi
 
             # register agent instance
             echo "[Service owner] Registering agent instance for on-chain service $service_id..."
-            output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-            if [[ $? -ne 0 ]];
-            then
-                echo "Registering agent instance failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
+            agent_address=$(extract_address "../$keys_json_path")
+            # output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+            # if [[ $? -ne 0 ]];
+            # then
+            #     echo "Registering agent instance failed.\n$output"
+            #     rm $operator_pkey_file
+            #     exit 1
+            # fi
 
             # deploy service
             echo "[Service owner] Deploying on-chain service $service_id..."
-            output=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
+            echo $operator_pkey_file
+            echo $service_id
+            cat $operator_pkey_file
+            echo ""
+            echo "..."
+            echo $service_id
+            output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
             if [[ $? -ne 0 ]];
             then
                 echo "Deploying service failed.\n$output"
@@ -501,7 +515,7 @@ echo ""
 suggested_amount=50000000000000000
 ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
-suggested_amount=500000000000000000
+suggested_amount=50000000000000000
 ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
 
 # Set environment variables. Tweak these to modify your strategy
