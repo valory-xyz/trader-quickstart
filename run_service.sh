@@ -328,8 +328,6 @@ then
 
     echo "[Service owner] Registering agent instance for on-chain service $service_id..."
     # register agent instance
-    echo "!!!!!"
-    echo $agent_address
     registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
     # validate registration
     if ! [[ "$registration" = "Agent instance registered succesfully" ]]
