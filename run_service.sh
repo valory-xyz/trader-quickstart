@@ -193,7 +193,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.0.post1"
+service_version="v0.6.2"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -351,6 +351,10 @@ echo -n "$safe" > "../$service_safe_address_path"
 echo "Your agent instance's address: $agent_address"
 echo "Your service's Safe address: $safe"
 echo ""
+
+poetry run autonomy --version
+git status
+
 
 suggested_amount=50000000000000000
 ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
