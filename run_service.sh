@@ -352,10 +352,6 @@ echo "Your agent instance's address: $agent_address"
 echo "Your service's Safe address: $safe"
 echo ""
 
-poetry run autonomy --version
-git status
-
-
 suggested_amount=50000000000000000
 ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
