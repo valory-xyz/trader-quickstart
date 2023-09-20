@@ -267,7 +267,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.1"
+service_version="v0.6.2"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -364,9 +364,35 @@ then
         exit 1
     fi
 
-    # Bring the service to the "deployed" state (service_owner_private_key = operator_private_key)
-    operator_pkey=$(extract_private_key "../$operator_keys_file")
-    deploy_on_chain_service $service_id $operator_pkey $operator_pkey $agent_id $agent_address
+    echo "[Service owner] Activating registration for service with id $service_id..."
+    # activate service
+    activation=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
+    # validate activation
+    if ! [[ "$activation" = "Service activated succesfully" ]]
+    then
+        echo "Service registration activation failed: $activation"
+        exit 1
+    fi
+
+    echo "[Service owner] Registering agent instance for service with id $service_id..."
+    # register service
+    registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    # validate registration
+    if ! [[ "$registration" = "Agent instance registered succesfully" ]]
+    then
+        echo "Service registration failed: $registration"
+        exit 1
+    fi
+
+    echo "[Service owner] Deploying service with id $service_id..."
+    # deploy service
+    deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
+    # validate deployment
+    if ! [[ "$deployment" = "Service deployed succesfully" ]]
+    then
+        echo "Service deployment failed: $deployment"
+        exit 1
+    fi
 
     # delete the operator's pkey file
     rm $operator_pkey_file
