@@ -153,7 +153,7 @@ deploy_on_chain_service() {
         exit 1
     fi
 
-    # deploy service
+    # deploy on-chain service
     echo "[Service owner] Deploying on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
     if [[ $? -ne 0 ]];
@@ -164,6 +164,45 @@ deploy_on_chain_service() {
         exit 1
     fi
 }
+
+# deploy and run the service
+deploy_and_run() {
+    if [ -d $directory ]
+    then
+        echo "Detected an existing build. Using this one..."
+        cd $service_dir
+
+        if rm -rf "$build_dir"; then
+            echo "Directory "$build_dir" removed successfully."
+        else
+            # If the above command fails, use sudo to remove
+            echo "You will need to provide sudo password in order for the script to delete part of the build artifacts."
+            sudo rm -rf "$build_dir"
+            echo "Directory "$build_dir" removed successfully."
+        fi
+    else
+        echo "Setting up the service..."
+
+        if ! [ -d "$service_dir" ]; then
+            # Fetch the service
+            poetry run autonomy fetch --local --service valory/trader --alias $service_dir
+        fi
+
+        cd $service_dir
+        # Build the image
+        poetry run autonomy build-image
+        cp ../../$keys_json_path $keys_json
+    fi
+
+    # Build the deployment with a single agent
+    poetry run autonomy deploy build --n $n_agents -ltm
+
+    cd ..
+
+    # Run the deployment
+    poetry run autonomy deploy run --build-dir $directory --detach
+}
+
 
 
 # ------------------
@@ -291,7 +330,8 @@ fi
 cd $directory
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
-    poetry install
+    # poetry install
+    echo "poetry install"
 else
     echo "$directory is not a git repo!"
     exit 1
@@ -406,103 +446,6 @@ then
     rm $operator_pkey_file
     # store service id
     echo -n "$service_id" > "../$service_id_path"
-else
-    packages=packages/packages.json
-    local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
-    remote_service_hash=$(poetry run python "../scripts/service_hash.py")
-    if [ "$local_service_hash" != "$remote_service_hash" ];
-    then
-        echo ""
-        echo "WARNING: Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
-        echo "  - Local service hash ($service_version): $local_service_hash"
-        echo "  - On-chain service hash (id $service_id): $remote_service_hash"
-        echo ""
-        echo "This is most likely caused due to an update of the code of the service."
-        echo "Is it recommended that you update your on-chain service."
-        echo "If you want to update your on-chain service, you might be required to fund your service owner/operator wallet."
-        echo "You can also continue without updating your on-chain service, but it is not recommended."
-        echo ""
-
-        read -p "Do you want to update your on-chain service $service_id? (Y/N): " response
-        echo ""
-
-        response_lowercase=$(echo "$response" | tr '[:upper:]' '[:lower:]')
-        if [ "$response_lowercase" = "y" ] || [ "$response_lowercase" = "yes" ]; then
-
-            echo "Starting update of on-chain service $service_id..."
-
-            # Check balances
-            operator_address=$(get_address "../$operator_keys_file")
-
-            suggested_amount=20000000000000000
-            ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
-
-            # generate private key file in the format required by the CLI tool
-            operator_pkey_file="operator_pkey.txt"
-            operator_pkey=$(get_private_key "../$operator_keys_file")
-            operator_pkey="${operator_pkey#0x}"
-            echo -n "$operator_pkey" > "$operator_pkey_file"
-
-            # terminate current service
-            echo "[Service owner] Terminating on-chain service $service_id..."
-            output=$(poetry run autonomy service \
-                --use-custom-chain \
-                terminate "$service_id" \
-                --key "$operator_pkey_file" \
-            )
-            if [[ $? -ne 0 ]];
-            then
-                echo "Terminating service failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
-
-            # unbond current service
-            echo "[Operator] Unbonding on-chain service $service_id..."
-            output=$(poetry run autonomy service \
-                --use-custom-chain \
-                unbond "$service_id" \
-                --key "$operator_pkey_file" \
-            )
-            if [[ $? -ne 0 ]];
-            then
-                echo "Unbonding service failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
-
-            # update service
-            echo "[Service owner] Updating on-chain service $service_id..."
-            agent_id=12
-            cost_of_bonding=10000000000000000
-            nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-            output=$(poetry run autonomy mint \
-                --skip-hash-check \
-                --use-custom-chain \
-                service packages/valory/services/$directory/ \
-                --key "$operator_pkey_file" \
-                --nft $nft \
-                -a $agent_id \
-                -n $n_agents \
-                --threshold $n_agents \
-                -c $cost_of_bonding \
-                --update "$service_id"
-            )
-            if [[ $? -ne 0 ]];
-            then
-                echo "Updating service failed.\n$output"
-                rm $operator_pkey_file
-                exit 1
-            fi
-
-            # Bring the service to the "deployed" state (service_owner_private_key = operator_private_key)
-            deploy_on_chain_service $service_id $operator_pkey $operator_pkey $agent_id $agent_address
-
-            # delete the operator's pkey file
-            rm $operator_pkey_file
-            echo "On-chain service $service_id updated successfully."
-        fi
-    fi
 fi
 
 # check state
@@ -531,12 +474,6 @@ echo "Your agent instance's address: $agent_address"
 echo "Your service's Safe address: $safe"
 echo ""
 
-suggested_amount=50000000000000000
-ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
-
-suggested_amount=500000000000000000
-ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
-
 # Set environment variables. Tweak these to modify your strategy
 export RPC_0="$rpc"
 export CHAIN_ID=$gnosis_chain_id
@@ -560,37 +497,125 @@ export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` 
 service_dir="trader_service"
 build_dir="abci_build"
 directory="$service_dir/$build_dir"
-if [ -d $directory ]
+
+
+# Update the on-chain service if required
+packages=packages/packages.json
+local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
+remote_service_hash=$(poetry run python "../scripts/service_hash.py")
+if [ "$local_service_hash" != "$remote_service_hash" ];
 then
-    echo "Detected an existing build. Using this one..."
-    cd $service_dir
+    echo "WARNING: Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
+    echo "  - Local service hash ($service_version): $local_service_hash"
+    echo "  - On-chain service hash (id $service_id): $remote_service_hash"
+    echo ""
+    echo "This is most likely caused due to an update of the code of the service."
+    echo "Is it recommended that you update your on-chain service."
+    echo "If you want to update your on-chain service, you might be required to fund your service owner/operator wallet."
+    echo "You can also continue without updating your on-chain service, but it is not recommended."
+    echo ""
 
-    if rm -rf "$build_dir"; then
-        echo "Directory "$build_dir" removed successfully."
-    else
-        # If the above command fails, use sudo to remove
-        echo "You will need to provide sudo password in order for the script to delete part of the build artifacts."
-        sudo rm -rf "$build_dir"
-        echo "Directory "$build_dir" removed successfully."
+    read -p "Do you want to update your on-chain service $service_id? (Y/N): " response
+    echo ""
+
+    response_lowercase=$(echo "$response" | tr '[:upper:]' '[:lower:]')
+    if [ "$response_lowercase" = "y" ] || [ "$response_lowercase" = "yes" ]; then
+
+        echo "Starting update of on-chain service $service_id..."
+
+        # Check balances
+        operator_address=$(get_address "../$operator_keys_file")
+
+        suggested_amount=20000000000000000
+        ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+
+        suggested_amount=50000000000000000
+        ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
+
+        # generate private key file in the format required by the CLI tool
+        operator_pkey_file="operator_pkey.txt"
+        operator_pkey=$(get_private_key "../$operator_keys_file")
+        operator_pkey="${operator_pkey#0x}"
+        echo -n "$operator_pkey" > "$operator_pkey_file"
+
+        # service must be running here
+        deploy_and_run
+
+        # send termination signal from service owner to service Safe
+        $PYTHON_CMD ../scripts/send_termination_signal.py "$operator_pkey_file" "$safe" "$rpc"
+
+        # wait untill ownership is transferred.
+        echo "Waiting 2 minutes. Please do not cancel..."
+        sleep 120  # Sleep for 2 minutes
+
+        # stop the service here
+        poetry run autonomy deploy stop --build-dir $directory
+
+        # terminate current service
+        echo "[Service owner] Terminating on-chain service $service_id..."
+        output=$(poetry run autonomy service \
+            --use-custom-chain \
+            terminate "$service_id" \
+            --key "$operator_pkey_file" \
+        )
+        if [[ $? -ne 0 ]];
+        then
+            echo "Terminating service failed.\n$output"
+            rm $operator_pkey_file
+            exit 1
+        fi
+
+        # unbond current service
+        echo "[Operator] Unbonding on-chain service $service_id..."
+        output=$(poetry run autonomy service \
+            --use-custom-chain \
+            unbond "$service_id" \
+            --key "$operator_pkey_file" \
+        )
+        if [[ $? -ne 0 ]];
+        then
+            echo "Unbonding service failed.\n$output"
+            rm $operator_pkey_file
+            exit 1
+        fi
+
+        # update service
+        echo "[Service owner] Updating on-chain service $service_id..."
+        agent_id=12
+        cost_of_bonding=10000000000000000
+        nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
+        output=$(poetry run autonomy mint \
+            --skip-hash-check \
+            --use-custom-chain \
+            service packages/valory/services/trader/ \
+            --key "$operator_pkey_file" \
+            --nft $nft \
+            -a $agent_id \
+            -n $n_agents \
+            --threshold $n_agents \
+            -c $cost_of_bonding \
+            --update "$service_id"
+        )
+        if [[ $? -ne 0 ]];
+        then
+            echo "Updating service failed.\n$output"
+            rm $operator_pkey_file
+            exit 1
+        fi
+
+        # Bring the service to the "deployed" state (service_owner_private_key = operator_private_key)
+        deploy_on_chain_service $service_id $operator_pkey $operator_pkey $agent_id $agent_address
+
+        # delete the operator's pkey file
+        rm $operator_pkey_file
+        echo "On-chain service $service_id updated successfully."
     fi
-else
-    echo "Setting up the service..."
-
-    if ! [ -d "$service_dir" ]; then
-        # Fetch the service
-        poetry run autonomy fetch --local --service valory/trader --alias $service_dir
-    fi
-
-    cd $service_dir
-    # Build the image
-    poetry run autonomy build-image
-    cp ../../$keys_json_path $keys_json
 fi
 
-# Build the deployment with a single agent
-poetry run autonomy deploy build --n $n_agents -ltm
+suggested_amount=50000000000000000
+ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
-cd ..
+suggested_amount=50000000000000000
+ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
 
-# Run the deployment
-poetry run autonomy deploy run --build-dir $directory --detach
+deploy_and_run
