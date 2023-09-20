@@ -83,30 +83,38 @@ ensure_minimum_balance() {
     echo ""
 }
 
-# Extract the address from a keys.json file
-extract_address() {
-  local keys_json_path="$1"
+# Get the address from a keys.json file
+get_address() {
+    local keys_json_path="$1"
 
-  if [ ! -f "$keys_json_path" ]; then
-    echo "Error: $keys_json_path does not exist."
-    return 1
-  fi
+    if [ ! -f "$keys_json_path" ]; then
+        echo "Error: $keys_json_path does not exist."
+        return 1
+    fi
 
-  address=$(jq -r '.[0].address' "$keys_json_path")
-  echo -n "$address"
+    local address_start_position=17
+    local address=$(sed -n 3p "$keys_json_path")
+    address=$(echo "$address" | \
+        awk '{ print substr( $0, '$address_start_position', length($0) - '$address_start_position' - 1 ) }')
+
+    echo -n "$address"
 }
 
-# Extract the private key from a keys.json file
-extract_private_key() {
-  local keys_json_path="$1"
+# Get the private key from a keys.json file
+get_private_key() {
+    local keys_json_path="$1"
 
-  if [ ! -f "$keys_json_path" ]; then
-    echo "Error: $keys_json_path does not exist."
-    return 1
-  fi
-  
-  private_key=$(jq -r '.[0].private_key' "$keys_json_path")
-  echo -n "$private_key"
+    if [ ! -f "$keys_json_path" ]; then
+        echo "Error: $keys_json_path does not exist."
+        return 1
+    fi
+
+    local private_key_start_position=21
+    local private_key=$(sed -n 4p "$keys_json_path")
+    private_key=$(echo -n "$private_key" | \
+        awk '{ printf substr( $0, '$private_key_start_position', length($0) - '$private_key_start_position' ) }')
+
+    echo -n "$private_key"
 }
 
 # Brings a minted on-chain service from "pre-registration" state to "deployed" state
@@ -424,14 +432,14 @@ else
             echo "Starting update of on-chain service $service_id..."
 
             # Check balances
-            operator_address=$(extract_address "../$operator_keys_file")
+            operator_address=$(get_address "../$operator_keys_file")
 
             suggested_amount=20000000000000000
             ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
             # generate private key file in the format required by the CLI tool
             operator_pkey_file="operator_pkey.txt"
-            operator_pkey=$(extract_private_key "../$operator_keys_file")
+            operator_pkey=$(get_private_key "../$operator_keys_file")
             operator_pkey="${operator_pkey#0x}"
             echo -n "$operator_pkey" > "$operator_pkey_file"
 
