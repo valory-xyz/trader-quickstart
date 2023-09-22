@@ -386,7 +386,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         echo "Updating on-chain service $service_id"
         echo "------------------------------"
         echo ""
-        echo ""
         echo "PLEASE DO NOT INTERRUPT THIS PROCESS."
         echo "Cancelling the process prematurely could lead to an inconsistent state for your Safe or on-chain service, which may require manual intervention to resolve."
         echo ""
@@ -501,7 +500,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 
         # deploy on-chain service
         echo "[Service owner] Deploying on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
+        output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file" --reuse-multisig)
         if [[ $? -ne 0 ]]; then
             echo "Deploying service failed.\n$output"
             rm -f $agent_pkey_file
