@@ -227,7 +227,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.2"
+service_version="v0.6.3"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -349,7 +349,8 @@ then
     # deploy service
     deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
     # validate deployment
-    if ! [[ "$deployment" = "Service deployed succesfully" ]]; then
+    if ! [[ "$deployment" = "Service deployed succesfully" ]]
+    then
         echo "Service deployment failed: $deployment"
         exit 1
     fi
@@ -536,7 +537,7 @@ address_start_position=31
 safe=$(echo "$safe" |
   awk '{ print substr( $0, '$address_start_position', length($0) - '$address_start_position' - 3 ) }')
 export SAFE_CONTRACT_ADDRESS=$safe
-echo -n "$safe" >"../$service_safe_address_path"
+echo -n "$safe" > "../$service_safe_address_path"
 
 echo "Your agent instance's address: $agent_address"
 echo "Your service's Safe address: $safe"
@@ -569,7 +570,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=50000000000000000
 ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
-suggested_amount=50000000000000000
+suggested_amount=500000000000000000
 ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
 
 if [ -d $directory ]
