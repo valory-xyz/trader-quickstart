@@ -374,15 +374,18 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo "Is it recommended that you update your on-chain service."
     echo "If you want to update your on-chain service, you might be required to fund your agent instance and service owner/operator wallet."
     echo ""
-    echo "This is a beta feature, please proceed at your own risk."
+    echo "**** This is an experimental feature, please proceed at your own risk. ****"
     echo ""
 
     read -p "Do you want to update your on-chain service $service_id? (Y/N): " response
 
     response_lowercase=$(echo "$response" | tr '[:upper:]' '[:lower:]')
     if [ "$response_lowercase" = "y" ] || [ "$response_lowercase" = "yes" ]; then
-
-        echo "Starting update of the on-chain service $service_id..."
+        echo ""
+        echo "------------------------------"
+        echo "Updating on-chain service $service_id"
+        echo "------------------------------"
+        echo ""
         echo ""
         echo "PLEASE DO NOT INTERRUPT THIS PROCESS."
         echo "Cancelling the process prematurely could lead to an inconsistent state for your Safe or on-chain service, which may require manual intervention to resolve."
@@ -515,7 +518,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 fi
 
 echo ""
+echo "------------------------------"
 echo "Starting the trader service..."
+echo "------------------------------"
+echo ""
 
 # check state
 expected_state="| Service State             | DEPLOYED                                     |"
