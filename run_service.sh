@@ -26,7 +26,7 @@ hex_to_decimal() {
 # Convert Wei to Dai
 wei_to_dai() {
     local wei="$1"
-    local decimal_precision=4 # Change this to your desired precision
+    local decimal_precision=4  # Change this to your desired precision
     local dai=$($PYTHON_CMD -c "print('%.${decimal_precision}f' % ($wei / 1000000000000000000.0))")
     echo "$dai"
 }
@@ -36,7 +36,7 @@ get_balance() {
     local address="$1"
     curl -s -S -X POST \
         -H "Content-Type: application/json" \
-        --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[\"$address\",\"latest\"],\"id\":1}" "$rpc" |
+        --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[\"$address\",\"latest\"],\"id\":1}" "$rpc" | \
         $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])"
 }
 
@@ -122,7 +122,7 @@ get_private_key() {
 # Script starts here
 # ------------------
 
-set -e # Exit script on first error
+set -e  # Exit script on first error
 echo "---------------"
 echo " Trader runner "
 echo "---------------"
@@ -130,7 +130,8 @@ echo "This script will assist you in setting up and running the Trader service (
 echo ""
 
 # Check if user is inside a venv
-if [[ "$VIRTUAL_ENV" != "" ]]; then
+if [[ "$VIRTUAL_ENV" != "" ]]
+then
     echo "Please exit the virtual environment!"
     exit 1
 fi
@@ -141,38 +142,34 @@ if command -v python3 >/dev/null 2>&1; then
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 else
-    echo >&2 "Python is not installed!"
+    echo >&2 "Python is not installed!";
     exit 1
 fi
 
 if [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.10."* ]] && [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.11."* ]]; then
-    echo >&2 "Python version >=3.10.0, <3.12.0 is required but found $($PYTHON_CMD --version 2>&1)"
+    echo >&2 "Python version >=3.10.0, <3.12.0 is required but found $($PYTHON_CMD --version 2>&1)";
     exit 1
 fi
 
 command -v git >/dev/null 2>&1 ||
-    {
-        echo >&2 "Git is not installed!"
-        exit 1
-    }
+{ echo >&2 "Git is not installed!";
+  exit 1
+}
 
 command -v poetry >/dev/null 2>&1 ||
-    {
-        echo >&2 "Poetry is not installed!"
-        exit 1
-    }
+{ echo >&2 "Poetry is not installed!";
+  exit 1
+}
 
 command -v docker >/dev/null 2>&1 ||
-    {
-        echo >&2 "Docker is not installed!"
-        exit 1
-    }
+{ echo >&2 "Docker is not installed!";
+  exit 1
+}
 
-docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &>/dev/null ||
-    {
-        echo >&2 "Docker is not running!"
-        exit 1
-    }
+docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
+{ echo >&2 "Docker is not running!";
+  exit 1
+}
 
 store=".trader_runner"
 rpc_path="$store/rpc.txt"
@@ -243,8 +240,7 @@ fi
 
 cd $directory
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]; then
-    # poetry install
-    echo "poetry install"
+    poetry install
     poetry run autonomy packages sync
 else
     echo "$directory is not a git repo!"
