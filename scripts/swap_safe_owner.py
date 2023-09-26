@@ -58,7 +58,7 @@ def load_contract(ctype: ContractType) -> ContractType:
 
 if __name__ == "__main__":
     try:
-        print(f"Starting {Path(__file__).name} script...")
+        print(f"  - Starting {Path(__file__).name} script...")
 
         parser = argparse.ArgumentParser(
             description="Swap ownership of a Safe with a single owner on the Gnosis chain."

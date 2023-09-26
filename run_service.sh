@@ -123,9 +123,11 @@ get_private_key() {
 # ------------------
 
 set -e  # Exit script on first error
+echo ""
 echo "---------------"
 echo " Trader runner "
 echo "---------------"
+echo ""
 echo "This script will assist you in setting up and running the Trader service (https://github.com/valory-xyz/trader)."
 echo ""
 
@@ -365,14 +367,20 @@ fi
 packages="packages/packages.json"
 local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
+
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
+    echo ""
+    echo "------------------------------"
+    echo "Updating on-chain service $service_id"
+    echo "------------------------------"
+    echo ""
     echo "WARNING: Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
     echo "  - On-chain service hash (id $service_id): $remote_service_hash"
     echo ""
     echo "This is most likely caused due to an update of the code of the service."
     echo "Is it recommended that you update your on-chain service."
-    echo "If you want to update your on-chain service, you might be required to fund your agent instance and service owner/operator wallet."
+    echo "If continue, you might be required to fund your agent instance and/or operator wallet."
     echo ""
     echo "**** This is an experimental feature, please proceed at your own risk. ****"
     echo ""
@@ -381,24 +389,21 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 
     response_lowercase=$(echo "$response" | tr '[:upper:]' '[:lower:]')
     if [ "$response_lowercase" = "y" ] || [ "$response_lowercase" = "yes" ]; then
-        echo ""
-        echo "------------------------------"
-        echo "Updating on-chain service $service_id"
-        echo "------------------------------"
-        echo ""
-        echo "PLEASE DO NOT INTERRUPT THIS PROCESS."
-        echo "Cancelling the process prematurely could lead to an inconsistent state for your Safe or on-chain service, which may require manual intervention to resolve."
-        echo ""
 
         # Check balances
         service_safe_address=$(<"../$service_safe_address_path")
         operator_address=$(get_address "../$operator_keys_file")
 
-        suggested_amount=20000000000000000
+        suggested_amount=50000000000000000
         ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
-        suggested_amount=20000000000000000
+        suggested_amount=50000000000000000
         ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
+
+        echo "Starting update of on-chain service $service_id."
+        echo "PLEASE DO NOT INTERRUPT THIS PROCESS."
+        echo "Cancelling the process prematurely could lead to an inconsistent state for your Safe or on-chain service, which may require manual intervention to resolve."
+        echo ""
 
         # generate private key files in the format required by the CLI tool
         agent_pkey_file="agent_pkey.txt"
@@ -512,7 +517,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         rm -f $agent_pkey_file
         rm -f $operator_pkey_file
         echo ""
-        echo "Finished update of the on-chain service $service_id."
+        echo "Finished update of on-chain service $service_id."
     fi
 fi
 
@@ -532,8 +537,6 @@ then
     echo "$service_state"
     echo "Please check the output of the script for more information."
     exit 1
-else
-    echo "$deployment"
 fi
 
 # Get the deployed service's Safe address from the contract
