@@ -83,6 +83,33 @@ ensure_minimum_balance() {
     echo ""
 }
 
+# Function to add a volume to a service in a Docker Compose file
+add_volume_to_service() {
+    local compose_file="$1"
+    local service_name="$2"
+    local volume_name="$3"
+    local volume_path="$4"
+
+    # Check if the Docker Compose file exists
+    if [ ! -f "$compose_file" ]; then
+        echo "Docker Compose file '$compose_file' not found."
+        return 1
+    fi
+
+    # Check if the service exists in the Docker Compose file
+    if ! grep -q "^[[:space:]]*${service_name}:" "$compose_file"; then
+        echo "Service '$service_name' not found in '$compose_file'."
+        return 1
+    fi
+
+    # Check if the volume is already defined for the service
+    if grep -q "^[[:space:]]*volumes:" "$compose_file"; then
+        sed -i "/^[[:space:]]*volumes:/a \ \ \ \ \ \ - ${volume_path}:${volume_name}:Z" "$compose_file"
+    else
+        sed -i "/^[[:space:]]*${service_name}:/a \ \ \ \ volumes:\n\ \ \ \ \ \ - ${volume_path}:${volume_name}:Z" "$compose_file"
+    fi
+}
+
 
 # ------------------
 # Script starts here
@@ -412,6 +439,8 @@ fi
 poetry run autonomy deploy build --n $n_agents -ltm
 
 cd ..
+
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 
 # Run the deployment
 poetry run autonomy deploy run --build-dir $directory --detach
