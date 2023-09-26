@@ -28,7 +28,7 @@ from web3 import Web3, HTTPProvider
 
 RPC_PATH = "../.trader_runner/rpc.txt"
 SERVICE_ID_PATH = "../.trader_runner/service_id.txt"
-REGISTRY_L2_JSON = "../contracts/ServiceRegistryL2.json"
+REGISTRY_JSON = "../contracts/ServiceRegistryL2.json"
 REGISTRY_ADDRESS = "0x9338b5153AE39BB89f50468E608eD9d764B755fD"
 AUTONOLAS_GATEWAY = "https://gateway.autonolas.tech/ipfs/"
 URI_HASH_POSITION = 7
@@ -44,7 +44,7 @@ def _get_hash_from_ipfs(hash_decoded: str) -> str:
 
 def get_hash() -> str:
     """Get the service's hash."""
-    contract_data = json.loads(registry_l2_json)
+    contract_data = json.loads(registry_json)
     abi = contract_data.get('abi', [])
 
     w3 = Web3(HTTPProvider(rpc))
@@ -59,12 +59,12 @@ def get_hash() -> str:
 def _parse_args() -> List[str]:
     """Parse the RPC and service id."""
     params = []
-    for path in (RPC_PATH, SERVICE_ID_PATH, REGISTRY_L2_JSON):
+    for path in (RPC_PATH, SERVICE_ID_PATH, REGISTRY_JSON):
         with open(path) as file:
             params.append(file.read())
     return params
 
 
 if __name__ == "__main__":
-    rpc, service_id, registry_l2_json = _parse_args()
+    rpc, service_id, registry_json = _parse_args()
     print(get_hash())
