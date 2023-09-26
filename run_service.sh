@@ -83,7 +83,6 @@ ensure_minimum_balance() {
     echo ""
 }
 
-
 # Get the address from a keys.json file
 get_address() {
     local keys_json_path="$1"
