@@ -83,6 +83,7 @@ ensure_minimum_balance() {
     echo ""
 }
 
+
 # Get the address from a keys.json file
 get_address() {
     local keys_json_path="$1"
@@ -115,6 +116,33 @@ get_private_key() {
         awk '{ printf substr( $0, '$private_key_start_position', length($0) - '$private_key_start_position' ) }')
 
     echo -n "$private_key"
+}
+
+# Function to add a volume to a service in a Docker Compose file
+add_volume_to_service() {
+    local compose_file="$1"
+    local service_name="$2"
+    local volume_name="$3"
+    local volume_path="$4"
+
+    # Check if the Docker Compose file exists
+    if [ ! -f "$compose_file" ]; then
+        echo "Docker Compose file '$compose_file' not found."
+        return 1
+    fi
+
+    # Check if the service exists in the Docker Compose file
+    if ! grep -q "^[[:space:]]*${service_name}:" "$compose_file"; then
+        echo "Service '$service_name' not found in '$compose_file'."
+        return 1
+    fi
+
+    # Check if the volume is already defined for the service
+    if grep -q "^[[:space:]]*volumes:" "$compose_file"; then
+        sed -i "/^[[:space:]]*volumes:/a \ \ \ \ \ \ - ${volume_path}:${volume_name}:Z" "$compose_file"
+    else
+        sed -i "/^[[:space:]]*${service_name}:/a \ \ \ \ volumes:\n\ \ \ \ \ \ - ${volume_path}:${volume_name}:Z" "$compose_file"
+    fi
 }
 
 
@@ -570,6 +598,7 @@ export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
 export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
 export BET_THRESHOLD=5000000000000000
 export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export REDEEM_MARGIN_DAYS=10
 
 service_dir="trader_service"
 build_dir="abci_build"
@@ -612,6 +641,8 @@ fi
 poetry run autonomy deploy build --n $n_agents -ltm
 
 cd ..
+
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 
 # Run the deployment
 poetry run autonomy deploy run --build-dir $directory --detach
