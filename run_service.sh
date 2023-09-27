@@ -102,12 +102,35 @@ add_volume_to_service() {
         return 1
     fi
 
-    # Check if the volume is already defined for the service
     if grep -q "^[[:space:]]*volumes:" "$compose_file"; then
-        sed -i "/^[[:space:]]*volumes:/a \ \ \ \ \ \ - ${volume_path}:${volume_name}:Z" "$compose_file"
+        awk -v volume_path="$volume_path" -v volume_name="$volume_name" '
+            /^ *volumes:/ {
+                found_volumes = 1
+                print
+                print "      - " volume_path ":" volume_name ":Z"
+                next
+            }
+            1
+        ' "$compose_file" > temp_compose_file
     else
-        sed -i "/^[[:space:]]*${service_name}:/a \ \ \ \ volumes:\n\ \ \ \ \ \ - ${volume_path}:${volume_name}:Z" "$compose_file"
+        awk -v service_name="$service_name" -v volume_path="$volume_path" -v volume_name="$volume_name" '
+            /^ *'"$service_name"':/ {
+                found_service = 1
+                print
+                print "    volumes:"
+                print "      - " volume_path ":" volume_name ":Z"
+                next
+            }
+            /^ *$/ && found_service == 1 {
+                print "    volumes:"
+                print "      - " volume_path ":" volume_name ":Z"
+                found_service = 0
+            }
+            1
+        ' "$compose_file" > temp_compose_file
     fi
+
+    mv temp_compose_file "$compose_file"
 }
 
 
