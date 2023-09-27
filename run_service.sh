@@ -397,155 +397,147 @@ remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
+    echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
+    echo "  - Local service hash ($service_version): $local_service_hash"
+    echo "  - On-chain service hash (id $service_id): $remote_service_hash"
+    echo ""
+    echo "This is most likely caused due to an update of the trader service code."
+    echo "The script will proceed now to update the on-chain service."
+    echo "The operator and agent addressess need to have enough funds so that the process is not interrupted."
+    echo ""
+
+    # Check balances
+    service_safe_address=$(<"../$service_safe_address_path")
+    operator_address=$(get_address "../$operator_keys_file")
+
+    suggested_amount=50000000000000000
+    ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+
+    suggested_amount=50000000000000000
+    ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
+
     echo "------------------------------"
     echo "Updating on-chain service $service_id"
     echo "------------------------------"
     echo ""
-    echo "WARNING: Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
-    echo "  - Local service hash ($service_version): $local_service_hash"
-    echo "  - On-chain service hash (id $service_id): $remote_service_hash"
+    echo "PLEASE, DO NOT INTERRUPT THIS PROCESS."
     echo ""
-    echo "This is most likely caused due to an update of the code of the service."
-    echo "Is it recommended that you update your on-chain service."
-    echo "If continue, you might be required to fund your agent instance and/or operator wallet."
-    echo ""
-    echo "**** This is an experimental feature, please proceed at your own risk. ****"
+    echo "Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve."
     echo ""
 
-    read -p "Do you want to update your on-chain service $service_id? (Y/N): " response
+    # generate private key files in the format required by the CLI tool
+    agent_pkey_file="agent_pkey.txt"
+    agent_pkey=$(get_private_key "../$keys_json_path")
+    agent_pkey="${agent_pkey#0x}"
+    echo -n "$agent_pkey" >"$agent_pkey_file"
 
-    response_lowercase=$(echo "$response" | tr '[:upper:]' '[:lower:]')
-    if [ "$response_lowercase" = "y" ] || [ "$response_lowercase" = "yes" ]; then
+    operator_pkey_file="operator_pkey.txt"
+    operator_pkey=$(get_private_key "../$operator_keys_file")
+    operator_pkey="${operator_pkey#0x}"
+    echo -n "$operator_pkey" >"$operator_pkey_file"
 
-        # Check balances
-        service_safe_address=$(<"../$service_safe_address_path")
-        operator_address=$(get_address "../$operator_keys_file")
-
-        suggested_amount=50000000000000000
-        ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
-
-        suggested_amount=50000000000000000
-        ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
-
-        echo "Starting update of on-chain service $service_id."
-        echo "PLEASE DO NOT INTERRUPT THIS PROCESS."
-        echo "Cancelling the process prematurely could lead to an inconsistent state for your Safe or on-chain service, which may require manual intervention to resolve."
-        echo ""
-
-        # generate private key files in the format required by the CLI tool
-        agent_pkey_file="agent_pkey.txt"
-        agent_pkey=$(get_private_key "../$keys_json_path")
-        agent_pkey="${agent_pkey#0x}"
-        echo -n "$agent_pkey" >"$agent_pkey_file"
-
-        operator_pkey_file="operator_pkey.txt"
-        operator_pkey=$(get_private_key "../$operator_keys_file")
-        operator_pkey="${operator_pkey#0x}"
-        echo -n "$operator_pkey" >"$operator_pkey_file"
-
-        # transfer the ownership of the Safe from the agent to the service owner
-        # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
-        echo "[Agent instance] Swapping Safe owner..."
-        output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "$agent_pkey_file" "$operator_address" "$rpc")
-        if [[ $? -ne 0 ]]; then
-            echo "Swapping Safe owner failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-        echo "$output"
-
-        # terminate current service
-        echo "[Service owner] Terminating on-chain service $service_id..."
-        output=$(
-            poetry run autonomy service \
-                --use-custom-chain \
-                terminate "$service_id" \
-                --key "$operator_pkey_file"
-        )
-        if [[ $? -ne 0 ]]; then
-            echo "Terminating service failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-
-        # unbond current service
-        echo "[Operator] Unbonding on-chain service $service_id..."
-        output=$(
-            poetry run autonomy service \
-                --use-custom-chain \
-                unbond "$service_id" \
-                --key "$operator_pkey_file"
-        )
-        if [[ $? -ne 0 ]]; then
-            echo "Unbonding service failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-
-        # update service
-        echo "[Service owner] Updating on-chain service $service_id..."
-        agent_id=12
-        cost_of_bonding=10000000000000000
-        nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-        output=$(
-            poetry run autonomy mint \
-                --skip-hash-check \
-                --use-custom-chain \
-                service packages/valory/services/trader/ \
-                --key "$operator_pkey_file" \
-                --nft $nft \
-                -a $agent_id \
-                -n $n_agents \
-                --threshold $n_agents \
-                -c $cost_of_bonding \
-                --update "$service_id"
-        )
-        if [[ $? -ne 0 ]]; then
-            echo "Updating service failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-
-        # activate service
-        echo "[Service owner] Activating registration for on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-        if [[ $? -ne 0 ]]; then
-            echo "Activating service failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-
-        # register agent instance
-        echo "[Operator] Registering agent instance for on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-        if [[ $? -ne 0 ]]; then
-            echo "Registering agent instance failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-
-        # deploy on-chain service
-        echo "[Service owner] Deploying on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file" --reuse-multisig)
-        if [[ $? -ne 0 ]]; then
-            echo "Deploying service failed.\n$output"
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-
-        # delete the pkey files
+    # transfer the ownership of the Safe from the agent to the service owner
+    # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
+    echo "[Agent instance] Swapping Safe owner..."
+    output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "$agent_pkey_file" "$operator_address" "$rpc")
+    if [[ $? -ne 0 ]]; then
+        echo "Swapping Safe owner failed.\n$output"
         rm -f $agent_pkey_file
         rm -f $operator_pkey_file
-        echo ""
-        echo "Finished update of on-chain service $service_id."
+        exit 1
     fi
+    echo "$output"
+
+    # terminate current service
+    echo "[Service owner] Terminating on-chain service $service_id..."
+    output=$(
+        poetry run autonomy service \
+            --use-custom-chain \
+            terminate "$service_id" \
+            --key "$operator_pkey_file"
+    )
+    if [[ $? -ne 0 ]]; then
+        echo "Terminating service failed.\n$output"
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+
+    # unbond current service
+    echo "[Operator] Unbonding on-chain service $service_id..."
+    output=$(
+        poetry run autonomy service \
+            --use-custom-chain \
+            unbond "$service_id" \
+            --key "$operator_pkey_file"
+    )
+    if [[ $? -ne 0 ]]; then
+        echo "Unbonding service failed.\n$output"
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+
+    # update service
+    echo "[Service owner] Updating on-chain service $service_id..."
+    agent_id=12
+    cost_of_bonding=10000000000000000
+    nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
+    output=$(
+        poetry run autonomy mint \
+            --skip-hash-check \
+            --use-custom-chain \
+            service packages/valory/services/trader/ \
+            --key "$operator_pkey_file" \
+            --nft $nft \
+            -a $agent_id \
+            -n $n_agents \
+            --threshold $n_agents \
+            -c $cost_of_bonding \
+            --update "$service_id"
+    )
+    if [[ $? -ne 0 ]]; then
+        echo "Updating service failed.\n$output"
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+
+    # activate service
+    echo "[Service owner] Activating registration for on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
+    if [[ $? -ne 0 ]]; then
+        echo "Activating service failed.\n$output"
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+
+    # register agent instance
+    echo "[Operator] Registering agent instance for on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    if [[ $? -ne 0 ]]; then
+        echo "Registering agent instance failed.\n$output"
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+
+    # deploy on-chain service
+    echo "[Service owner] Deploying on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file" --reuse-multisig)
+    if [[ $? -ne 0 ]]; then
+        echo "Deploying service failed.\n$output"
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+
+    # delete the pkey files
+    rm -f $agent_pkey_file
+    rm -f $operator_pkey_file
+    echo ""
+    echo "Finished update of on-chain service $service_id."
 fi
 
 echo ""
