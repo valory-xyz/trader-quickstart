@@ -20,6 +20,7 @@
 
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
+from collections import defaultdict
 import time
 from argparse import ArgumentParser
 from enum import Enum
@@ -127,6 +128,7 @@ class MarketAttribute(Enum):
 
     NUM_TRADES = "Num. trades"
     WINNER_TRADES = "Winner trades"
+    NUM_REDEEMED = "Num. redeemed"
     INVESTMENT = "Invested"
     FEES = "Fees"
     EARNINGS = "Earnings"
@@ -165,8 +167,9 @@ def _query_omen_xdai_subgraph() -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
-    all_results: dict[str, Any] = {"data": {"fpmmTrades": []}}
+    grouped_results = defaultdict(list)
     skip = 0
+
     while True:
         query = omen_xdai_trades_query.substitute(
             creator=creator.lower(),
@@ -182,8 +185,13 @@ def _query_omen_xdai_subgraph() -> dict[str, Any]:
         if not trades:
             break
 
-        all_results["data"]["fpmmTrades"].extend(trades)
+        for trade in trades:
+            fpmm_id = trade.get("fpmm", {}).get("id")
+            grouped_results[fpmm_id].append(trade)
+
         skip += QUERY_BATCH_SIZE
+
+    all_results = {"data": {"fpmmTrades": [trade for trades_list in grouped_results.values() for trade in trades_list]}}
 
     return all_results
 
@@ -226,8 +234,17 @@ def _wei_to_dai(wei: int) -> str:
     return f"{formatted_dai} DAI"
 
 
-def _is_redeemed(user_json: dict[str, Any], condition_id: str) -> bool:
+def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
     user_positions = user_json["data"]["user"]["userPositions"]
+    outcomes_tokens_traded = int(fpmmTrade["outcomeTokensTraded"])
+    condition_id = fpmmTrade["fpmm"]["condition"]["id"]
+
+    for position in user_positions:
+        position_condition_ids = position["position"]["conditionIds"]
+        balance = int(position["balance"])
+
+        if condition_id in position_condition_ids and balance == outcomes_tokens_traded:
+            return False
 
     for position in user_positions:
         position_condition_ids = position["position"]["conditionIds"]
@@ -291,6 +308,16 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{table[MarketAttribute.WINNER_TRADES][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.NUM_REDEEMED:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.NUM_REDEEMED][c]:>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -384,7 +411,6 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
             answer_finalized_timestamp = fpmm["answerFinalizedTimestamp"]
             is_pending_arbitration = fpmm["isPendingArbitration"]
             opening_timestamp = fpmm["openingTimestamp"]
-            condition_id = fpmm["condition"]["id"]
 
             output += f'      Question: {fpmmTrade["title"]}\n'
             output += f'    Market URL: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
@@ -441,11 +467,14 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = outcomes_tokens_traded
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
                     output += f"      Earnings: {_wei_to_dai(earnings)}\n"
-                    redeemed = _is_redeemed(user_json, condition_id)
+                    redeemed = _is_redeemed(user_json, fpmmTrade)
                     output += f"      Redeemed: {redeemed}\n"
                     statistics_table[MarketAttribute.WINNER_TRADES][market_status] += 1
 
                     if redeemed:
+                        statistics_table[MarketAttribute.NUM_REDEEMED][
+                            market_status
+                        ] += 1
                         statistics_table[MarketAttribute.REDEMPTIONS][
                             market_status
                         ] += earnings
