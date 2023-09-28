@@ -20,9 +20,10 @@
 
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
-from collections import defaultdict
+import datetime
 import time
 from argparse import ArgumentParser
+from collections import defaultdict
 from enum import Enum
 from string import Template
 from typing import Any
@@ -34,6 +35,9 @@ QUERY_BATCH_SIZE = 1000
 DUST_THRESHOLD = 10000000000000
 INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 FPMM_CREATOR = "0x89c5cc945dd550bcffb72fe42bff002429f46fec"
+DEFAULT_FROM_DATE = "1970-01-01T00:00:00"
+DEFAULT_TO_DATE = "2038-01-19T03:14:07"
+
 
 headers = {
     "Accept": "application/json, multipart/mixed",
@@ -145,12 +149,28 @@ STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
 STATS_TABLE_ROWS = list(MarketAttribute)
 
 
-def _parse_arg() -> str:
+def _parse_args() -> Any:
     """Parse the creator positional argument."""
     parser = ArgumentParser(description="Get trades on Omen for a Safe address.")
     parser.add_argument("creator")
+    parser.add_argument(
+        "--from-date",
+        type=datetime.datetime.fromisoformat,
+        default=DEFAULT_FROM_DATE,
+        help="Start date (UTC) in YYYY-MM-DD:HH:mm:ss format",
+    )
+    parser.add_argument(
+        "--to-date",
+        type=datetime.datetime.fromisoformat,
+        default=DEFAULT_TO_DATE,
+        help="End date (UTC) in YYYY-MM-DD:HH:mm:ss format",
+    )
     args = parser.parse_args()
-    return args.creator
+
+    args.from_date = args.from_date.replace(tzinfo=datetime.timezone.utc)
+    args.to_date = args.to_date.replace(tzinfo=datetime.timezone.utc)
+
+    return args
 
 
 def _to_content(q: str) -> dict[str, Any]:
@@ -163,7 +183,7 @@ def _to_content(q: str) -> dict[str, Any]:
     return finalized_query
 
 
-def _query_omen_xdai_subgraph() -> dict[str, Any]:
+def _query_omen_xdai_subgraph(creator: str) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
@@ -175,7 +195,7 @@ def _query_omen_xdai_subgraph() -> dict[str, Any]:
             creator=creator.lower(),
             fpmm_creator=FPMM_CREATOR.lower(),
             first=QUERY_BATCH_SIZE,
-            skip=skip
+            skip=skip,
         )
         content_json = _to_content(query)
         res = requests.post(url, headers=headers, json=content_json)
@@ -191,12 +211,20 @@ def _query_omen_xdai_subgraph() -> dict[str, Any]:
 
         skip += QUERY_BATCH_SIZE
 
-    all_results = {"data": {"fpmmTrades": [trade for trades_list in grouped_results.values() for trade in trades_list]}}
+    all_results = {
+        "data": {
+            "fpmmTrades": [
+                trade
+                for trades_list in grouped_results.values()
+                for trade in trades_list
+            ]
+        }
+    }
 
     return all_results
 
 
-def _query_conditional_tokens_gc_subgraph() -> dict[str, Any]:
+def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
 
@@ -388,7 +416,10 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
 
 
 def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
-    trades_json: dict[str, Any], user_json: dict[str, Any]
+    trades_json: dict[str, Any],
+    user_json: dict[str, Any],
+    from_timestamp: float,
+    to_timestamp: float,
 ) -> str:
     """Parse the trades from the response."""
 
@@ -400,12 +431,19 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
     output += "Trades\n"
     output += "------\n"
 
-    for fpmmTrade in trades_json["data"]["fpmmTrades"]:
+    filtered_trades = [
+        fpmmTrade
+        for fpmmTrade in trades_json["data"]["fpmmTrades"]
+        if from_timestamp <= float(fpmmTrade["creationTimestamp"]) <= to_timestamp
+    ]
+
+    for fpmmTrade in filtered_trades:
         try:
             collateral_amount = int(fpmmTrade["collateralAmount"])
             outcome_index = int(fpmmTrade["outcomeIndex"])
             fee_amount = int(fpmmTrade["feeAmount"])
             outcomes_tokens_traded = int(fpmmTrade["outcomeTokensTraded"])
+            creation_timestamp = float(fpmmTrade["creationTimestamp"])
 
             fpmm = fpmmTrade["fpmm"]
             answer_finalized_timestamp = fpmm["answerFinalizedTimestamp"]
@@ -414,6 +452,11 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
 
             output += f'      Question: {fpmmTrade["title"]}\n'
             output += f'    Market URL: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
+
+            creation_timestamp_utc = datetime.datetime.fromtimestamp(
+                creation_timestamp, tz=datetime.timezone.utc
+            )
+            output += f'    Trade date: {creation_timestamp_utc.strftime("%Y-%m-%d %H:%M:%S %Z")}\n'
 
             market_status = MarketState.CLOSED
             if fpmm["currentAnswer"] is None and time.time() >= float(
@@ -504,8 +547,13 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
 
 
 if __name__ == "__main__":
-    creator = _parse_arg()
-    _trades_json = _query_omen_xdai_subgraph()
-    _user_json = _query_conditional_tokens_gc_subgraph()
-    parsed = _parse_response(_trades_json, _user_json)
+    user_args = _parse_args()
+    _trades_json = _query_omen_xdai_subgraph(user_args.creator)
+    _user_json = _query_conditional_tokens_gc_subgraph(user_args.creator)
+    parsed = _parse_response(
+        _trades_json,
+        _user_json,
+        user_args.from_date.timestamp(),
+        user_args.to_date.timestamp(),
+    )
     print(parsed)
