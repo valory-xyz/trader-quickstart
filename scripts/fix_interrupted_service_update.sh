@@ -152,6 +152,16 @@ else
     exit 1
 fi
 
+# check state
+expected_state="| Service State             | DEPLOYED                                     |"
+service_info=$(cd trader; poetry run autonomy service --use-custom-chain info "$service_id")
+service_state=$(echo "$service_info" | grep "Service State")
+if [ "$service_state" == "$expected_state" ]
+then
+    echo "Service $service_id is already in DEPLOYED sate. No action has been done."
+    exit 0
+fi
+
 echo "Copying agent and operator keys..."
 # generate private key files in the format required by the CLI tool
 agent_pkey_file="agent_pkey.txt"
