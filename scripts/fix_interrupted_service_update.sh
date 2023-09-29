@@ -109,6 +109,18 @@ export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cA
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415df3D2D8232B3d3D31e44"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 
+
+# check state
+expected_state="| Service State             | DEPLOYED                                     |"
+service_info=$(cd trader; poetry run autonomy service --use-custom-chain info "$service_id")
+service_state=$(echo "$service_info" | grep "Service State")
+if [ "$service_state" == "$expected_state" ]
+then
+    echo "Service $service_id is already in DEPLOYED sate. No action has been done."
+    exit 0
+fi
+
+
 echo "Renaming /trader folder..."
 count=$(ls -d ./trader.old* 2>/dev/null | wc -l)
 new_number=$((count + 1))
