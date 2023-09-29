@@ -18,6 +18,28 @@
 #
 # ------------------------------------------------------------------------------
 
+# Convert Hex to Dec
+hex_to_decimal() {
+    $PYTHON_CMD -c "print(int('$1', 16))"
+}
+
+# Convert Wei to Dai
+wei_to_dai() {
+    local wei="$1"
+    local decimal_precision=4  # Change this to your desired precision
+    local dai=$($PYTHON_CMD -c "print('%.${decimal_precision}f' % ($wei / 1000000000000000000.0))")
+    echo "$dai"
+}
+
+# Function to get the balance of an Ethereum address
+get_balance() {
+    local address="$1"
+    curl -s -S -X POST \
+        -H "Content-Type: application/json" \
+        --data "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getBalance\",\"params\":[\"$address\",\"latest\"],\"id\":1}" "$rpc" | \
+        $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['result'])"
+}
+
 # Function to ensure a minimum balance for an Ethereum address
 ensure_minimum_balance() {
     local address="$1"
@@ -102,6 +124,23 @@ echo "-------------------------"
 echo ""
 echo "This script fixes an interrupted on-chain service update by an Open Autonomy version <0.12.1.post4"
 echo ""
+
+# Check if user is inside a venv
+if [[ "$VIRTUAL_ENV" != "" ]]
+then
+    echo "Please exit the virtual environment!"
+    exit 1
+fi
+
+# Check dependencies
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_CMD="python"
+else
+    echo >&2 "Python is not installed!";
+    exit 1
+fi
 
 store=".trader_runner"
 rpc_path="$store/rpc.txt"
