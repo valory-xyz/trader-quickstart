@@ -18,6 +18,48 @@
 #
 # ------------------------------------------------------------------------------
 
+# Function to ensure a minimum balance for an Ethereum address
+ensure_minimum_balance() {
+    local address="$1"
+    local minimum_balance="$2"
+    local address_description="$3"
+
+    balance_hex=$(get_balance "$address")
+    balance=$(hex_to_decimal "$balance_hex")
+
+    echo "Checking balance of $address_description (minimum required $(wei_to_dai $minimum_balance) DAI):"
+    echo "  - Address: $address"
+    echo "  - Balance: $(wei_to_dai $balance) DAI"
+
+    if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
+        echo ""
+        echo "    Please, fund address $address with at least $(wei_to_dai $minimum_balance) DAI."
+
+        local spin='-\|/'
+        local i=0
+        local cycle_count=0
+        while [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; do
+            printf "\r    Waiting... ${spin:$i:1} "
+            i=$(((i + 1) % 4))
+            sleep .1
+
+            # This will be checked every 10 seconds (100 cycles).
+            cycle_count=$((cycle_count + 1))
+            if [ "$cycle_count" -eq 100 ]; then
+                balance_hex=$(get_balance "$address")
+                balance=$(hex_to_decimal "$balance_hex")
+                cycle_count=0
+            fi
+        done
+
+        printf "\r    Waiting...   \n"
+        echo ""
+        echo "  - Updated balance: $(wei_to_dai $balance) DAI"
+    fi
+
+    echo "    OK."
+    echo ""
+}
 
 # Get the address from a keys.json file
 get_address() {
@@ -154,13 +196,26 @@ fi
 
 # check state
 expected_state="| Service State             | DEPLOYED                                     |"
-service_info=$(cd trader; poetry run autonomy service --use-custom-chain info "$service_id")
+service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
 service_state=$(echo "$service_info" | grep "Service State")
 if [ "$service_state" == "$expected_state" ]
 then
     echo "Service $service_id is already in DEPLOYED sate. No action has been done."
     exit 0
 fi
+
+
+# Check balances
+agent_address=$(get_address "../$keys_json_path")
+operator_address=$(get_address "../$operator_keys_file")
+
+suggested_amount=50000000000000000
+ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+
+suggested_amount=50000000000000000
+ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
+
+
 
 echo "Copying agent and operator keys..."
 # generate private key files in the format required by the CLI tool
