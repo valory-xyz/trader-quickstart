@@ -45,6 +45,11 @@ cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build
     cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS; cd ..
     ```
 
+    Or restrict the search to specific dates by defining the "from" and "to" dates:
+    ```bash
+    cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00; cd ..
+    ```
+
 3. Use this command to investigate your agent's logs:
 
     ```bash
