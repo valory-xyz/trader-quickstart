@@ -18,6 +18,8 @@ Ensure your machine satisfies the requirements:
 
 ## Run the script
 
+Clone this repository locally and execute:
+
 ```bash
 chmod +x run_service.sh
 ./run_service.sh
