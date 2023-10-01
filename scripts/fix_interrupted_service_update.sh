@@ -125,6 +125,17 @@ echo ""
 echo "This script fixes an interrupted on-chain service update by an Open Autonomy version <0.12.1.post4"
 echo ""
 
+echo "WARNING: This script (fix_interrupted_service_update.sh) is deprecated."
+echo "Please use the latest version of ./run_script.sh, which addresses the issues fixed in this script."
+read -p "Do you want to continue? (y/n): " choice
+
+if [[ $choice == "y" || $choice == "Y" ]]; then
+    echo "Continuing with the script..."
+else
+    echo "Exiting the script."
+    exit 1
+fi
+
 # Check if user is inside a venv
 if [[ "$VIRTUAL_ENV" != "" ]]
 then
