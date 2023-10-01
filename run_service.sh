@@ -264,7 +264,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.3"
+service_version="v0.6.6"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -608,8 +608,8 @@ export BET_AMOUNT_PER_THRESHOLD_020=0
 export BET_AMOUNT_PER_THRESHOLD_030=0
 export BET_AMOUNT_PER_THRESHOLD_040=0
 export BET_AMOUNT_PER_THRESHOLD_050=0
-export BET_AMOUNT_PER_THRESHOLD_060=0
-export BET_AMOUNT_PER_THRESHOLD_070=0
+export BET_AMOUNT_PER_THRESHOLD_060=30000000000000000
+export BET_AMOUNT_PER_THRESHOLD_070=40000000000000000
 export BET_AMOUNT_PER_THRESHOLD_080=60000000000000000
 export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
 export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
@@ -624,7 +624,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=50000000000000000
 ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
-suggested_amount=5000000000000000000
+suggested_amount=500000000000000000
 ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
 
 if [ -d $directory ]
