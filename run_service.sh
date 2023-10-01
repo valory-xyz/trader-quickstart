@@ -148,7 +148,7 @@ add_volume_to_service() {
 get_on_chain_service_state() {
     local service_id="$1"
     local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
-    local state="$(echo "$service_info" | grep -oP "Service State\s*\|\s*\K\S+")"
+    local state="$(echo "$service_info" | awk '/Service State/ {sub(/\|[ \t]*Service State[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
     echo "$state"
 }
 
