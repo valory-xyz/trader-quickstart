@@ -159,15 +159,13 @@ get_on_chain_service_state() {
 
 set -e  # Exit script on first error
 
-## original values, which have been further down in the script – but here necessary to echo dynamic service repo:
+# Initialize repo and version variables
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-# service_version="v0.6.6"
-# service_repo=https://github.com/valory-xyz/$directory.git
-
+org_name="valory-xyz"
 directory="trader"
-org_name="jhehemann"
 service_repo=https://github.com/$org_name/$directory.git
+service_version="v0.6.6"
 
 echo ""
 echo "---------------"
@@ -272,27 +270,15 @@ else
 fi
 
 # clone repo
-#
-## original values, changed earlier in the script
-# This [v0.6.6] is a tested version that works well.
-# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-# service_version="v0.6.6"
-# service_repo=https://github.com/valory-xyz/$directory.git
-#
-# I changed this to develop as this is the branch in my forked repo which is up to date with v0.6.6
-service_version="develop"
-
 if [ -d $directory ]
 then
-    echo "Detected an existing $directory in $org_name repo GitHub. Using this one..."
+    echo "Detected an existing $directory directory. Using this one..."
     echo "Please stop and manually delete the $directory repo if you updated the service's version ($service_version)!"
     echo "You can run the following command, or continue with the pre-existing version of the service:"
     echo "rm -r $directory"
 else
     echo "Cloning the $directory repo from $org_name GitHub..."
     git clone --depth 1 --branch $service_version $service_repo
-    # original command:
-    # git clone --depth 1 --branch $service_version $service_repo
 fi
 
 cd $directory
@@ -632,8 +618,7 @@ export BET_AMOUNT_PER_THRESHOLD_080=60000000000000000
 export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
 export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
 export BET_THRESHOLD=5000000000000000
-export MECH_TOOL="prediction-online-sme"
-export PROMPT_TEMPLATE="Act as an unbiased statistician and probability expert. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export REDEEM_MARGIN_DAYS=10
 
 service_dir="trader_service"

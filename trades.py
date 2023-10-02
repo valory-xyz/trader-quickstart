@@ -149,6 +149,50 @@ STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
 STATS_TABLE_ROWS = list(MarketAttribute)
 
 
+def _read_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.readline().strip()
+
+
+def _get_balance(address, rpc_url):
+    """Get the native xDAI balance of an address in wei."""
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'jsonrpc': '2.0',
+        'method': 'eth_getBalance',
+        'params': [address, 'latest'],
+        'id': 1
+    }
+    response = requests.post(rpc_url, headers=headers, json=data)
+    return response.json().get('result')
+
+
+def _get_token_balance(gnosis_address, token_contract_address, rpc_url):
+    """Get the token balance of an address in wei."""
+    function_selector = '70a08231'  # function selector for balanceOf(address)
+    padded_address = gnosis_address.replace('0x', '').rjust(64, '0') # remove '0x' and pad the address to 32 bytes
+    data = function_selector + padded_address
+
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "eth_call",
+        "params": [
+            {
+                "to": token_contract_address,
+                "data": data
+            },
+            "latest"
+        ],
+        "id": 1
+    }
+    response = requests.post(rpc_url, json=payload)
+    result = response.json().get('result', '0x0')
+    balance_wei = int(result, 16) # convert hex to int
+    return balance_wei
+
+
 def _parse_args() -> Any:
     """Parse the creator positional argument."""
     parser = ArgumentParser(description="Get trades on Omen for a Safe address.")
@@ -259,7 +303,7 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
 def _wei_to_dai(wei: int) -> str:
     dai = wei / 10**18
     formatted_dai = "{:.2f}".format(dai)
-    return f"{formatted_dai} DAI"
+    return f"{formatted_dai}"
 
 
 def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
@@ -539,6 +583,19 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
     output += "Summary (per market state)\n"
     output += "--------------------------\n"
     output += "\n"
+
+    # Read rpc and get safe address balance
+    rpc_url_path = f"../.trader_runner/rpc.txt"
+    rpc_url = _read_file(rpc_url_path)
+    safe_address = user_args.creator
+    safe_address_balance = _get_balance(safe_address, rpc_url)
+
+    output += f"Safe address: {safe_address}\n"
+    output += f"Address balance: {_wei_to_dai(int(safe_address_balance, 16))} xDAI\n"
+
+    wxdai_contract_address = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+    wxdai_balance = _get_token_balance(safe_address, wxdai_contract_address, rpc_url)
+    output += f"Token balance: {_wei_to_dai(wxdai_balance)} wxDAI\n\n"
 
     _compute_totals(statistics_table)
     output += _format_table(statistics_table)
