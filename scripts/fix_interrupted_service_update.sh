@@ -117,12 +117,16 @@ get_private_key() {
     echo -n "$private_key"
 }
 
+org_name="jhehemann"
+directory="trader"
+service_repo=https://github.com/$org_name/$directory.git
+
 echo ""
 echo "-------------------------"
 echo "Fix broken service update"
 echo "-------------------------"
 echo ""
-echo "This script fixes an interrupted on-chain service update by an Open Autonomy version <0.12.1.post4"
+echo "This script fixes an interrupted on-chain service update by an Open Autonomy version <0.12.1.post4 for $service_repo"
 echo ""
 
 echo "WARNING: This script (fix_interrupted_service_update.sh) is deprecated."
@@ -224,13 +228,19 @@ else
     echo "The ./trader folder does not exist."
 fi
 
-# clone repo
-directory="trader"
+#
+## original values, originally written earlier in the script and changed to dynamically set service repo
+# This [v0.6.6] is a tested version that works well.
+# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
+# service_version="v0.6.6"
+# service_repo=https://github.com/valory-xyz/$directory.git
+#
+
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.6"
-service_repo=https://github.com/valory-xyz/$directory.git
-echo "Cloning the $directory repo..."
+# I changed this to develop as this is the branch in my forked repo which is up to date with v0.6.6 
+service_version="develop"
+echo "Cloning the $directory repo... from $org_name"
 git clone --depth 1 --branch $service_version $service_repo
 
 
