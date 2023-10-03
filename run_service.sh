@@ -414,6 +414,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo "Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve."
     echo ""
 
+    # TODO this condition should be increased to be service_state=DEPLOYED && current_safe_owner=agent_address.
     if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
         # transfer the ownership of the Safe from the agent to the service owner
         # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
@@ -427,8 +428,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             exit 1
         fi
         echo "$output"
+    fi
 
-        # terminate current service
+    # terminate current service
+    if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
         echo "[Service owner] Terminating on-chain service $service_id..."
         output=$(
             poetry run autonomy service \
@@ -462,7 +465,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             exit 1
         fi
     fi
-
+exit 1
     # update service
     if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
         echo "[Service owner] Updating on-chain service $service_id..."
