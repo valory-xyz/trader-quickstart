@@ -49,7 +49,13 @@ omen_xdai_trades_query = Template(
     """
     {
         fpmmTrades(
-            where: {type: Buy, creator: "${creator}" fpmm_: {creator: "${fpmm_creator}"} }
+            where: {
+                type: Buy,
+                creator: "${creator}",
+                fpmm_: {creator: "${fpmm_creator}"},
+                creationTimestamp_gte: "${creationTimestamp_gte}",
+                creationTimestamp_lte: "${creationTimestamp_lte}"
+            }
             first: ${first}
             skip: ${skip}
             orderBy: creationTimestamp
@@ -183,7 +189,11 @@ def _to_content(q: str) -> dict[str, Any]:
     return finalized_query
 
 
-def _query_omen_xdai_subgraph(creator: str) -> dict[str, Any]:
+def _query_omen_xdai_subgraph(
+        creator: str,
+        from_timestamp: float,
+        to_timestamp: float
+    ) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
@@ -194,6 +204,8 @@ def _query_omen_xdai_subgraph(creator: str) -> dict[str, Any]:
         query = omen_xdai_trades_query.substitute(
             creator=creator.lower(),
             fpmm_creator=FPMM_CREATOR.lower(),
+            creationTimestamp_gte=int(from_timestamp),
+            creationTimestamp_lte=int(to_timestamp),
             first=QUERY_BATCH_SIZE,
             skip=skip,
         )
@@ -418,8 +430,6 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
 def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
     trades_json: dict[str, Any],
     user_json: dict[str, Any],
-    from_timestamp: float,
-    to_timestamp: float,
 ) -> str:
     """Parse the trades from the response."""
 
@@ -431,13 +441,7 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
     output += "Trades\n"
     output += "------\n"
 
-    filtered_trades = [
-        fpmmTrade
-        for fpmmTrade in trades_json["data"]["fpmmTrades"]
-        if from_timestamp <= float(fpmmTrade["creationTimestamp"]) <= to_timestamp
-    ]
-
-    for fpmmTrade in filtered_trades:
+    for fpmmTrade in trades_json["data"]["fpmmTrades"]:
         try:
             collateral_amount = int(fpmmTrade["collateralAmount"])
             outcome_index = int(fpmmTrade["outcomeIndex"])
@@ -548,12 +552,11 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
 
 if __name__ == "__main__":
     user_args = _parse_args()
-    _trades_json = _query_omen_xdai_subgraph(user_args.creator)
-    _user_json = _query_conditional_tokens_gc_subgraph(user_args.creator)
-    parsed = _parse_response(
-        _trades_json,
-        _user_json,
+    _trades_json = _query_omen_xdai_subgraph(
+        user_args.creator,
         user_args.from_date.timestamp(),
-        user_args.to_date.timestamp(),
+        user_args.to_date.timestamp()
     )
+    _user_json = _query_conditional_tokens_gc_subgraph(user_args.creator)
+    parsed = _parse_response(_trades_json, _user_json)
     print(parsed)
