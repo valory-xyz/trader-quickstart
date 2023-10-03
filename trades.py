@@ -52,12 +52,16 @@ omen_xdai_trades_query = Template(
             where: {
                 type: Buy,
                 creator: "${creator}",
-                fpmm_: {creator: "${fpmm_creator}"},
+                fpmm_: {
+                    creator: "${fpmm_creator}"
+                    creationTimestamp_gte: "${fpmm_creationTimestamp_gte}",
+                    creationTimestamp_lt: "${fpmm_creationTimestamp_lte}"
+                },
                 creationTimestamp_gte: "${creationTimestamp_gte}",
                 creationTimestamp_lte: "${creationTimestamp_lte}"
+                creationTimestamp_gt: "${creationTimestamp_gt}"
             }
             first: ${first}
-            skip: ${skip}
             orderBy: creationTimestamp
             orderDirection: asc
         ) {
@@ -102,7 +106,10 @@ conditional_tokens_gc_user_query = Template(
         user(id: "${id}") {
             userPositions(
                 first: ${first}
-                skip: ${skip}
+                where: {
+                    id_gt: "${userPositions_id_gt}"
+                }
+                orderBy: id
             ) {
                 balance
                 id
@@ -171,10 +178,24 @@ def _parse_args() -> Any:
         default=DEFAULT_TO_DATE,
         help="End date (UTC) in YYYY-MM-DD:HH:mm:ss format",
     )
+    parser.add_argument(
+        "--fpmm-created-from-date",
+        type=datetime.datetime.fromisoformat,
+        default=DEFAULT_FROM_DATE,
+        help="Start date (UTC) in YYYY-MM-DD:HH:mm:ss format",
+    )
+    parser.add_argument(
+        "--fpmm-created-to-date",
+        type=datetime.datetime.fromisoformat,
+        default=DEFAULT_TO_DATE,
+        help="End date (UTC) in YYYY-MM-DD:HH:mm:ss format",
+    )
     args = parser.parse_args()
 
     args.from_date = args.from_date.replace(tzinfo=datetime.timezone.utc)
     args.to_date = args.to_date.replace(tzinfo=datetime.timezone.utc)
+    args.fpmm_created_from_date = args.fpmm_created_from_date.replace(tzinfo=datetime.timezone.utc)
+    args.fpmm_created_to_date = args.fpmm_created_to_date.replace(tzinfo=datetime.timezone.utc)
 
     return args
 
@@ -192,13 +213,15 @@ def _to_content(q: str) -> dict[str, Any]:
 def _query_omen_xdai_subgraph(
         creator: str,
         from_timestamp: float,
-        to_timestamp: float
+        to_timestamp: float,
+        fpmm_from_timestamp: float,
+        fpmm_to_timestamp: float
     ) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
     grouped_results = defaultdict(list)
-    skip = 0
+    creationTimestamp_gt = "0"
 
     while True:
         query = omen_xdai_trades_query.substitute(
@@ -206,8 +229,10 @@ def _query_omen_xdai_subgraph(
             fpmm_creator=FPMM_CREATOR.lower(),
             creationTimestamp_gte=int(from_timestamp),
             creationTimestamp_lte=int(to_timestamp),
+            fpmm_creationTimestamp_gte=int(fpmm_from_timestamp),
+            fpmm_creationTimestamp_lte=int(fpmm_to_timestamp),
             first=QUERY_BATCH_SIZE,
-            skip=skip,
+            creationTimestamp_gt=creationTimestamp_gt,
         )
         content_json = _to_content(query)
         res = requests.post(url, headers=headers, json=content_json)
@@ -221,7 +246,7 @@ def _query_omen_xdai_subgraph(
             fpmm_id = trade.get("fpmm", {}).get("id")
             grouped_results[fpmm_id].append(trade)
 
-        skip += QUERY_BATCH_SIZE
+        creationTimestamp_gt = trades[len(trades)-1]["creationTimestamp"]
 
     all_results = {
         "data": {
@@ -241,10 +266,12 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
     url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
 
     all_results: dict[str, Any] = {"data": {"user": {"userPositions": []}}}
-    skip = 0
+    userPositions_id_gt = ""
     while True:
         query = conditional_tokens_gc_user_query.substitute(
-            id=creator.lower(), first=QUERY_BATCH_SIZE, skip=skip
+            id=creator.lower(),
+            first=QUERY_BATCH_SIZE,
+            userPositions_id_gt=userPositions_id_gt
         )
         content_json = {"query": query}
         res = requests.post(url, headers=headers, json=content_json)
@@ -258,7 +285,7 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
 
         if user_positions:
             all_results["data"]["user"]["userPositions"].extend(user_positions)
-            skip += QUERY_BATCH_SIZE
+            userPositions_id_gt=user_positions[len(user_positions)-1]["id"]
         else:
             break
 
@@ -427,11 +454,17 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
     return table_str
 
 
-def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
-    trades_json: dict[str, Any],
-    user_json: dict[str, Any],
+def _parse_user(  # pylint: disable=too-many-locals,too-many-statements
+    creator: str,
+    from_timestamp: float,
+    to_timestamp: float,
+    fpmm_from_timestamp: float,
+    fpmm_to_timestamp: float
 ) -> str:
     """Parse the trades from the response."""
+
+    user_json = _query_conditional_tokens_gc_subgraph(creator)
+    trades_json = _query_omen_xdai_subgraph(creator, from_timestamp, to_timestamp, fpmm_from_timestamp, fpmm_to_timestamp)
 
     statistics_table = {
         row: {col: 0 for col in STATS_TABLE_COLS} for row in STATS_TABLE_ROWS
@@ -547,16 +580,16 @@ def _parse_response(  # pylint: disable=too-many-locals,too-many-statements
     _compute_totals(statistics_table)
     output += _format_table(statistics_table)
 
-    return output
+    return output, statistics_table
 
 
 if __name__ == "__main__":
     user_args = _parse_args()
-    _trades_json = _query_omen_xdai_subgraph(
+    parsed_output, _ = _parse_user(
         user_args.creator,
         user_args.from_date.timestamp(),
-        user_args.to_date.timestamp()
+        user_args.to_date.timestamp(),
+        user_args.fpmm_created_from_date.timestamp(),
+        user_args.fpmm_created_to_date.timestamp(),
     )
-    _user_json = _query_conditional_tokens_gc_subgraph(user_args.creator)
-    parsed = _parse_response(_trades_json, _user_json)
-    print(parsed)
+    print(parsed_output)
