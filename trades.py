@@ -194,8 +194,12 @@ def _parse_args() -> Any:
 
     args.from_date = args.from_date.replace(tzinfo=datetime.timezone.utc)
     args.to_date = args.to_date.replace(tzinfo=datetime.timezone.utc)
-    args.fpmm_created_from_date = args.fpmm_created_from_date.replace(tzinfo=datetime.timezone.utc)
-    args.fpmm_created_to_date = args.fpmm_created_to_date.replace(tzinfo=datetime.timezone.utc)
+    args.fpmm_created_from_date = args.fpmm_created_from_date.replace(
+        tzinfo=datetime.timezone.utc
+    )
+    args.fpmm_created_to_date = args.fpmm_created_to_date.replace(
+        tzinfo=datetime.timezone.utc
+    )
 
     return args
 
@@ -210,13 +214,13 @@ def _to_content(q: str) -> dict[str, Any]:
     return finalized_query
 
 
-def _query_omen_xdai_subgraph(
-        creator: str,
-        from_timestamp: float,
-        to_timestamp: float,
-        fpmm_from_timestamp: float,
-        fpmm_to_timestamp: float
-    ) -> dict[str, Any]:
+def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
+    creator: str,
+    from_timestamp: float,
+    to_timestamp: float,
+    fpmm_from_timestamp: float,
+    fpmm_to_timestamp: float,
+) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
@@ -246,7 +250,7 @@ def _query_omen_xdai_subgraph(
             fpmm_id = trade.get("fpmm", {}).get("id")
             grouped_results[fpmm_id].append(trade)
 
-        creationTimestamp_gt = trades[len(trades)-1]["creationTimestamp"]
+        creationTimestamp_gt = trades[len(trades) - 1]["creationTimestamp"]
 
     all_results = {
         "data": {
@@ -271,7 +275,7 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
         query = conditional_tokens_gc_user_query.substitute(
             id=creator.lower(),
             first=QUERY_BATCH_SIZE,
-            userPositions_id_gt=userPositions_id_gt
+            userPositions_id_gt=userPositions_id_gt,
         )
         content_json = {"query": query}
         res = requests.post(url, headers=headers, json=content_json)
@@ -285,7 +289,7 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
 
         if user_positions:
             all_results["data"]["user"]["userPositions"].extend(user_positions)
-            userPositions_id_gt=user_positions[len(user_positions)-1]["id"]
+            userPositions_id_gt = user_positions[len(user_positions) - 1]["id"]
         else:
             break
 
@@ -454,17 +458,12 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
     return table_str
 
 
-def _parse_user(  # pylint: disable=too-many-locals,too-many-statements
-    creator: str,
-    from_timestamp: float,
-    to_timestamp: float,
-    fpmm_from_timestamp: float,
-    fpmm_to_timestamp: float
-) -> str:
+def parse_user(  # pylint: disable=too-many-locals,too-many-statements
+    creator: str, creator_trades_json: dict[str, Any]
+) -> tuple[str, dict[Any, Any]]:
     """Parse the trades from the response."""
 
     user_json = _query_conditional_tokens_gc_subgraph(creator)
-    trades_json = _query_omen_xdai_subgraph(creator, from_timestamp, to_timestamp, fpmm_from_timestamp, fpmm_to_timestamp)
 
     statistics_table = {
         row: {col: 0 for col in STATS_TABLE_COLS} for row in STATS_TABLE_ROWS
@@ -474,7 +473,7 @@ def _parse_user(  # pylint: disable=too-many-locals,too-many-statements
     output += "Trades\n"
     output += "------\n"
 
-    for fpmmTrade in trades_json["data"]["fpmmTrades"]:
+    for fpmmTrade in creator_trades_json["data"]["fpmmTrades"]:
         try:
             collateral_amount = int(fpmmTrade["collateralAmount"])
             outcome_index = int(fpmmTrade["outcomeIndex"])
@@ -585,11 +584,12 @@ def _parse_user(  # pylint: disable=too-many-locals,too-many-statements
 
 if __name__ == "__main__":
     user_args = _parse_args()
-    parsed_output, _ = _parse_user(
+    trades_json = _query_omen_xdai_subgraph(
         user_args.creator,
         user_args.from_date.timestamp(),
         user_args.to_date.timestamp(),
         user_args.fpmm_created_from_date.timestamp(),
         user_args.fpmm_created_to_date.timestamp(),
     )
+    parsed_output, _ = parse_user(user_args.creator, trades_json)
     print(parsed_output)
