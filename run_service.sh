@@ -385,7 +385,6 @@ echo -n "$operator_pkey" >"$operator_pkey_file"
 packages="packages/packages.json"
 local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
-service_safe_address=$(<"../$service_safe_address_path")
 operator_address=$(get_address "../$operator_keys_file")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
@@ -418,6 +417,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
         # transfer the ownership of the Safe from the agent to the service owner
         # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
+        service_safe_address=$(<"../$service_safe_address_path")
         echo "[Agent instance] Swapping Safe owner..."
         output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "$agent_pkey_file" "$operator_address" "$rpc")
         if [[ $? -ne 0 ]]; then
@@ -529,7 +529,18 @@ if [ $(get_on_chain_service_state $service_id) == "ACTIVE_REGISTRATION" ]; then
 fi
 
 # deploy on-chain service
-if [ $(get_on_chain_service_state $service_id) == "FINISHED_REGISTRATION" ]; then
+service_state=$(get_on_chain_service_state $service_id)
+if [ "$service_state" == "FINISHED_REGISTRATION" ] && [ "$first_run" = "true" ]; then
+    echo "[Service owner] Deploying on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
+    if [[ $? -ne 0 ]]; then
+        echo "Deploying service failed.\n$output"
+        echo "Please, delete or rename the ./trader folder and try re-run this script again."
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file" --reuse-multisig)
     if [[ $? -ne 0 ]]; then
