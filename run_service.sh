@@ -415,6 +415,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
 
     # TODO this condition should be increased to be service_state=DEPLOYED && current_safe_owner=agent_address.
+    # Otherwise the script will not recover the on-chain state in the (rare) case where this transaction succeeds but terminating transaction fails.
     if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
         # transfer the ownership of the Safe from the agent to the service owner
         # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
