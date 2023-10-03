@@ -342,7 +342,7 @@ then
     suggested_amount=50000000000000000
     ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
-    echo "Minting your service on the Gnosis chain..."
+    echo "[Service owner] Minting your service on the Gnosis chain..."
 
     # create service
     cost_of_bonding=10000000000000000
