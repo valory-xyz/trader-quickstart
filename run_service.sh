@@ -677,7 +677,7 @@ poetry run autonomy deploy build --n $n_agents -ltm
 
 cd ..
 
-# add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 
 # Run the deployment
 poetry run autonomy deploy run --build-dir $directory --detach
