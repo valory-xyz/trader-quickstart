@@ -465,7 +465,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             exit 1
         fi
     fi
-exit 1
+
     # update service
     if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
         echo "[Service owner] Updating on-chain service $service_id..."
