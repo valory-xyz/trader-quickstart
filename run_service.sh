@@ -438,7 +438,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         )
         if [[ $? -ne 0 ]]; then
             echo "Terminating service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."            
+            echo "Please, delete or rename the ./trader folder and try re-run this script again."
             rm -f $agent_pkey_file
             rm -f $operator_pkey_file
             exit 1
@@ -456,7 +456,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         )
         if [[ $? -ne 0 ]]; then
             echo "Unbonding service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."            
+            echo "Please, delete or rename the ./trader folder and try re-run this script again."
             rm -f $agent_pkey_file
             rm -f $operator_pkey_file
             exit 1
@@ -483,7 +483,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         )
         if [[ $? -ne 0 ]]; then
             echo "Updating service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."            
+            echo "Please, delete or rename the ./trader folder and try re-run this script again."
             rm -f $agent_pkey_file
             rm -f $operator_pkey_file
             exit 1
@@ -508,7 +508,7 @@ if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
     output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
     if [[ $? -ne 0 ]]; then
         echo "Activating service failed.\n$output"
-        echo "Please, delete or rename the ./trader folder and try re-run this script again."            
+        echo "Please, delete or rename the ./trader folder and try re-run this script again."
         rm -f $agent_pkey_file
         rm -f $operator_pkey_file
         exit 1
