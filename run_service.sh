@@ -367,39 +367,6 @@ then
         exit 1
     fi
 
-    # echo "[Service owner] Activating registration for service with id $service_id..."
-    # # activate service
-    # activation=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-    # # validate activation
-    # if ! [[ "$activation" = "Service activated succesfully" ]]
-    # then
-    #     echo "Service registration activation failed: $activation"
-    #     exit 1
-    # fi
-
-    # echo "[Service owner] Registering agent instance for service with id $service_id..."
-    # # register service
-    # registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $AGENT_ID -i "$agent_address")
-    # # validate registration
-    # if ! [[ "$registration" = "Agent instance registered succesfully" ]]
-    # then
-    #     echo "Service registration failed: $registration"
-    #     exit 1
-    # fi
-
-    # echo "[Service owner] Deploying service with id $service_id..."
-    # # deploy service
-    # deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
-    # # validate deployment
-    # if ! [[ "$deployment" = "Service deployed succesfully" ]]
-    # then
-    #     echo "Service deployment failed: $deployment"
-    #     exit 1
-    # fi
-
-    # # delete the operator's pkey file
-    # rm $operator_pkey_file
-    # # store service id
     echo -n "$service_id" > "../$service_id_path"
 fi
 
@@ -433,7 +400,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
 
     # Check balances
-     suggested_amount=50000000000000000
+    suggested_amount=50000000000000000
     ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
     suggested_amount=50000000000000000
@@ -579,16 +546,15 @@ rm -f $agent_pkey_file
 rm -f $operator_pkey_file
 
 # check state
-if [ $(get_on_chain_service_state $service_id) != "DEPLOYED" ]; then
-then
-    echo "Something went wrong while deploying the service. The service's state is:"
-    echo "$service_state"
-    echo "Please check the output of the script for more information."
+service_state=$(get_on_chain_service_state $service_id)
+if [ "$service_state" != "DEPLOYED" ]; then
+    echo "Something went wrong while deploying on-chain service. The service's state is $service_state."
+    echo "Please check the output of the script and the on-chain registry for more information."
     exit 1
 fi
 
 echo ""
-echo "Finished checking Autonolas Protocol service $service_id state"
+echo "Finished checking Autonolas Protocol service $service_id state."
 
 
 echo ""
@@ -598,6 +564,7 @@ echo "------------------------------"
 echo ""
 
 # Get the deployed service's Safe address from the contract
+service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
 safe=$(echo "$service_info" | grep "Multisig Address")
 address_start_position=31
 safe=$(echo "$safe" |
