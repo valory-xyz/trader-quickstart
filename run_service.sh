@@ -287,6 +287,11 @@ else
     exit 1
 fi
 
+echo ""
+echo "-----------------------------------------"
+echo "Checking Autonolas Protocol service state"
+echo "-----------------------------------------"
+
 gnosis_chain_id=100
 n_agents=1
 
@@ -362,43 +367,54 @@ then
         exit 1
     fi
 
-    echo "[Service owner] Activating registration for service with id $service_id..."
-    # activate service
-    activation=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-    # validate activation
-    if ! [[ "$activation" = "Service activated succesfully" ]]
-    then
-        echo "Service registration activation failed: $activation"
-        exit 1
-    fi
+    # echo "[Service owner] Activating registration for service with id $service_id..."
+    # # activate service
+    # activation=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
+    # # validate activation
+    # if ! [[ "$activation" = "Service activated succesfully" ]]
+    # then
+    #     echo "Service registration activation failed: $activation"
+    #     exit 1
+    # fi
 
-    echo "[Service owner] Registering agent instance for service with id $service_id..."
-    # register service
-    registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-    # validate registration
-    if ! [[ "$registration" = "Agent instance registered succesfully" ]]
-    then
-        echo "Service registration failed: $registration"
-        exit 1
-    fi
+    # echo "[Service owner] Registering agent instance for service with id $service_id..."
+    # # register service
+    # registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    # # validate registration
+    # if ! [[ "$registration" = "Agent instance registered succesfully" ]]
+    # then
+    #     echo "Service registration failed: $registration"
+    #     exit 1
+    # fi
 
-    echo "[Service owner] Deploying service with id $service_id..."
-    # deploy service
-    deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
-    # validate deployment
-    if ! [[ "$deployment" = "Service deployed succesfully" ]]
-    then
-        echo "Service deployment failed: $deployment"
-        exit 1
-    fi
+    # echo "[Service owner] Deploying service with id $service_id..."
+    # # deploy service
+    # deployment=$(poetry run autonomy service --use-custom-chain deploy --key "$operator_pkey_file" "$service_id")
+    # # validate deployment
+    # if ! [[ "$deployment" = "Service deployed succesfully" ]]
+    # then
+    #     echo "Service deployment failed: $deployment"
+    #     exit 1
+    # fi
 
-    # delete the operator's pkey file
-    rm $operator_pkey_file
-    # store service id
+    # # delete the operator's pkey file
+    # rm $operator_pkey_file
+    # # store service id
     echo -n "$service_id" > "../$service_id_path"
 fi
 
-# Update the on-chain service if required
+# generate private key files in the format required by the CLI tool
+agent_pkey_file="agent_pkey.txt"
+agent_pkey=$(get_private_key "../$keys_json_path")
+agent_pkey="${agent_pkey#0x}"
+echo -n "$agent_pkey" >"$agent_pkey_file"
+
+operator_pkey_file="operator_pkey.txt"
+operator_pkey=$(get_private_key "../$operator_keys_file")
+operator_pkey="${operator_pkey#0x}"
+echo -n "$operator_pkey" >"$operator_pkey_file"
+
+# Update the on-chain service if outdated
 packages="packages/packages.json"
 local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
@@ -432,17 +448,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
     echo "Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve."
     echo ""
-
-    # generate private key files in the format required by the CLI tool
-    agent_pkey_file="agent_pkey.txt"
-    agent_pkey=$(get_private_key "../$keys_json_path")
-    agent_pkey="${agent_pkey#0x}"
-    echo -n "$agent_pkey" >"$agent_pkey_file"
-
-    operator_pkey_file="operator_pkey.txt"
-    operator_pkey=$(get_private_key "../$operator_keys_file")
-    operator_pkey="${operator_pkey#0x}"
-    echo -n "$operator_pkey" >"$operator_pkey_file"
 
     if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
         # transfer the ownership of the Safe from the agent to the service owner
@@ -520,57 +525,60 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         fi
     fi
 
-    # activate service
-    if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
-        echo "[Service owner] Activating registration for on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
-        if [[ $? -ne 0 ]]; then
-            echo "Activating service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."            
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-    fi
-
-    # register agent instance
-    if [ $(get_on_chain_service_state $service_id) == "ACTIVE_REGISTRATION" ]; then
-        echo "[Operator] Registering agent instance for on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
-        if [[ $? -ne 0 ]]; then
-            echo "Registering agent instance failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-    fi
-
-    # deploy on-chain service
-    if [ $(get_on_chain_service_state $service_id) == "FINISHED_REGISTRATION" ]; then
-        echo "[Service owner] Deploying on-chain service $service_id..."
-        output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file" --reuse-multisig)
-        if [[ $? -ne 0 ]]; then
-            echo "Deploying service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."
-            rm -f $agent_pkey_file
-            rm -f $operator_pkey_file
-            exit 1
-        fi
-    fi
-
-    # delete the pkey files
-    rm -f $agent_pkey_file
-    rm -f $operator_pkey_file
     echo ""
-    echo "Finished update of on-chain service $service_id."
+    echo "Finished updating on-chain service $service_id."
 fi
 
 echo ""
-echo "------------------------------"
-echo "Starting the trader service..."
-echo "------------------------------"
-echo ""
+echo "Ensuring on-chain service $service_id is in DEPLOYED state..."
+
+if [ $(get_on_chain_service_state $service_id) != "DEPLOYED" ]; then
+    suggested_amount=25000000000000000
+    ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+fi
+
+# activate service
+if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
+    echo "[Service owner] Activating registration for on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
+    if [[ $? -ne 0 ]]; then
+        echo "Activating service failed.\n$output"
+        echo "Please, delete or rename the ./trader folder and try re-run this script again."            
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+fi
+
+# register agent instance
+if [ $(get_on_chain_service_state $service_id) == "ACTIVE_REGISTRATION" ]; then
+    echo "[Operator] Registering agent instance for on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    if [[ $? -ne 0 ]]; then
+        echo "Registering agent instance failed.\n$output"
+        echo "Please, delete or rename the ./trader folder and try re-run this script again."
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+fi
+
+# deploy on-chain service
+if [ $(get_on_chain_service_state $service_id) == "FINISHED_REGISTRATION" ]; then
+    echo "[Service owner] Deploying on-chain service $service_id..."
+    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file" --reuse-multisig)
+    if [[ $? -ne 0 ]]; then
+        echo "Deploying service failed.\n$output"
+        echo "Please, delete or rename the ./trader folder and try re-run this script again."
+        rm -f $agent_pkey_file
+        rm -f $operator_pkey_file
+        exit 1
+    fi
+fi
+
+# delete the pkey files
+rm -f $agent_pkey_file
+rm -f $operator_pkey_file
 
 # check state
 expected_state="| Service State             | DEPLOYED                                     |"
@@ -583,6 +591,16 @@ then
     echo "Please check the output of the script for more information."
     exit 1
 fi
+
+echo ""
+echo "Finished checking Autonolas Protocol service $service_id state"
+
+
+echo ""
+echo "------------------------------"
+echo "Starting the trader service..."
+echo "------------------------------"
+echo ""
 
 # Get the deployed service's Safe address from the contract
 safe=$(echo "$service_info" | grep "Multisig Address")
