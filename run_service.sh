@@ -304,6 +304,7 @@ export CUSTOM_GNOSIS_SAFE_MULTISIG_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA91
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415df3D2D8232B3d3D31e44"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
+export AGENT_ID=12
 
 if [ "$first_run" = "true" ]
 then
@@ -344,7 +345,6 @@ then
     echo "Minting your service on the Gnosis chain..."
 
     # create service
-    agent_id=12
     cost_of_bonding=10000000000000000
     nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
     service_id=$(poetry run autonomy mint \
@@ -353,7 +353,7 @@ then
       service packages/valory/services/$directory/ \
       --key "$operator_pkey_file" \
       --nft $nft \
-      -a $agent_id \
+      -a $AGENT_ID \
       -n $n_agents \
       --threshold $n_agents \
       -c $cost_of_bonding
@@ -379,7 +379,7 @@ then
 
     # echo "[Service owner] Registering agent instance for service with id $service_id..."
     # # register service
-    # registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    # registration=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $AGENT_ID -i "$agent_address")
     # # validate registration
     # if ! [[ "$registration" = "Agent instance registered succesfully" ]]
     # then
@@ -418,6 +418,8 @@ echo -n "$operator_pkey" >"$operator_pkey_file"
 packages="packages/packages.json"
 local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
+service_safe_address=$(<"../$service_safe_address_path")
+operator_address=$(get_address "../$operator_keys_file")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
@@ -431,10 +433,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
 
     # Check balances
-    service_safe_address=$(<"../$service_safe_address_path")
-    operator_address=$(get_address "../$operator_keys_file")
-
-    suggested_amount=50000000000000000
+     suggested_amount=50000000000000000
     ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
     suggested_amount=50000000000000000
@@ -500,7 +499,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     # update service
     if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
         echo "[Service owner] Updating on-chain service $service_id..."
-        agent_id=12
         cost_of_bonding=10000000000000000
         nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
         output=$(
@@ -510,7 +508,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                 service packages/valory/services/trader/ \
                 --key "$operator_pkey_file" \
                 --nft $nft \
-                -a $agent_id \
+                -a $AGENT_ID \
                 -n $n_agents \
                 --threshold $n_agents \
                 -c $cost_of_bonding \
@@ -553,7 +551,7 @@ fi
 # register agent instance
 if [ $(get_on_chain_service_state $service_id) == "ACTIVE_REGISTRATION" ]; then
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $agent_id -i "$agent_address")
+    output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $AGENT_ID -i "$agent_address")
     if [[ $? -ne 0 ]]; then
         echo "Registering agent instance failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
