@@ -579,10 +579,7 @@ rm -f $agent_pkey_file
 rm -f $operator_pkey_file
 
 # check state
-expected_state="| Service State             | DEPLOYED                                     |"
-service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
-service_state=$(echo "$service_info" | grep "Service State")
-if [ "$service_state" != "$expected_state" ]
+if [ $(get_on_chain_service_state $service_id) != "DEPLOYED" ]; then
 then
     echo "Something went wrong while deploying the service. The service's state is:"
     echo "$service_state"
