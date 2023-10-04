@@ -143,14 +143,14 @@ class MarketState(Enum):
 class MarketAttribute(Enum):
     """Attribute"""
 
-    NUM_TRADES = "Num. trades"
-    WINNER_TRADES = "Winner trades"
-    NUM_REDEEMED = "Num. redeemed"
-    INVESTMENT = "Invested"
+    NUM_TRADES = "Num_trades"
+    WINNER_TRADES = "Winner_trades"
+    NUM_REDEEMED = "Num_redeemed"
+    INVESTMENT = "Investment"
     FEES = "Fees"
     EARNINGS = "Earnings"
-    NET_EARNINGS = "Net earnings"
-    REDEMPTIONS = "Redeemed"
+    NET_EARNINGS = "Net_earnings"
+    REDEMPTIONS = "Redemptions"
     ROI = "ROI"
 
     def __str__(self) -> str:
@@ -159,7 +159,7 @@ class MarketAttribute(Enum):
 
     def __repr__(self) -> str:
         """Prints the attribute representation."""
-        return str(self)
+        return self.name
 
     @staticmethod
     def argparse(s):
