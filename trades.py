@@ -141,7 +141,7 @@ class MarketState(Enum):
 
 
 class MarketAttribute(Enum):
-    """Market status"""
+    """Attribute"""
 
     NUM_TRADES = "Num. trades"
     WINNER_TRADES = "Winner trades"
@@ -154,8 +154,20 @@ class MarketAttribute(Enum):
     ROI = "ROI"
 
     def __str__(self) -> str:
-        """Prints the market status."""
+        """Prints the attribute."""
         return self.value
+
+    def __repr__(self) -> str:
+        """Prints the attribute representation."""
+        return str(self)
+
+    @staticmethod
+    def argparse(s):
+        """Performs string conversion to Attribute."""
+        try:
+            return MarketAttribute[s.upper()]
+        except KeyError:
+            return s
 
 
 STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
