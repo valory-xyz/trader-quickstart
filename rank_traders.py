@@ -21,6 +21,7 @@
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
 import datetime
+import sys
 from argparse import ArgumentParser
 from collections import defaultdict
 from string import Template
@@ -28,7 +29,6 @@ from typing import Any
 
 import requests
 import trades
-from tqdm import tqdm
 from trades import MarketAttribute, MarketState, wei_to_dai
 
 
@@ -281,6 +281,26 @@ def _print_user_summary(
     print(output)
 
 
+def _print_progress_bar(  # pylint: disable=too-many-arguments
+    iteration: int,
+    total: int,
+    prefix: str = "Computing statistics:",
+    suffix: str = "Complete",
+    length: int = 50,
+    fill: str = "#",
+) -> None:
+    """Prints the progress bar"""
+    if len(fill) != 1:
+        raise ValueError("Fill character must be a single character.")
+
+    percent = ("{0:.1f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + "-" * (length - filled_length)
+    progress_string = f"({iteration} of {total}) - {percent}%"
+    sys.stdout.write("\r%s |%s| %s %s" % (prefix, bar, progress_string, suffix))
+    sys.stdout.flush()
+
+
 if __name__ == "__main__":
     print("Starting script")
     user_args = _parse_args()
@@ -295,15 +315,16 @@ if __name__ == "__main__":
     print(f'Total trading transactions: {len(all_trades_json["data"]["fpmmTrades"])}')
 
     creator_to_trades = _group_trades_by_creator(all_trades_json)
-    print(f"Total traders: {len(creator_to_trades)}")
+    total_traders = len(creator_to_trades.items())
+    print(f"Total traders: {total_traders}")
 
     creator_to_statistics = {}
-    for creator_id, trades_json_id in tqdm(
-        creator_to_trades.items(),
-        desc="Computing statistics",
-        total=len(creator_to_trades),
+    _print_progress_bar(0, total_traders)
+    for i, (creator_id, trades_json_id) in enumerate(
+        creator_to_trades.items(), start=1
     ):
         _, statistics_table_id = trades.parse_user(creator_id, trades_json_id)
         creator_to_statistics[creator_id] = statistics_table_id
+        _print_progress_bar(i, total_traders)
 
     _print_user_summary(creator_to_statistics, user_args.sort_by)
