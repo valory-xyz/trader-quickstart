@@ -1,0 +1,1 @@
+This config folder is for agent 0.6.0 requested to run by DM on sep 7 2023

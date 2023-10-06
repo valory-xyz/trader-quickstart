@@ -1,0 +1,972 @@
+------
+Trades
+------
+      Question: Will the woman arrested for animal abuse in Chandler, Arizona be convicted on 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x0333412a18791264a6dc18b2bf63b04f6e3bd337
+    Trade date: 2023-09-26 15:12:10 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the woman arrested for animal abuse in Chandler, Arizona be convicted on 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x0333412a18791264a6dc18b2bf63b04f6e3bd337
+    Trade date: 2023-09-27 17:43:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Senator Bob Menendez be exonerated from his bribery charges by September 30, 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf9040a719767df6bebbc707a7bb5f38e5c2d665c
+    Trade date: 2023-09-27 15:25:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Senator Bob Menendez be exonerated from his bribery charges by September 30, 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf9040a719767df6bebbc707a7bb5f38e5c2d665c
+    Trade date: 2023-09-27 17:29:25 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Senator Bob Menendez be exonerated from his bribery charges by September 30, 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf9040a719767df6bebbc707a7bb5f38e5c2d665c
+    Trade date: 2023-09-28 09:17:10 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Senator Bob Menendez be exonerated from his bribery charges by September 30, 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf9040a719767df6bebbc707a7bb5f38e5c2d665c
+    Trade date: 2023-09-28 10:00:05 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Russia succeed in rejoining the UN's human rights council by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x3fc866e4c1c33ccb3baf2bf9042f281575773f44
+    Trade date: 2023-09-27 17:27:05 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Russia succeed in rejoining the UN's human rights council by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x3fc866e4c1c33ccb3baf2bf9042f281575773f44
+    Trade date: 2023-09-28 09:13:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Russia succeed in rejoining the UN's human rights council by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x3fc866e4c1c33ccb3baf2bf9042f281575773f44
+    Trade date: 2023-09-29 20:51:00 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Ford Motor Co. resume construction of its Michigan battery plant by September 30, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x931b8c49b55e8bbe9078e2aadc620488abed55ec
+    Trade date: 2023-09-27 17:31:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Ford Motor Co. resume construction of its Michigan battery plant by September 30, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x931b8c49b55e8bbe9078e2aadc620488abed55ec
+    Trade date: 2023-09-28 10:02:05 UTC
+ Market status: Pending
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Philip Paxson's family win their lawsuit against Google by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xb92eefff307c4f376fed5ef0a311f76244607e00
+    Trade date: 2023-09-27 17:34:20 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'No' - The trade was for the loser answer.
+
+      Question: Will Boston College reinstate the swimming and diving program by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xc6a6630dfea248135c3ff949e9126a5d8a99f862
+    Trade date: 2023-09-27 17:39:10 UTC
+ Market status: Closed
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+  Final answer: 'No' - Congrats! The trade was for the winner answer.
+      Earnings: 0.08 DAI
+      Redeemed: True
+
+      Question: Will the German police conduct more raids related to migrant smuggling by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xa21adbe887373879343a2dbd3a81035ade6178d9
+    Trade date: 2023-09-27 17:41:20 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the German police conduct more raids related to migrant smuggling by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xa21adbe887373879343a2dbd3a81035ade6178d9
+    Trade date: 2023-09-28 09:22:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the German police conduct more raids related to migrant smuggling by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xa21adbe887373879343a2dbd3a81035ade6178d9
+    Trade date: 2023-09-28 10:07:15 UTC
+ Market status: Pending
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the German police conduct more raids related to migrant smuggling by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xa21adbe887373879343a2dbd3a81035ade6178d9
+    Trade date: 2023-09-29 23:39:45 UTC
+ Market status: Pending
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will relations between North Korea and South Korea improve by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4110ced8c88d93e9168b63d6e23a083a2212d0eb
+    Trade date: 2023-09-27 17:45:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will relations between North Korea and South Korea improve by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4110ced8c88d93e9168b63d6e23a083a2212d0eb
+    Trade date: 2023-09-28 09:19:05 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will there be a significant breakthrough in the analysis of asteroid Bennu samples by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x8bc177d20495285ab72f5c863312859272829a10
+    Trade date: 2023-09-27 17:48:15 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will there be a significant breakthrough in the analysis of asteroid Bennu samples by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x8bc177d20495285ab72f5c863312859272829a10
+    Trade date: 2023-09-28 09:25:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will there be a significant breakthrough in the analysis of asteroid Bennu samples by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x8bc177d20495285ab72f5c863312859272829a10
+    Trade date: 2023-09-28 10:11:15 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Facebook change its logo by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x6dc1b56eff79055f16fadd039d38c772b1b54fb8
+    Trade date: 2023-09-27 17:50:35 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Daniel Johns reconcile with his Silverchair bandmates by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4d1d5ce0ef53caf6969125dd3b43fe5b38a14724
+    Trade date: 2023-09-27 17:52:50 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Daniel Johns reconcile with his Silverchair bandmates by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4d1d5ce0ef53caf6969125dd3b43fe5b38a14724
+    Trade date: 2023-09-28 10:09:25 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Vietnam restart its biggest rare-earths mine by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x39e9005b6376a378950914bdc1aa78bc3d3b0b1c
+    Trade date: 2023-09-27 17:55:00 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Vietnam restart its biggest rare-earths mine by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x39e9005b6376a378950914bdc1aa78bc3d3b0b1c
+    Trade date: 2023-09-28 10:15:00 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Syrian President Bashar al-Assad successfully exit from diplomatic isolation by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x881488933b9fcfd66c487121f208ae098d125e3d
+    Trade date: 2023-09-27 17:57:20 UTC
+ Market status: Closed
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+  Final answer: 'No' - Congrats! The trade was for the winner answer.
+      Earnings: 0.08 DAI
+      Redeemed: True
+
+      Question: Will Senator Bob Menendez resign from his position by 30th September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x094cf570feca4b288a104b6d562a3660466165fd
+    Trade date: 2023-09-27 17:59:15 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Senator Bob Menendez resign from his position by 30th September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x094cf570feca4b288a104b6d562a3660466165fd
+    Trade date: 2023-09-28 09:31:20 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Senator Bob Menendez resign from his position by 30th September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x094cf570feca4b288a104b6d562a3660466165fd
+    Trade date: 2023-09-28 10:17:05 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will KFC fully exit from Russia by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe1e68caa4afad1b7329385091c44384928af78ba
+    Trade date: 2023-09-27 18:01:05 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will KFC fully exit from Russia by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe1e68caa4afad1b7329385091c44384928af78ba
+    Trade date: 2023-09-28 10:18:50 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Amazon invest more than 4,000 million in the artificial intelligence company Anthropic by 30th September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xb36c25a0ebd4eba486b4be33e892beaf0d4febf3
+    Trade date: 2023-09-27 18:04:20 UTC
+ Market status: Pending
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Amazon invest more than 4,000 million in the artificial intelligence company Anthropic by 30th September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xb36c25a0ebd4eba486b4be33e892beaf0d4febf3
+    Trade date: 2023-09-28 09:35:15 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Bamboo Airways manage to pay their pilots' wages by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x0273bb6860e0bec6d36b3e0fc79c211a3bca45d2
+    Trade date: 2023-09-27 18:06:35 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.13 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Bamboo Airways manage to pay their pilots' wages by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x0273bb6860e0bec6d36b3e0fc79c211a3bca45d2
+    Trade date: 2023-09-28 10:20:40 UTC
+ Market status: Pending
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Bamboo Airways manage to pay their pilots' wages by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x0273bb6860e0bec6d36b3e0fc79c211a3bca45d2
+    Trade date: 2023-09-29 23:43:55 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the United States capture more key Islamic State militants by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x799e6f7f76d3b4849e68550a528a1b1f9b8e5076
+    Trade date: 2023-09-27 18:08:55 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the United States capture more key Islamic State militants by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x799e6f7f76d3b4849e68550a528a1b1f9b8e5076
+    Trade date: 2023-09-28 10:26:10 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Johnny Depp's film as Luis XV be released by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xb1363c127e3f8f551c614b5e004c2ffd994b2e53
+    Trade date: 2023-09-27 18:13:05 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'Yes' - Congrats! The trade was for the winner answer.
+      Earnings: 0.11 DAI
+      Redeemed: True
+
+      Question: Will the 9 deputies charged in the Memphis jail death be convicted by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x58d8e8ee2dcb4498e350a2e0ca6a1838495dba1e
+    Trade date: 2023-09-27 18:15:40 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'No' - The trade was for the loser answer.
+
+      Question: Will Ford reach a new labor agreement with the United Auto Workers union by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xac7cf10219b36b0309bdf9f3b120a0f819c031ae
+    Trade date: 2023-09-27 18:20:35 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.14 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'No' - The trade was for the loser answer.
+
+      Question: Will Ford reach a new labor agreement with the United Auto Workers union by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xac7cf10219b36b0309bdf9f3b120a0f819c031ae
+    Trade date: 2023-09-28 10:30:35 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.14 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'No' - The trade was for the loser answer.
+
+      Question: Will the striking Hollywood writers' tentative deal with studios end the strikes by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xde45c9a6da67c46f5839025d63fa2f543fe9e503
+    Trade date: 2023-09-27 18:22:30 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.08 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'Yes' - Congrats! The trade was for the winner answer.
+      Earnings: 0.08 DAI
+      Redeemed: True
+
+      Question: Will Spotify ban AI-made music by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xdf80f716ed1ede4e0e6668c3e251253c090fc5e5
+    Trade date: 2023-09-27 18:39:40 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Spotify ban AI-made music by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xdf80f716ed1ede4e0e6668c3e251253c090fc5e5
+    Trade date: 2023-09-28 09:15:25 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Spotify ban AI-made music by 30 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xdf80f716ed1ede4e0e6668c3e251253c090fc5e5
+    Trade date: 2023-09-28 09:57:50 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Poland resume supplying weapons to Ukraine by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf198a8a288561e6139a8644a767723fecb2065f7
+    Trade date: 2023-09-27 19:20:10 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'No' - The trade was for the loser answer.
+
+      Question: Will Google update its maps to include recent geographical changes by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xa387474a53e07a217e3c1bc6c9555015be5035e4
+    Trade date: 2023-09-27 19:22:00 UTC
+ Market status: Closed
+        Bought: 0.03 DAI for 0.05 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'Yes' - Congrats! The trade was for the winner answer.
+      Earnings: 0.05 DAI
+      Redeemed: True
+
+      Question: Will Israeli citizens be allowed to travel to the United States without a U.S. visa by September 29, 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe54eb8beeed8e9a068bb827a9db0e7f5afabf86f
+    Trade date: 2023-09-27 20:05:15 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Israeli citizens be allowed to travel to the United States without a U.S. visa by September 29, 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe54eb8beeed8e9a068bb827a9db0e7f5afabf86f
+    Trade date: 2023-09-28 10:24:30 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Britain implement the ban on new fossil fuel car sales by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x012b6a79207139a2aee5903db344a6958b53910a
+    Trade date: 2023-09-27 20:14:15 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Britain implement the ban on new fossil fuel car sales by 29 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x012b6a79207139a2aee5903db344a6958b53910a
+    Trade date: 2023-09-28 10:28:20 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the US government shut down on 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x18c2361cf011482cdb81d92f1c3a41a587ea0e70
+    Trade date: 2023-09-27 20:27:20 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.07 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+  Final answer: 'No' - Congrats! The trade was for the winner answer.
+      Earnings: 0.07 DAI
+      Redeemed: True
+
+      Question: Will the Federal Reserve increase its benchmark interest rate by 28 September 2023?
+    Market URL: https://aiomen.eth.limo/#/0xa6194776c103751baf6d3988af5e237c8f2f5de7
+    Trade date: 2023-09-27 20:29:20 UTC
+ Market status: Closed
+        Bought: 0.06 DAI for 0.31 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+  Final answer: 'No' - The trade was for the loser answer.
+
+      Question: Will John King announce his candidacy for the 2024 election by 30th September 2023?
+    Market URL: https://aiomen.eth.limo/#/0x07a1709cd9a1837b3526e0f141f170f6fca78fff
+    Trade date: 2023-09-27 20:41:25 UTC
+ Market status: Pending
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Equinor start the development of the Rosebank oil and gas field by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x1856fa7b1df326c3ceafa9fb6e38b59a99f8b360
+    Trade date: 2023-09-28 10:49:35 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Equinor start the development of the Rosebank oil and gas field by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x1856fa7b1df326c3ceafa9fb6e38b59a99f8b360
+    Trade date: 2023-09-29 23:36:10 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the House Republicans start the impeachment inquiry into President Joe Biden by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xde1295bf0401250f4331e30e63f1745274f2cc0f
+    Trade date: 2023-09-28 10:51:40 UTC
+ Market status: Open
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will the number of refugees fleeing Nagorno-Karabakh to Armenia exceed 40,000 by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x1fb3d12ec84bb5bf0fc905bb130f17913b1db57d
+    Trade date: 2023-09-28 10:55:35 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the number of refugees fleeing Nagorno-Karabakh to Armenia exceed 40,000 by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x1fb3d12ec84bb5bf0fc905bb130f17913b1db57d
+    Trade date: 2023-09-29 22:49:10 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Felix Herrera Garcia, the husband of the Bronx day care owner, be extradited from Mexico by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf37123b4ca9cbe44efd8c1be78c8a114cd1d5c84
+    Trade date: 2023-09-28 10:57:45 UTC
+ Market status: Open
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will the senior Baton Rouge officer be reinstated on or before 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x564a3b6cbb3de493557d80028ec4a86704f04cb0
+    Trade date: 2023-09-29 20:57:25 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the senior Baton Rouge officer be reinstated on or before 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x564a3b6cbb3de493557d80028ec4a86704f04cb0
+    Trade date: 2023-10-01 09:54:15 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Romana Didulo, the QAnon 'queen', leave Canada on or before 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x6f12aa7b7e373d2eec99d992e85107a5d92ed695
+    Trade date: 2023-09-29 21:01:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Romana Didulo, the QAnon 'queen', leave Canada on or before 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x6f12aa7b7e373d2eec99d992e85107a5d92ed695
+    Trade date: 2023-10-01 09:46:45 UTC
+ Market status: Open
+        Bought: 0.03 DAI for 0.06 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Taiwan's first domestically developed submarine be operational by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x289531dba5e44971c2212159658d139da949f39a
+    Trade date: 2023-09-29 21:25:20 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Taiwan's first domestically developed submarine be operational by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x289531dba5e44971c2212159658d139da949f39a
+    Trade date: 2023-10-01 10:02:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Taiwan's first domestically developed submarine be operational by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x289531dba5e44971c2212159658d139da949f39a
+    Trade date: 2023-10-01 11:10:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the dollar value continue to rise after the oil surge by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x5f7afde133ee96254d5238299b0ad830f1c0867b
+    Trade date: 2023-09-29 21:28:40 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the dollar value continue to rise after the oil surge by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x5f7afde133ee96254d5238299b0ad830f1c0867b
+    Trade date: 2023-10-01 09:51:30 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Delta Air Lines implement the proposed changes to its loyalty program by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xfd80143381b6942d947ccb2b1b764e18ae1b62e1
+    Trade date: 2023-09-29 21:32:55 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Baton Rouge police deputy chief return to duty on or by October 4, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x3c8b9b008ce879de775cc95f763496ae70df3047
+    Trade date: 2023-09-29 21:34:50 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Baton Rouge police deputy chief return to duty on or by October 4, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x3c8b9b008ce879de775cc95f763496ae70df3047
+    Trade date: 2023-10-01 10:31:25 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Frank Rubio's record for the longest single spaceflight by an American be broken by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x08bf2bdebe736795668c5ada446724d2d9fa486a
+    Trade date: 2023-09-29 21:36:40 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the US government shut down due to financial issues on 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x8885cf72e59a6e75b996bc9f0f4697eb471b6ff9
+    Trade date: 2023-09-29 21:41:35 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will the Nagorno-Karabakh self-proclaimed republic be officially dissolved by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe835ad809a3360108f673f8dc43920fd370f615a
+    Trade date: 2023-09-29 21:44:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Nagorno-Karabakh self-proclaimed republic be officially dissolved by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe835ad809a3360108f673f8dc43920fd370f615a
+    Trade date: 2023-10-01 09:35:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Nagorno-Karabakh self-proclaimed republic be officially dissolved by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe835ad809a3360108f673f8dc43920fd370f615a
+    Trade date: 2023-10-01 10:06:10 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will New York remain the world's top financial centre by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x24a60f6e60fca08820a6ca4059232a29b57e5d2b
+    Trade date: 2023-09-29 21:50:30 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Virginia Republicans ban abortion by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x0d69628abd2b25b2898f12f579f08359156ee787
+    Trade date: 2023-09-29 21:54:40 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Vietnamese climate activist Hoang Thi Minh Hong be released from prison on or by October 4, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x13e8014e112f3ebb1cc0a48e4e1e348ab58ea64c
+    Trade date: 2023-09-29 22:10:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Vietnamese climate activist Hoang Thi Minh Hong be released from prison on or by October 4, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x13e8014e112f3ebb1cc0a48e4e1e348ab58ea64c
+    Trade date: 2023-10-01 11:30:45 UTC
+ Market status: Open
+        Bought: 0.04 DAI for 0.07 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will the German GDP contract by 0.6% by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xcdad1a4c9e7674c5e89106b674360863c0da8188
+    Trade date: 2023-09-29 22:12:00 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will the German GDP contract by 0.6% by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xcdad1a4c9e7674c5e89106b674360863c0da8188
+    Trade date: 2023-10-01 09:43:30 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will the German GDP contract by 0.6% by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xcdad1a4c9e7674c5e89106b674360863c0da8188
+    Trade date: 2023-10-01 11:13:15 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Volkswagen fully recover from its major IT outage by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x057387d960a53c7347fb7bbd7585c81dc1bebff1
+    Trade date: 2023-09-29 22:16:25 UTC
+ Market status: Open
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Volkswagen fully recover from its major IT outage by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x057387d960a53c7347fb7bbd7585c81dc1bebff1
+    Trade date: 2023-10-01 10:34:20 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Donald Trump announce his candidacy for the 2024 Republican presidential nomination by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4b845653a03dbb7c1c1e12acae79092560c0f142
+    Trade date: 2023-09-29 22:26:25 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Donald Trump announce his candidacy for the 2024 Republican presidential nomination by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4b845653a03dbb7c1c1e12acae79092560c0f142
+    Trade date: 2023-10-01 11:27:35 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the winner of the $1.6 billion Mega Millions jackpot remain anonymous until 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xe953495d071d66e0b56cb4b36b7fd3af08c3e2d9
+    Trade date: 2023-09-29 22:30:30 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will North Korea increase its nuclear weapons production as a response to a 'new Cold War' by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x6c233468eff9428d97894866eb82f1e1a5d66e0d
+    Trade date: 2023-09-29 22:34:15 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will North Korea increase its nuclear weapons production as a response to a 'new Cold War' by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x6c233468eff9428d97894866eb82f1e1a5d66e0d
+    Trade date: 2023-10-01 11:25:10 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the new undersea internet cable connecting several Pacific islands be completed by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xd425760fa1a520d03a4fbaf6ff268f5b593150d4
+    Trade date: 2023-09-29 22:36:10 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will cryptocurrency exchange Binance complete the sale of its Russia business by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xc7149a81014f45ebbf5df65add61816fc83ae545
+    Trade date: 2023-09-29 22:39:50 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Barbie movie officially start showing in Russia on 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4cbc403623dffef8a63904044f4489d34425ba8d
+    Trade date: 2023-09-29 22:41:50 UTC
+ Market status: Open
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Barbie movie officially start showing in Russia on 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x4cbc403623dffef8a63904044f4489d34425ba8d
+    Trade date: 2023-10-01 11:38:15 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Bruce Springsteen resume his shows by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xd3892e2c938494cab3d8dfbbd69fe206705d36a2
+    Trade date: 2023-09-29 22:44:15 UTC
+ Market status: Open
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the United Kingdom implement its plans to ease banking and insurance rules by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xdf1572cdbc0786da4180ecec89703b5b2a5bf8c3
+    Trade date: 2023-09-29 22:52:15 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the United Kingdom implement its plans to ease banking and insurance rules by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xdf1572cdbc0786da4180ecec89703b5b2a5bf8c3
+    Trade date: 2023-10-01 10:40:30 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will HSBC complete the acquisition of Citigroup's China consumer wealth management business by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x51a5d5975aaad241eca901cfd8019d25f7574694
+    Trade date: 2023-09-29 22:56:45 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the FDA update Ozempic label to acknowledge some users’ reports of blocked intestines by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x862fd88afe559c126265de4c4cf1388a129e1fc5
+    Trade date: 2023-09-29 23:02:00 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Biden administration successfully implement the modifications to the foster care system by 3 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x81d2f56011c16c5b8665a6ae64f400290b347824
+    Trade date: 2023-09-29 23:06:00 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will U.S. Army Private Travis King face legal charges upon his return to Texas by 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x1118cccd45ed8e09b5e15a4c641d83ea35deadae
+    Trade date: 2023-09-29 23:08:35 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.12 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will shares in Evergrande remain suspended on 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x5074c1cb42fb101d52aaa99cdb4285cc4e351285
+    Trade date: 2023-09-29 23:10:50 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will shares in Evergrande remain suspended on 4 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x5074c1cb42fb101d52aaa99cdb4285cc4e351285
+    Trade date: 2023-10-01 09:48:55 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Virginia man arrested for carrying weapons in a church be convicted by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x6c900424e0ed9b6d61c0b26d7389bacd1de5145c
+    Trade date: 2023-09-29 23:27:00 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Amazon be found guilty in the landmark monopoly case by October 1, 2023?
+    Market URL: https://aiomen.eth.limo/#/0x491ca0ee01b7ee1b5a05db9b6992d4d134bc032a
+    Trade date: 2023-09-29 23:57:05 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.30 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Aston Martin Valhalla supercar be released by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xb3f789619d05743273c535381c2e9beaab162adb
+    Trade date: 2023-09-29 23:59:55 UTC
+ Market status: Open
+        Bought: 0.08 DAI for 0.15 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Travis Kelce and Taylor Swift confirm their relationship status publicly on 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf8b5d06b8859b3b83e50046421dfc16265081d5d
+    Trade date: 2023-09-30 00:19:35 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Travis Kelce and Taylor Swift confirm their relationship status publicly on 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xf8b5d06b8859b3b83e50046421dfc16265081d5d
+    Trade date: 2023-10-01 10:25:30 UTC
+ Market status: Open
+        Bought: 0.04 DAI for 0.07 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Binance complete the sale of its Russia business to CommEX by 1 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x5de8d93ce49248ce8ba3f9eb43a5b72356eb6a70
+    Trade date: 2023-09-30 00:23:00 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will Romana Didulo be forced to leave the Canada town by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x7b501a1cb4015944f1e93a7c4b180a9493b081fc
+    Trade date: 2023-10-01 10:14:00 UTC
+ Market status: Open
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+      Question: Will Israeli crossings with Gaza remain open on 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0xd0d5bb2e3fd58cbcde831c2323b668f60a2e9ddf
+    Trade date: 2023-10-01 10:19:10 UTC
+ Market status: Open
+        Bought: 0.06 DAI for 0.11 DAI 'Yes' tokens
+           Fee: 0.00 DAI
+   Your answer: 'Yes'
+
+      Question: Will the Mexican army regain control over the towns cut off by drug cartels by 2 October 2023?
+    Market URL: https://aiomen.eth.limo/#/0x2f18943defb476021c4589290266b569d6914604
+    Trade date: 2023-10-01 10:22:50 UTC
+ Market status: Open
+        Bought: 0.04 DAI for 0.08 DAI 'No' tokens
+           Fee: 0.00 DAI
+   Your answer: 'No'
+
+
+--------------------------
+Summary (per market state)
+--------------------------
+
+                        Open       Pending    Finalizing   Arbitrating        Closed         TOTAL
+--------------------------------------------------------------------------------------------------
+Num. trades               59            45             0             0            12           116
+Winner trades              0             0             0             0             6             6
+Num. redeemed              0             0             0             0             6             6
+Invested            3.47 DAI      2.58 DAI      0.00 DAI      0.00 DAI      0.65 DAI      6.70 DAI
+Fees                0.07 DAI      0.05 DAI      0.00 DAI      0.00 DAI      0.01 DAI      0.13 DAI
+Earnings            0.00 DAI      0.00 DAI      0.00 DAI      0.00 DAI      0.48 DAI      0.48 DAI
+Net earnings       -3.54 DAI     -2.63 DAI      0.00 DAI      0.00 DAI     -0.19 DAI     -6.36 DAI
+Redeemed            0.00 DAI      0.00 DAI      0.00 DAI      0.00 DAI      0.48 DAI      0.48 DAI
+ROI              -102.00 %     -102.00 %        0.00 %        0.00 %      -28.75 %      -94.89 %  
+
