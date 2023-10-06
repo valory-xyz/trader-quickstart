@@ -287,7 +287,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.7"
+service_version="v0.6.8"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -626,11 +626,11 @@ export BET_AMOUNT_PER_THRESHOLD_020=0
 export BET_AMOUNT_PER_THRESHOLD_030=0
 export BET_AMOUNT_PER_THRESHOLD_040=0
 export BET_AMOUNT_PER_THRESHOLD_050=0
-export BET_AMOUNT_PER_THRESHOLD_060=30000000000000000
-export BET_AMOUNT_PER_THRESHOLD_070=40000000000000000
-export BET_AMOUNT_PER_THRESHOLD_080=60000000000000000
-export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
-export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
+export BET_AMOUNT_PER_THRESHOLD_060=0
+export BET_AMOUNT_PER_THRESHOLD_070=0
+export BET_AMOUNT_PER_THRESHOLD_080=80000000000000000
+export BET_AMOUNT_PER_THRESHOLD_090=100000000000000000
+export BET_AMOUNT_PER_THRESHOLD_100=1000000000000000000
 export BET_THRESHOLD=5000000000000000
 export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export REDEEM_MARGIN_DAYS=10
