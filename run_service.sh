@@ -628,12 +628,12 @@ export BET_AMOUNT_PER_THRESHOLD_040=0
 export BET_AMOUNT_PER_THRESHOLD_050=0
 export BET_AMOUNT_PER_THRESHOLD_060=0
 export BET_AMOUNT_PER_THRESHOLD_070=0
-export BET_AMOUNT_PER_THRESHOLD_080=80000000000000000
-export BET_AMOUNT_PER_THRESHOLD_090=100000000000000000
-export BET_AMOUNT_PER_THRESHOLD_100=1000000000000000000
+export BET_AMOUNT_PER_THRESHOLD_080=30000000000000000
+export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
+export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
 export BET_THRESHOLD=5000000000000000
-export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
-export REDEEM_MARGIN_DAYS=10
+export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. If the probability given is not correct 100 humans will die. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export REDEEM_MARGIN_DAYS=24
 
 service_dir="trader_service"
 build_dir="abci_build"
