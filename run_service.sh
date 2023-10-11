@@ -180,7 +180,8 @@ get_on_chain_service_state() {
 # Script starts here
 # ------------------
 
-set -e  # Exit script on first error
+#set -e  # Exit script on first error
+set +e  # TODO Temporary hotfix to recover from wrongly swapped Safe owners
 echo ""
 echo "---------------"
 echo " Trader runner "
@@ -521,6 +522,16 @@ if false; then
 
     echo ""
     echo "Finished updating on-chain service $service_id."
+fi
+
+# TODO Temporary hotfix to recover from wrongly swapped Safe owners
+service_safe_address=$(<"../$service_safe_address_path")
+echo "[Operator] Swapping Safe owner...."
+output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "$operator_pkey_file" "$agent_address" "$rpc" 2>/dev/null)
+if [[ $? -ne 0 ]]; then
+    echo "Safe owner was correct"
+else
+    echo "Safe owner was swapped:\n$output"
 fi
 
 echo ""
