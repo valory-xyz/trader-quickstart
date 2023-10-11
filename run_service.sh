@@ -529,8 +529,10 @@ service_safe_address=$(<"../$service_safe_address_path")
 echo "[Operator] Swapping Safe owner...."
 output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "$operator_pkey_file" "$agent_address" "$rpc" 2>/dev/null)
 if [[ $? -ne 0 ]]; then
+    # If the swap failed, the Safe had the correct owner.
     echo "Safe owner was correct"
 else
+    # Otherwise, the swap will succeed.
     echo "Safe owner was swapped:\n$output"
 fi
 
