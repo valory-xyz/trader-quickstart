@@ -410,7 +410,9 @@ local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
 
-if [ "$local_service_hash" != "$remote_service_hash" ]; then
+# FIXME Temporary disable on-chain update
+#if [ "$local_service_hash" != "$remote_service_hash" ]; then
+if false; then
     echo ""
     echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
