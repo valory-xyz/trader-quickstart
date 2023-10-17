@@ -167,7 +167,7 @@ class MarketAttribute(Enum):
         try:
             return MarketAttribute[s.upper()]
         except KeyError:
-            return MarketAttribute(s)
+            raise ValueError(f"Invalid MarketAttribute: {s}")
 
 
 STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
