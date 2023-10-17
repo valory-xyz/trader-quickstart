@@ -162,12 +162,12 @@ class MarketAttribute(Enum):
         return self.name
 
     @staticmethod
-    def argparse(s):
-        """Performs string conversion to Attribute."""
+    def argparse(s: str) -> "MarketAttribute":
+        """Performs string conversion to MarketAttribute."""
         try:
             return MarketAttribute[s.upper()]
-        except KeyError:
-            return s
+        except KeyError as e:
+            raise ValueError(f"Invalid MarketAttribute: {s}") from e
 
 
 STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
@@ -355,11 +355,13 @@ def _compute_totals(table: dict[Any, dict[Any, Any]]) -> None:
         table[row]["TOTAL"] = total
 
     for col in STATS_TABLE_COLS:
+        # Omen deducts the fee from collateral_amount (INVESTMENT) to compute outcomes_tokens_traded (EARNINGS).
+        # Therefore, we do not need to deduct the fees again here to compute NET_EARNINGS.
         table[MarketAttribute.NET_EARNINGS][col] = (
             table[MarketAttribute.EARNINGS][col]
-            - table[MarketAttribute.FEES][col]
             - table[MarketAttribute.INVESTMENT][col]
         )
+        # ROI is recomputed here for all columns, including TOTAL.
         table[MarketAttribute.ROI][col] = _compute_roi(
             table[MarketAttribute.INVESTMENT][col],
             table[MarketAttribute.NET_EARNINGS][col],
