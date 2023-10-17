@@ -166,8 +166,8 @@ class MarketAttribute(Enum):
         """Performs string conversion to MarketAttribute."""
         try:
             return MarketAttribute[s.upper()]
-        except KeyError:
-            raise ValueError(f"Invalid MarketAttribute: {s}")
+        except KeyError as e:
+            raise ValueError(f"Invalid MarketAttribute: {s}") from e
 
 
 STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
