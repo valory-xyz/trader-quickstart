@@ -45,23 +45,31 @@ ensure_minimum_balance() {
     local address="$1"
     local minimum_balance="$2"
     local address_description="$3"
+    local wxdai="${4:-false}"
+
+    wxdai_balance=0
+    if [ "$wxdai" = "true" ]
+    then
+        wxdai_balance=$(poetry run python "../scripts/wxdai_balance.py" "$safe" "$rpc")
+    fi
 
     balance_hex=$(get_balance "$address")
     balance=$(hex_to_decimal "$balance_hex")
+    balance=$((wxdai_balance+balance))
 
-    echo "Checking balance of $address_description (minimum required $(wei_to_dai $minimum_balance) DAI):"
+    echo "Checking balance of $address_description (minimum required $(wei_to_dai "$minimum_balance") DAI):"
     echo "  - Address: $address"
-    echo "  - Balance: $(wei_to_dai $balance) DAI"
+    echo "  - Balance: $(wei_to_dai "$balance") DAI"
 
     if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
         echo ""
-        echo "    Please, fund address $address with at least $(wei_to_dai $minimum_balance) DAI."
+        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance") DAI."
 
         local spin='-\|/'
         local i=0
         local cycle_count=0
         while [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; do
-            printf "\r    Waiting... ${spin:$i:1} "
+            printf "\r    Waiting... %s" "${spin:$i:1} "
             i=$(((i + 1) % 4))
             sleep .1
 
@@ -70,13 +78,14 @@ ensure_minimum_balance() {
             if [ "$cycle_count" -eq 100 ]; then
                 balance_hex=$(get_balance "$address")
                 balance=$(hex_to_decimal "$balance_hex")
+                balance=$((wxdai_balance+balance))
                 cycle_count=0
             fi
         done
 
         printf "\r    Waiting...   \n"
         echo ""
-        echo "  - Updated balance: $(wei_to_dai $balance) DAI"
+        echo "  - Updated balance: $(wei_to_dai "$balance") DAI"
     fi
 
     echo "    OK."
@@ -435,7 +444,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
     echo "This is most likely caused due to an update of the trader service code."
     echo "The script will proceed now to update the on-chain service."
-    echo "The operator and agent addressess need to have enough funds so that the process is not interrupted."
+    echo "The operator and agent addresses need to have enough funds so that the process is not interrupted."
     echo ""
 
     # Check balances
@@ -456,7 +465,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 
     # TODO this condition should be increased to be service_state=DEPLOYED && current_safe_owner=agent_address.
     # Otherwise the script will not recover the on-chain state in the (rare) case where this transaction succeeds but terminating transaction fails.
-    if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
+    if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
         # transfer the ownership of the Safe from the agent to the service owner
         # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
         service_safe_address=$(<"../$service_safe_address_path")
@@ -472,7 +481,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     fi
 
     # terminate current service
-    if [ $(get_on_chain_service_state $service_id) == "DEPLOYED" ]; then
+    if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
         echo "[Service owner] Terminating on-chain service $service_id..."
         output=$(
             poetry run autonomy service \
@@ -490,7 +499,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     fi
 
     # unbond current service
-    if [ $(get_on_chain_service_state $service_id) == "TERMINATED_BONDED" ]; then
+    if [ "$(get_on_chain_service_state "$service_id")" == "TERMINATED_BONDED" ]; then
         echo "[Operator] Unbonding on-chain service $service_id..."
         output=$(
             poetry run autonomy service \
@@ -508,7 +517,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     fi
 
     # update service
-    if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
+    if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
         echo "[Service owner] Updating on-chain service $service_id..."
         cost_of_bonding=10000000000000000
         nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
@@ -541,13 +550,13 @@ fi
 echo ""
 echo "Ensuring on-chain service $service_id is in DEPLOYED state..."
 
-if [ $(get_on_chain_service_state $service_id) != "DEPLOYED" ]; then
+if [ "$(get_on_chain_service_state "$service_id")" != "DEPLOYED" ]; then
     suggested_amount=25000000000000000
     ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 fi
 
 # activate service
-if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
+if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain activate --key "$operator_pkey_file" "$service_id")
     if [[ $? -ne 0 ]]; then
@@ -560,7 +569,7 @@ if [ $(get_on_chain_service_state $service_id) == "PRE_REGISTRATION" ]; then
 fi
 
 # register agent instance
-if [ $(get_on_chain_service_state $service_id) == "ACTIVE_REGISTRATION" ]; then
+if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; then
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain register --key "$operator_pkey_file" "$service_id" -a $AGENT_ID -i "$agent_address")
     if [[ $? -ne 0 ]]; then
@@ -573,7 +582,7 @@ if [ $(get_on_chain_service_state $service_id) == "ACTIVE_REGISTRATION" ]; then
 fi
 
 # deploy on-chain service
-service_state=$(get_on_chain_service_state $service_id)
+service_state="$(get_on_chain_service_state "$service_id")"
 if [ "$service_state" == "FINISHED_REGISTRATION" ] && [ "$first_run" = "true" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "$operator_pkey_file")
@@ -601,7 +610,7 @@ rm -f $agent_pkey_file
 rm -f $operator_pkey_file
 
 # check state
-service_state=$(get_on_chain_service_state $service_id)
+service_state="$(get_on_chain_service_state "$service_id")"
 if [ "$service_state" != "DEPLOYED" ]; then
     echo "Something went wrong while deploying on-chain service. The service's state is $service_state."
     echo "Please check the output of the script and the on-chain registry for more information."
@@ -657,10 +666,10 @@ build_dir="abci_build"
 directory="$service_dir/$build_dir"
 
 suggested_amount=50000000000000000
-ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
+ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
 suggested_amount=500000000000000000
-ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
+ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" "true"
 
 if [ -d $directory ]
 then
