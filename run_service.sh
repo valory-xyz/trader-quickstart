@@ -45,9 +45,17 @@ ensure_minimum_balance() {
     local address="$1"
     local minimum_balance="$2"
     local address_description="$3"
+    local wxdai="${4:-false}"
+
+    wxdai_balance=0
+    if [ "$wxdai" = "true" ]
+    then
+        wxdai_balance=$(poetry run python "../scripts/wxdai_balance.py" "$safe" "$rpc")
+    fi
 
     balance_hex=$(get_balance "$address")
     balance=$(hex_to_decimal "$balance_hex")
+    balance=$((wxdai_balance+balance))
 
     echo "Checking balance of $address_description (minimum required $(wei_to_dai $minimum_balance) DAI):"
     echo "  - Address: $address"
@@ -70,6 +78,7 @@ ensure_minimum_balance() {
             if [ "$cycle_count" -eq 100 ]; then
                 balance_hex=$(get_balance "$address")
                 balance=$(hex_to_decimal "$balance_hex")
+                balance=$((wxdai_balance+balance))
                 cycle_count=0
             fi
         done
@@ -660,7 +669,7 @@ suggested_amount=50000000000000000
 ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
 suggested_amount=500000000000000000
-ensure_minimum_balance $SAFE_CONTRACT_ADDRESS $suggested_amount "service Safe's address"
+ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" "true"
 
 if [ -d $directory ]
 then
