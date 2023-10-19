@@ -188,6 +188,7 @@ get_on_chain_service_state() {
 }
 
 ask_confirm_password() {
+    echo "You can use a password to encrypt the generated key files. You will be asked for the password each time the script is run."
     while true; do
         read -p "Do you want to use a password? (y/n): " use_password
         case "$use_password" in
@@ -215,6 +216,7 @@ ask_confirm_password() {
                         password_argument="--password $password"
                         echo "Password confirmed. Please, store your pasword in a safe place."
                         read -n 1 -s -r -p "Press any key to continue..."
+                        echo ""
                         return 0
                     else
                         echo "Passwords do not match. Please try again."
@@ -224,6 +226,7 @@ ask_confirm_password() {
             [Nn] )
                 use_password=false
                 password_argument=""
+                echo ""
                 return 0
                 ;;
             * )
@@ -232,6 +235,7 @@ ask_confirm_password() {
         esac
     done
     echo ""
+    return 0
 }
 
 ask_password_if_needed() {
@@ -249,7 +253,7 @@ ask_password_if_needed() {
     echo ""
 }
 
-store=".trader_runner158"
+store=".trader_runner"
 rpc_path="$store/rpc.txt"
 operator_keys_file="$store/operator_keys.json"
 operator_pkey_path="$store/operator_pkey.txt"
@@ -270,9 +274,7 @@ create_storage() {
     echo "This is the first run of the script. The script will generate new operator and agent instance addresses."
     echo ""
 
-    echo "You can use a password to encrypt the generated key files. You will be asked for the password each time the script is run."
     ask_confirm_password
-    echo ""
 
     mkdir "../$store"
 
@@ -723,7 +725,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=50000000000000000
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
-suggested_amount=50000000000000000
+suggested_amount=500000000000000000
 ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" "true"
 
 if [ -d $directory ]
