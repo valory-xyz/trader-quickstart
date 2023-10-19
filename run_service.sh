@@ -752,11 +752,10 @@ else
     cd $service_dir
     # Build the image
     poetry run autonomy build-image
-    cp ../../$keys_json_path $keys_json
 fi
 
 # Build the deployment with a single agent
-poetry run autonomy deploy build --n $n_agents -ltm $password_argument
+poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm $password_argument
 
 cd ..
 
