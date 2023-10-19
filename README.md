@@ -92,6 +92,21 @@ rm -rf trader
 
 Then continue above with "Run the script".
 
+## Change the password of your key files
+
+If you have started you script specifying a password to protect your key files, you can change it by running the following command:
+
+```bash
+cd trader; poetry run python ../scripts/change_keys_json_password.py ../.trader_runner <current_password> <new_password>; cd ..
+```
+
+This will change the password in the following files:
+
+- `.trader_runner/keys.json`
+- `.trader_runner/operator_keys.json`
+- `.trader_runner/agent_pkey.txt`
+- `.trader_runner/operator_pkey.txt`
+
 ## Advice for Mac users
 
 In Docker Desktop make sure that in `Settings -> Advanced` the following boxes are ticked
