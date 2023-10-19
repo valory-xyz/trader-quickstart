@@ -387,7 +387,7 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415d
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export AGENT_ID=12
 
-if [ "$first_run" = "true" ]
+if [ -z ${service_id+x} ];
 then
     # Check balances
     suggested_amount=50000000000000000
