@@ -493,8 +493,7 @@ then
       -a $AGENT_ID \
       -n $n_agents \
       --threshold $n_agents \
-      -c $cost_of_bonding \
-      $password_parameter
+      -c $cost_of_bonding $password_parameter
       )
     # parse only the id from the response
     service_id="${service_id##*: }"
@@ -563,8 +562,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             poetry run autonomy service \
                 --use-custom-chain \
                 terminate "$service_id" \
-                --key "../$operator_pkey_path" \
-                $password_parameter
+                --key "../$operator_pkey_path" $password_parameter
         )
         if [[ $? -ne 0 ]]; then
             echo "Terminating service failed.\n$output"
@@ -580,8 +578,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             poetry run autonomy service \
                 --use-custom-chain \
                 unbond "$service_id" \
-                --key "../$operator_pkey_path" \
-                $password_parameter
+                --key "../$operator_pkey_path" $password_parameter
         )
         if [[ $? -ne 0 ]]; then
             echo "Unbonding service failed.\n$output"
@@ -606,8 +603,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                 -n $n_agents \
                 --threshold $n_agents \
                 -c $cost_of_bonding \
-                --update "$service_id" \
-                $password_parameter
+                --update "$service_id" $password_parameter
         )
         if [[ $? -ne 0 ]]; then
             echo "Updating service failed.\n$output"
