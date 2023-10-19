@@ -212,7 +212,7 @@ ask_confirm_password() {
                         echo "Password must be at least 4 characters long. Please try again."
                     elif [ "$password" = "$confirm_password" ]; then
                         use_password=true
-                        password_parameter="--password $password"
+                        password_argument="--password $password"
                         echo "Password confirmed. Please, store your pasword in a safe place."
                         read -n 1 -s -r -p "Press any key to continue..."
                         return 0
@@ -223,7 +223,7 @@ ask_confirm_password() {
                 ;;
             [Nn] )
                 use_password=false
-                password_parameter=""
+                password_argument=""
                 return 0
                 ;;
             * )
@@ -240,16 +240,16 @@ ask_password_if_needed() {
         echo "Your key files are protected with a password."
         read -s -p "Enter your password: " password
         use_password=true
-        password_parameter="--password $password"
+        password_argument="--password $password"
     else
         echo "Your key files are not protected with a password."
         use_password=false
-        password_parameter=""
+        password_argument=""
     fi
     echo ""
 }
 
-store=".trader_runner"
+store=".trader_runner158"
 rpc_path="$store/rpc.txt"
 operator_keys_file="$store/operator_keys.json"
 operator_pkey_path="$store/operator_pkey.txt"
@@ -261,7 +261,7 @@ service_id_path="$store/service_id.txt"
 service_safe_address_path="$store/service_safe_address.txt"
 store_readme_path="$store/README.txt"
 use_password=false
-password_parameter=""
+password_argument=""
 
 # Function to create the .trader_runner storage
 create_storage() {
@@ -285,7 +285,7 @@ create_storage() {
     echo -n "$rpc" > "../$rpc_path"
 
     # Generate the operator's key
-    poetry run autonomy generate-key -n1 ethereum $password_parameter
+    poetry run autonomy generate-key -n1 ethereum $password_argument
     mv "$keys_json" "../$operator_keys_file"
     operator_address=$(get_address "../$operator_keys_file")
     operator_pkey=$(get_private_key "../$operator_keys_file")
@@ -294,7 +294,7 @@ create_storage() {
     echo "(The same address will be used as the service owner.)"
 
     # Generate the agent's key
-    poetry run autonomy generate-key -n1 ethereum $password_parameter
+    poetry run autonomy generate-key -n1 ethereum $password_argument
     mv "$keys_json" "../$keys_json_path"
     agent_address=$(get_address "../$keys_json_path")
     agent_pkey=$(get_private_key "../$keys_json_path")
@@ -493,7 +493,7 @@ then
       -a $AGENT_ID \
       -n $n_agents \
       --threshold $n_agents \
-      -c $cost_of_bonding $password_parameter
+      -c $cost_of_bonding $password_argument
       )
     # parse only the id from the response
     service_id="${service_id##*: }"
@@ -547,7 +547,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
         # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
         service_safe_address=$(<"../$service_safe_address_path")
         echo "[Agent instance] Swapping Safe owner..."
-        output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc" $password_parameter)
+        output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc" $password_argument)
         if [[ $? -ne 0 ]]; then
             echo "Swapping Safe owner failed.\n$output"
             exit 1
@@ -562,7 +562,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             poetry run autonomy service \
                 --use-custom-chain \
                 terminate "$service_id" \
-                --key "../$operator_pkey_path" $password_parameter
+                --key "../$operator_pkey_path" $password_argument
         )
         if [[ $? -ne 0 ]]; then
             echo "Terminating service failed.\n$output"
@@ -578,7 +578,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             poetry run autonomy service \
                 --use-custom-chain \
                 unbond "$service_id" \
-                --key "../$operator_pkey_path" $password_parameter
+                --key "../$operator_pkey_path" $password_argument
         )
         if [[ $? -ne 0 ]]; then
             echo "Unbonding service failed.\n$output"
@@ -603,7 +603,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                 -n $n_agents \
                 --threshold $n_agents \
                 -c $cost_of_bonding \
-                --update "$service_id" $password_parameter
+                --update "$service_id" $password_argument
         )
         if [[ $? -ne 0 ]]; then
             echo "Updating service failed.\n$output"
@@ -627,7 +627,7 @@ fi
 # activate service
 if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id" $password_parameter)
+    output=$(poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id" $password_argument)
     if [[ $? -ne 0 ]]; then
         echo "Activating service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -638,7 +638,7 @@ fi
 # register agent instance
 if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; then
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address" $password_parameter)
+    output=$(poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address" $password_argument)
     if [[ $? -ne 0 ]]; then
         echo "Registering agent instance failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -650,7 +650,7 @@ fi
 service_state="$(get_on_chain_service_state "$service_id")"
 if [ "$service_state" == "FINISHED_REGISTRATION" ] && [ "$first_run" = "true" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_parameter)
+    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument)
     if [[ $? -ne 0 ]]; then
         echo "Deploying service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -658,7 +658,7 @@ if [ "$service_state" == "FINISHED_REGISTRATION" ] && [ "$first_run" = "true" ];
     fi
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" --reuse-multisig $password_parameter)
+    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" --reuse-multisig $password_argument)
     if [[ $? -ne 0 ]]; then
         echo "Deploying service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -756,7 +756,7 @@ else
 fi
 
 # Build the deployment with a single agent
-poetry run autonomy deploy build --n $n_agents -ltm $password_parameter
+poetry run autonomy deploy build --n $n_agents -ltm $password_argument
 
 cd ..
 
