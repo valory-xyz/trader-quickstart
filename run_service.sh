@@ -241,12 +241,14 @@ create_storage() {
 try_read_storage() {
     if [ -d $store ]; then
 
+        # INFO: This is a fix to avoid corrupting already-created stores
         if [[ -f "$operator_keys_file" && ! -f "$operator_pkey_path" ]]; then
             echo "1"
             operator_pkey=$(get_private_key "$operator_keys_file")
             echo -n "$operator_pkey" > "$operator_pkey_path"
         fi
 
+        # INFO: This is a fix to avoid corrupting already-created stores
         if [[ -f "$keys_json_path" && ! -f "$agent_pkey_path" ]]; then
             echo "2"
             agent_pkey=$(get_private_key "$keys_json_path")
