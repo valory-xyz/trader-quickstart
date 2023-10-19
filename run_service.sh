@@ -244,9 +244,7 @@ try_read_storage() {
 
         for file in $paths; do
             if ! [ -f "$file" ]; then
-                if [ "$file" == $service_id_path ]; then
-                    first_run=true
-                elif [ "$file" != $service_safe_address_path ]; then
+                if [ "$file" != $service_safe_address_path ] && [ "$file" != $service_id_path ]; then
                     echo "The runner's store is corrupted!"
                     echo "Please manually investigate the $store folder"
                     echo "Make sure that you do not lose your keys or any other important information!"
