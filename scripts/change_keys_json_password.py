@@ -69,15 +69,10 @@ if __name__ == "__main__":
     parser.add_argument("new_password", type=str, help="New password.")
     args = parser.parse_args()
 
-    _change_keys_json_password(
-        Path(args.store_path, "keys.json"),
-        Path(args.store_path, "agent_pkey.txt"),
-        args.current_password,
-        args.new_password,
-    )
-    _change_keys_json_password(
-        Path(args.store_path, "operator_keys.json"),
-        Path(args.store_path, "operator_pkey.txt"),
-        args.current_password,
-        args.new_password,
-    )
+    for json_file, pkey_file in (("keys", "agent_pkey"), ("operator_keys", "operator_pkey")):
+        filepaths = (Path(args.store_path, file) for file in (f"{json_file}.json", f"{pkey_file}.txt"))
+        _change_keys_json_password(
+            *filepaths,
+            args.current_password,
+            args.new_password,
+        )
