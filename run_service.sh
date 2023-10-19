@@ -762,4 +762,11 @@ cd ..
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 
 # Run the deployment
-poetry run autonomy deploy run --build-dir $directory --detach
+poetry run autonomy deploy run --build-dir $directory --detach || true
+
+# Clear password
+password=""
+password_argument=""
+temp_file="$directory/docker-compose.yaml.tmp"
+cat "$directory/docker-compose.yaml" | awk '$0 !~ /AEA_PASSWORD=/' > "$temp_file"
+mv -f "$temp_file" "$directory/docker-compose.yaml"
