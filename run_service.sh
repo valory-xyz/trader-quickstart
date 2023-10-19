@@ -308,14 +308,25 @@ create_storage() {
 # Also sets `first_run` flag to identify whether we are running the script for the first time.
 try_read_storage() {
     if [ -d $store ]; then
+
+        if [[ -f "$operator_keys_file" && ! -f "$operator_pkey_path" ]]; then
+            echo "1"
+            operator_pkey=$(get_private_key "$operator_keys_file")
+            echo -n "$operator_pkey" > "$operator_pkey_path"
+        fi
+
+        if [[ -f "$keys_json_path" && ! -f "$agent_pkey_path" ]]; then
+            echo "2"
+            agent_pkey=$(get_private_key "$keys_json_path")
+            echo -n "$agent_pkey" > "$agent_pkey_path"
+        fi
+
         first_run=false
         paths="$rpc_path $operator_keys_file $operator_pkey_path $keys_json_path $agent_address_path $agent_pkey_path $service_id_path"
 
         for file in $paths; do
             if ! [ -f "$file" ]; then
-                if [ "$file" == $service_id_path ]; then
-                    first_run=true
-                elif [ "$file" != $service_safe_address_path ]; then
+                if [ "$file" != $service_safe_address_path ] && [ "$file" != $service_id_path ]; then
                     echo "The runner's store is corrupted!"
                     echo "Please manually investigate the $store folder"
                     echo "Make sure that you do not lose your keys or any other important information!"
@@ -460,7 +471,7 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415d
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export AGENT_ID=12
 
-if [ "$first_run" = "true" ]
+if [ -z ${service_id+x} ];
 then
     # Check balances
     suggested_amount=50000000000000000
