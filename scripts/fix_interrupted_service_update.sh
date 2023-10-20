@@ -228,7 +228,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.7.0"
+service_version="v0.7.1"
 service_repo=https://github.com/valory-xyz/$directory.git
 echo "Cloning the $directory repo..."
 git clone --depth 1 --branch $service_version $service_repo
