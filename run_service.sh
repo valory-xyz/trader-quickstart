@@ -55,7 +55,7 @@ ensure_minimum_balance() {
 
     balance_hex=$(get_balance "$address")
     balance=$(hex_to_decimal "$balance_hex")
-    balance=$((wxdai_balance+balance))
+    balance=$($PYTHON_CMD -c "print(int($balance) + int($wxdai_balance))")
 
     echo "Checking balance of $address_description (minimum required $(wei_to_dai "$minimum_balance") DAI):"
     echo "  - Address: $address"
