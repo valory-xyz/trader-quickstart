@@ -147,9 +147,7 @@ Now, open a Git Bash terminal and follow the instructions in the "[Run the scrip
 
 ## Advanced usage
 
-In this chapter, we invite you to dive deeper into our service's capabilities. 
-Tailored for enthusiasts eager to customize and optimize, this section empowers you to make nuanced adjustments, 
-enhancing your experience to match unique requirements.
+This chapter is for advanced users who want to further customize the trader agent's behaviour without changing the underlying trading logic.
 
 ##### Policy weights
 
@@ -173,7 +171,7 @@ cp ".trader_runner/available_tools_store.json" ".trader_runner/available_tools_s
 
 ##### Tool selection
 
-Sometimes, a mech tool might temporarily misbehave. 
+Sometimes, a mech tool might temporarily return invalid results.
 As a result, the service would end up performing mech calls without being able to use the response.
 Assuming that this tool has a large reward rate in the policy weights, 
 the service might end up spending a considerable amount of xDAI before adjusting the tool's reward rate, 
