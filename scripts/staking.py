@@ -24,133 +24,13 @@ import argparse
 import sys
 import time
 import traceback
-import typing
 from pathlib import Path
 
-from aea.contracts.base import Contract
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
-from eth_typing import HexStr
-
-from packages.valory.contracts.erc20.contract import (
-    ERC20,
-)
-from packages.valory.contracts.service_staking_token.contract import (
-    ServiceStakingTokenContract,
-)
-
-ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-ZERO_ETH = 0
-
-ContractType = typing.TypeVar("ContractType")
-
-GAS_PARAMS = {
-    "maxFeePerGas": 30_000_000_000,
-    "maxPriorityFeePerGas": 3_000_000_000,
-    "gas": 500_000,
-}
 
 
-def load_contract(ctype: ContractType) -> ContractType:
-    """Load contract."""
-    *parts, _ = ctype.__module__.split(".")
-    path = "/".join(parts)
-    return Contract.from_dir(directory=path)
-
-
-def get_stake_txs(service_id: int, service_registry_address: str, staking_contract_address: str) -> typing.List:
-    """Stake the service"""
-    # 1. approve the service to make use of the
-
-    # we make use of the ERC20 contract to build the approval transaction
-    # since it has the same interface as ERC721
-    # we use the ZERO_ADDRESS as the contract address since we don't do any contract interaction here,
-    # we are simply encoding
-    approval_tx = get_approval_tx(service_id, service_registry_address, staking_contract_address)
-
-    # 2. stake the service
-    staking_contract = typing.cast(typing.Type[ServiceStakingTokenContract], load_contract(ServiceStakingTokenContract))
-    stake_tx_data = staking_contract.build_stake_tx(ledger_api, staking_contract_address, service_id).pop('data')
-    stake_tx = {
-        "data": stake_tx_data,
-        "to": staking_contract_address,
-        "value": ZERO_ETH,
-    }
-    return [approval_tx, stake_tx]
-
-
-def get_approval_tx(service_id, service_registry_address, staking_contract_address):
-    """Get approval tx"""
-    approval_tx_data = erc20.build_approval_tx(ledger_api, service_registry_address, staking_contract_address,
-                                               service_id).pop('data')
-    approval_tx = {
-        "data": approval_tx_data,
-        "to": service_registry_address,
-        "value": ZERO_ETH,
-    }
-    return approval_tx
-
-
-def get_unstake_txs(service_id: int, staking_contract_address: str) -> typing.List:
-    """Get unstake txs"""
-
-    unstake_tx_data = staking_contract.build_unstake_tx(ledger_api, staking_contract_address, service_id).pop('data')
-    unstake_tx = {
-        "data": unstake_tx_data,
-        "to": staking_contract_address,
-        "value": ZERO_ETH,
-    }
-
-    return [unstake_tx]
-
-
-def get_available_rewards(staking_contract_address: str) -> int:
-    """Get available rewards."""
-    rewards = staking_contract.available_rewards(ledger_api, staking_contract_address).pop('data')
-    return rewards
-
-
-def is_service_staked(service_id: int, staking_contract_address: str) -> bool:
-    """Check if service is staked."""
-    is_staked = staking_contract.is_service_staked(ledger_api, staking_contract_address, service_id).pop('data')
-    return is_staked
-
-
-def get_next_checkpoint_ts(service_id: int, staking_contract_address: str) -> int:
-    """Check if service is staked."""
-    checkpoint_ts = staking_contract.get_next_checkpoint_ts(ledger_api, staking_contract_address, service_id).pop('data')
-    return checkpoint_ts
-
-
-def get_staking_rewards(service_id: int, staking_contract_address: str) -> int:
-    """Check if service is staked."""
-    rewards = staking_contract.get_staking_rewards(ledger_api, staking_contract_address, service_id).pop('data')
-    return rewards
-
-
-def send_tx(crypto: EthereumCrypto, raw_tx: typing.Dict[str, typing.Any]) -> str:
-    """Send transaction."""
-    raw_tx = {
-        **raw_tx,
-        **GAS_PARAMS,
-        "from": crypto.address,
-        "nonce": ledger_api.api.eth.get_transaction_count(crypto.address),
-        "chainId": ledger_api.api.eth.chain_id,
-    }
-    signed_tx = crypto.sign_transaction(raw_tx)
-    tx_digest = typing.cast(
-        str, ledger_api.send_signed_transaction(signed_tx, raise_on_try=True)
-    )
-    return tx_digest
-
-
-def send_tx_and_wait_for_receipt(crypto: EthereumCrypto, raw_tx: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
-    """Send transaction and wait for receipt."""
-    tx_digest = HexStr(send_tx(crypto, raw_tx))
-    receipt = ledger_api.api.eth.wait_for_transaction_receipt(tx_digest)
-    if receipt["status"] != 1:
-        raise ValueError("Transaction failed. Receipt:", receipt)
-    return receipt
-
+from utils import is_service_staked, get_next_checkpoint_ts, get_unstake_txs, send_tx_and_wait_for_receipt, \
+    get_available_rewards, get_stake_txs
 
 if __name__ == "__main__":
     try:
@@ -193,23 +73,17 @@ if __name__ == "__main__":
             default=False,
         )
         args = parser.parse_args()
-
         ledger_api = EthereumApi(address=args.rpc)
-        owner_crypto = EthereumCrypto(
-            private_key_path=args.owner_private_key_path
-        )
-        staking_contract = typing.cast(
-            typing.Type[ServiceStakingTokenContract],
-            load_contract(ServiceStakingTokenContract)
-        )
-        erc20 = typing.cast(typing.Type[ERC20], load_contract(ERC20))
+        owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path)
         if args.unstake:
-            if not is_service_staked(args.service_id, args.staking_contract_address):
+            if not is_service_staked(ledger_api, args.service_id, args.staking_contract_address):
                 # the service is not staked, so we don't need to do anything
                 print(f"Service {args.service_id} is not staked. Exiting...")
                 sys.exit(0)
 
-            next_ts = get_next_checkpoint_ts(args.service_id, args.staking_contract_address)
+            next_ts = get_next_checkpoint_ts(
+                ledger_api, args.service_id, args.staking_contract_address
+            )
             if next_ts > time.time() and not args.skip_livenesss_check:
                 print(
                     f"The liveness period has not passed. "
@@ -219,23 +93,27 @@ if __name__ == "__main__":
                 sys.exit(1)
 
             print(f"Unstaking service {args.service_id}")
-            unstake_txs = get_unstake_txs(args.service_id, args.staking_contract_address)
+            unstake_txs = get_unstake_txs(
+                ledger_api, args.service_id, args.staking_contract_address
+            )
             for tx in unstake_txs:
-                send_tx_and_wait_for_receipt(owner_crypto, tx)
+                send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
             print("Successfully unstaked.")
             sys.exit(0)
 
-        if is_service_staked(args.service_id, args.staking_contract_address):
+        if is_service_staked(ledger_api, args.service_id, args.staking_contract_address):
             print(
                 f"Service {args.service_id} is already staked. "
                 f"Checking if the staking contract has any rewards..."
             )
-            available_rewards = get_available_rewards(args.staking_contract_address)
+            available_rewards = get_available_rewards(ledger_api, args.staking_contract_address)
             if available_rewards == 0:
                 print("No rewards available. Unstaking...")
-                unstake_txs = get_unstake_txs(args.service_id, args.staking_contract_address)
+                unstake_txs = get_unstake_txs(
+                    ledger_api, args.service_id, args.staking_contract_address
+                )
                 for tx in unstake_txs:
-                    send_tx_and_wait_for_receipt(owner_crypto, tx)
+                    send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
                 print("Unstaked successfully.")
                 sys.exit(0)
@@ -243,17 +121,24 @@ if __name__ == "__main__":
             print("There are rewards available. The service should remain staked.")
             sys.exit(0)
 
-        print(f"Service {args.service_id} is not staked. Checking for available rewards...")
-        available_rewards = get_available_rewards(args.staking_contract_address)
+        print(
+            f"Service {args.service_id} is not staked. Checking for available rewards..."
+        )
+        available_rewards = get_available_rewards(ledger_api, args.staking_contract_address)
         if available_rewards == 0:
             # no rewards available, do nothing
             print("No rewards available. The service cannot be staked.")
             sys.exit(0)
 
         print(f"Rewards available: {available_rewards}. Staking the service...")
-        stake_txs = get_stake_txs(args.service_id, args.service_registry_address, args.staking_contract_address)
+        stake_txs = get_stake_txs(
+            ledger_api,
+            args.service_id,
+            args.service_registry_address,
+            args.staking_contract_address,
+        )
         for tx in stake_txs:
-            send_tx_and_wait_for_receipt(owner_crypto, tx)
+            send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
         print(f"Service {args.service_id} staked successfully.")
     except Exception as e:  # pylint: disable=broad-except
