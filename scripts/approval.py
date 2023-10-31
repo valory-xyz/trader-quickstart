@@ -147,17 +147,17 @@ if __name__ == "__main__":
             load_contract(ServiceStakingTokenContract)
         )
         erc20 = typing.cast(typing.Type[ERC20], load_contract(ERC20))
-        allowance = erc20.get_allowance(ledger_api, args.olas_address, owner_crypto.address, args.service_registry_address).pop('data')
-        if allowance >= args.minimum_olas_balance:
-            print("Operator has sufficient OLAS allowance.")
-            sys.exit(0)
-
         token_balance, native_balance = get_balances(args.olas_address, owner_crypto.address)
         if token_balance < args.minimum_olas_balance:
             raise ValueError(f"Operator has insufficient OLAS balance. Required: {args.minimum_olas_balance}, Actual: {token_balance}")
 
         if native_balance == 0:
             raise ValueError("Operator has no xDAI.")
+
+        allowance = erc20.get_allowance(ledger_api, args.olas_address, owner_crypto.address, args.service_registry_address).pop('data')
+        if allowance >= args.minimum_olas_balance:
+            print("Operator has sufficient OLAS allowance.")
+            sys.exit(0)
 
         approval_tx = get_approval_tx(args.olas_address, args.service_registry_address, args.minimum_olas_balance)
         send_tx_and_wait_for_receipt(owner_crypto, approval_tx)
