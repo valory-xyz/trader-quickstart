@@ -208,7 +208,7 @@ check_balances() {
 # stake or unstake a service
 perform_staking_ops() {
     local unstake="$1"
-    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake" "$SKIP_LIVENESS_CHECK")
+    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake" "$SKIP_LAST_EPOCH_REWARDS")
     if [[ $? -ne 0 ]]; then
       echo "Swapping Safe owner failed.\n$output"
       exit 1

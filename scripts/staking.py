@@ -93,13 +93,6 @@ def get_approval_tx(service_id, service_registry_address, staking_contract_addre
 def get_unstake_txs(service_id: int, staking_contract_address: str) -> typing.List:
     """Get unstake txs"""
 
-    checkpoint_tx_data = staking_contract.build_checkpoint_tx(ledger_api, staking_contract_address).pop('data')
-    checkpoint_tx = {
-        "data": checkpoint_tx_data,
-        "to": staking_contract_address,
-        "value": ZERO_ETH,
-    }
-
     unstake_tx_data = staking_contract.build_unstake_tx(ledger_api, staking_contract_address, service_id).pop('data')
     unstake_tx = {
         "data": unstake_tx_data,
@@ -107,7 +100,7 @@ def get_unstake_txs(service_id: int, staking_contract_address: str) -> typing.Li
         "value": ZERO_ETH,
     }
 
-    return [checkpoint_tx, unstake_tx]
+    return [unstake_tx]
 
 
 def get_available_rewards(staking_contract_address: str) -> int:
@@ -217,12 +210,11 @@ if __name__ == "__main__":
                 sys.exit(0)
 
             next_ts = get_next_checkpoint_ts(args.service_id, args.staking_contract_address)
-            staking_rewards = get_staking_rewards(args.service_id, args.staking_contract_address)
-            if staking_rewards == 0 and next_ts > time.time() and not args.skip_livenesss_check:
+            if next_ts > time.time() and not args.skip_livenesss_check:
                 print(
                     f"The liveness period has not passed. "
                     f"If you want to unstake anyway, "
-                    f"run the script by running SKIP_LIVENESS_CHECK=true."
+                    f"run the script by running with SKIP_LAST_EPOCH_REWARDS=true."
                 )
                 sys.exit(1)
 
