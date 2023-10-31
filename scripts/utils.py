@@ -161,11 +161,11 @@ def is_service_staked(
 
 
 def get_next_checkpoint_ts(
-    ledger_api: EthereumApi, service_id: int, staking_contract_address: str
+    ledger_api: EthereumApi, staking_contract_address: str
 ) -> int:
     """Check if service is staked."""
     checkpoint_ts = staking_contract.get_next_checkpoint_ts(
-        ledger_api, staking_contract_address, service_id
+        ledger_api, staking_contract_address
     ).pop("data")
     return checkpoint_ts
 

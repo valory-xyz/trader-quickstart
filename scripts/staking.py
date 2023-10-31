@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2022-2023 Valory AG
+#   Copyright 2023 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 #
 # ------------------------------------------------------------------------------
 
-"""This script swaps ownership of a Safe with a single owner."""
+"""This script performs staking related operations."""
 
 import argparse
 import sys
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 sys.exit(0)
 
             next_ts = get_next_checkpoint_ts(
-                ledger_api, args.service_id, args.staking_contract_address
+                ledger_api, args.staking_contract_address
             )
             if next_ts > time.time() and not args.skip_livenesss_check:
                 print(

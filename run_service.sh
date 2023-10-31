@@ -45,17 +45,17 @@ ensure_minimum_balance() {
     local address="$1"
     local minimum_balance="$2"
     local address_description="$3"
-    local wxdai="${4:-false}"
+    local token="${4:-"0x0000000000000000000000000000000000000000"}"
 
-    wxdai_balance=0
-    if [ "$wxdai" = "true" ]
+    erc20_balance=0
+    if [ ! "$token" = "0x0000000000000000000000000000000000000000" ]
     then
-        wxdai_balance=$(poetry run python "../scripts/wxdai_balance.py" "$safe" "$rpc")
+        erc20_balance=$(poetry run python "../scripts/erc20_balance.py" "$token" "$address" "$rpc")
     fi
 
     balance_hex=$(get_balance "$address")
     balance=$(hex_to_decimal "$balance_hex")
-    balance=$($PYTHON_CMD -c "print(int($balance) + int($wxdai_balance))")
+    balance=$($PYTHON_CMD -c "print(int($balance) + int($erc20_balance))")
 
     echo "Checking balance of $address_description (minimum required $(wei_to_dai "$minimum_balance") DAI):"
     echo "  - Address: $address"
@@ -78,7 +78,7 @@ ensure_minimum_balance() {
             if [ "$cycle_count" -eq 100 ]; then
                 balance_hex=$(get_balance "$address")
                 balance=$(hex_to_decimal "$balance_hex")
-                balance=$((wxdai_balance+balance))
+                balance=$((erc20_balance+balance))
                 cycle_count=0
             fi
         done
@@ -86,6 +86,53 @@ ensure_minimum_balance() {
         printf "\r    Waiting...   \n"
         echo ""
         echo "  - Updated balance: $(wei_to_dai "$balance") DAI"
+    fi
+
+    echo "    OK."
+    echo ""
+}
+
+# ensure erc20 balance
+ensure_erc20_balance() {
+    local address="$1"
+    local minimum_balance="$2"
+    local address_description="$3"
+    local token="$4"
+    local token_name="$5"
+
+    balance=0
+    if [ ! "$token" = "0x0000000000000000000000000000000000000000" ]
+    then
+        balance=$(poetry run python "../scripts/erc20_balance.py" "$token" "$address" "$rpc")
+    fi
+
+    echo "Checking balance of $address_description (minimum required $(wei_to_dai "$minimum_balance") $token_name):"
+    echo "  - Address: $address"
+    echo "  - Balance: $(wei_to_dai "$balance") $token_name"
+
+    if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
+        echo ""
+        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance")."
+
+        local spin='-\|/'
+        local i=0
+        local cycle_count=0
+        while [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; do
+            printf "\r    Waiting... %s" "${spin:$i:1} "
+            i=$(((i + 1) % 4))
+            sleep .1
+
+            # This will be checked every 10 seconds (100 cycles).
+            cycle_count=$((cycle_count + 1))
+            if [ "$cycle_count" -eq 100 ]; then
+                balance=$(poetry run python "../scripts/erc20_balance.py" "$token" "$address" "$rpc")
+                cycle_count=0
+            fi
+        done
+
+        printf "\r    Waiting...   \n"
+        echo ""
+        echo "  - Updated balance: $(wei_to_dai "$balance") $token_name"
     fi
 
     echo "    OK."
@@ -192,17 +239,6 @@ get_on_chain_service_state() {
     local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
     local state="$(echo "$service_info" | awk '/Service State/ {sub(/\|[ \t]*Service State[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
     echo "$state"
-}
-
-# check the balances of the safe and the operator
-check_balances() {
-    minimum_olas_balance=1000000000000000000
-    output=$(poetry run python "../scripts/approval.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "../$operator_pkey_path" "$CUSTOM_OLAS_ADDRESS" "$minimum_olas_balance" "$rpc")
-    if [[ $? -ne 0 ]]; then
-      echo "Checking ERC20 balance and approval failed.\n$output"
-      exit 1
-    fi
-    echo "$output"
 }
 
 # stake or unstake a service
@@ -393,7 +429,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.7.2"
+service_version="feat/staking"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -438,10 +474,11 @@ export CUSTOM_STAKING_ADDRESS="0x92499E80f50f06C4078794C179986907e7822Ea1"
 export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
 export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
-export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415df3D2D8232B3d3D31e44"
+export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export AGENT_ID=12
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
+export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
 
 if [ -z ${service_id+x} ];
@@ -579,7 +616,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
           echo "[Service owner] Updating on-chain service $service_id..."
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-          cmd = "poetry run autonomy mint \
+          export cmd="poetry run autonomy mint \
                   --skip-hash-check \
                   --use-custom-chain \
                   service packages/valory/services/trader/ \
@@ -623,9 +660,10 @@ fi
 # activate service
 if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
-    cmd = "poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id""
+    export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id""
     if [ "${use_staking}" = true ]; then
-        check_balances
+        minimum_olas_balance=1000000000000000000
+        ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
     output=$(eval "$cmd")
@@ -639,10 +677,11 @@ fi
 # register agent instance
 if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; then
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
-    cmd = "poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address""
+    export cmd="poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address""
 
     if [ "${use_staking}" = true ]; then
-        check_balances
+        minimum_olas_balance=1000000000000000000
+        ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
 
@@ -741,7 +780,7 @@ suggested_amount=50000000000000000
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
 suggested_amount=500000000000000000
-ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" "true"
+ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
 then
