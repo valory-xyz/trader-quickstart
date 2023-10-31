@@ -208,7 +208,7 @@ check_balances() {
 # stake or unstake a service
 perform_staking_ops() {
     local unstake="$1"
-    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake")
+    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake" "$SKIP_LIVENESS_CHECK")
     if [[ $? -ne 0 ]]; then
       echo "Swapping Safe owner failed.\n$output"
       exit 1
@@ -443,7 +443,7 @@ then
     echo "[Service owner] Minting your service on the Gnosis chain..."
 
     # create service
-    cost_of_bonding=10000000000000000
+    cost_of_bonding=1000000000000000000
     nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
     service_id=$(poetry run autonomy mint \
       --skip-hash-check \
@@ -563,7 +563,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       # update service
       if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
           echo "[Service owner] Updating on-chain service $service_id..."
-          cost_of_bonding=10000000000000000
+          cost_of_bonding=1000000000000000000
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
           output=$(
               poetry run autonomy mint \
@@ -575,6 +575,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   -a $AGENT_ID \
                   -n $n_agents \
                   --threshold $n_agents \
+                  --token $CUSTOM_OLAS_ADDRESS \
                   -c $cost_of_bonding \
                   --update "$service_id"
           )
@@ -615,6 +616,7 @@ fi
 if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; then
     check_balances
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
+    cost_of_bonding=1000000000000000000
     output=$(poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address" --token $CUSTOM_OLAS_ADDRESS)
     if [[ $? -ne 0 ]]; then
         echo "Registering agent instance failed.\n$output"
@@ -635,7 +637,7 @@ if [ "$service_state" == "FINISHED_REGISTRATION" ] && [ "$first_run" = "true" ];
     fi
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" --reuse-multisig)
+    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path")
     if [[ $? -ne 0 ]]; then
         echo "Deploying service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -744,9 +746,6 @@ cd ..
 
 warm_start
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
-
-echo "Checking balances..."
-check_balances
 
 # Run the deployment
 poetry run autonomy deploy run --build-dir $directory --detach

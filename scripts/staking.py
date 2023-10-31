@@ -22,6 +22,7 @@
 
 import argparse
 import sys
+import time
 import traceback
 import typing
 from pathlib import Path
@@ -45,7 +46,7 @@ ContractType = typing.TypeVar("ContractType")
 GAS_PARAMS = {
     "maxFeePerGas": 30_000_000_000,
     "maxPriorityFeePerGas": 3_000_000_000,
-    "gas": 100_000,
+    "gas": 500_000,
 }
 
 
@@ -92,13 +93,21 @@ def get_approval_tx(service_id, service_registry_address, staking_contract_addre
 def get_unstake_txs(service_id: int, staking_contract_address: str) -> typing.List:
     """Get unstake txs"""
 
+    checkpoint_tx_data = staking_contract.build_checkpoint_tx(ledger_api, staking_contract_address).pop('data')
+    checkpoint_tx = {
+        "data": checkpoint_tx_data,
+        "to": staking_contract_address,
+        "value": ZERO_ETH,
+    }
+
     unstake_tx_data = staking_contract.build_unstake_tx(ledger_api, staking_contract_address, service_id).pop('data')
     unstake_tx = {
         "data": unstake_tx_data,
         "to": staking_contract_address,
         "value": ZERO_ETH,
     }
-    return [unstake_tx]
+
+    return [checkpoint_tx, unstake_tx]
 
 
 def get_available_rewards(staking_contract_address: str) -> int:
@@ -111,6 +120,18 @@ def is_service_staked(service_id: int, staking_contract_address: str) -> bool:
     """Check if service is staked."""
     is_staked = staking_contract.is_service_staked(ledger_api, staking_contract_address, service_id).pop('data')
     return is_staked
+
+
+def get_next_checkpoint_ts(service_id: int, staking_contract_address: str) -> int:
+    """Check if service is staked."""
+    checkpoint_ts = staking_contract.get_next_checkpoint_ts(ledger_api, staking_contract_address, service_id).pop('data')
+    return checkpoint_ts
+
+
+def get_staking_rewards(service_id: int, staking_contract_address: str) -> int:
+    """Check if service is staked."""
+    rewards = staking_contract.get_staking_rewards(ledger_api, staking_contract_address, service_id).pop('data')
+    return rewards
 
 
 def send_tx(crypto: EthereumCrypto, raw_tx: typing.Dict[str, typing.Any]) -> str:
@@ -172,6 +193,12 @@ if __name__ == "__main__":
             help="True if the service should be unstaked, False if it should be staked",
             default=False,
         )
+        parser.add_argument(
+            "skip_livenesss_check",
+            type=bool,
+            help="Set to true to skip the liveness check, note that this might end up causing you to lose staking rewards.",
+            default=False,
+        )
         args = parser.parse_args()
 
         ledger_api = EthereumApi(address=args.rpc)
@@ -188,6 +215,16 @@ if __name__ == "__main__":
                 # the service is not staked, so we don't need to do anything
                 print(f"Service {args.service_id} is not staked. Exiting...")
                 sys.exit(0)
+
+            next_ts = get_next_checkpoint_ts(args.service_id, args.staking_contract_address)
+            staking_rewards = get_staking_rewards(args.service_id, args.staking_contract_address)
+            if staking_rewards == 0 and next_ts > time.time() and not args.skip_livenesss_check:
+                print(
+                    f"The liveness period has not passed. "
+                    f"If you want to unstake anyway, "
+                    f"run the script by running SKIP_LIVENESS_CHECK=true."
+                )
+                sys.exit(1)
 
             print(f"Unstaking service {args.service_id}")
             unstake_txs = get_unstake_txs(args.service_id, args.staking_contract_address)
