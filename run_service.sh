@@ -470,8 +470,8 @@ export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x92499E80f50f06C4078794C179986907e7822Ea1"
-export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
+export CUSTOM_STAKING_ADDRESS="0x337b53b4471775a7F87c8D5d077B17BbF9a0D369"
+export CUSTOM_OLAS_ADDRESS="0xFC846A9EfC5C00d347Fd5A3759017DebeAdA3B74"
 export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
@@ -490,20 +490,25 @@ then
     echo "[Service owner] Minting your service on the Gnosis chain..."
 
     # create service
-    cost_of_bonding=1000000000000000000
-    nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-    service_id=$(poetry run autonomy mint \
+    cmd="poetry run autonomy mint \
       --skip-hash-check \
       --use-custom-chain \
       service packages/valory/services/$directory/ \
-      --key "../$operator_pkey_path" \
+      --key \"../$operator_pkey_path\" \
       --nft $nft \
       -a $AGENT_ID \
       -n $n_agents \
-      --threshold $n_agents \
-      --token $CUSTOM_OLAS_ADDRESS \
-      -c $cost_of_bonding
-      )
+      --threshold $n_agents"
+
+    if [ "${use_staking}" = true ]; then
+      cost_of_bonding=1000000000000000000
+      cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
+    else
+      cost_of_bonding=10000000000000000
+      cmd+=" -c $cost_of_bonding"
+    fi
+    nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
+    service_id=$(eval $cmd)
     # parse only the id from the response
     service_id="${service_id##*: }"
     # validate id
