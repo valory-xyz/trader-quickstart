@@ -37,6 +37,18 @@ To stop your agent, use:
 cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd .. 
 ```
 
+## Activate Staking
+This is an enhancement of the usual script with an additional guided step for staking. This will guide you through the process of getting your Trader agent service ready for earning staking rewards. Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain.
+
+With your agents stopped, execute the staking command:
+
+```bash
+chmod +x run_service.sh && ./run_service.sh --with-staking
+```
+
+Note: Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited. 
+
+
 ## Observe your agents
 
 1. Check out this handy app: https://predictions.oaksprout.repl.co/
