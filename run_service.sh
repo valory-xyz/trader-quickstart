@@ -429,7 +429,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.8.1"
+service_version="feat/update-mech-abi"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -490,6 +490,7 @@ then
     echo "[Service owner] Minting your service on the Gnosis chain..."
 
     # create service
+    nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
     cmd="poetry run autonomy mint \
       --skip-hash-check \
       --use-custom-chain \
@@ -507,7 +508,6 @@ then
       cost_of_bonding=10000000000000000
       cmd+=" -c $cost_of_bonding"
     fi
-    nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
     service_id=$(eval $cmd)
     # parse only the id from the response
     service_id="${service_id##*: }"
@@ -630,8 +630,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   -a $AGENT_ID \
                   -n $n_agents \
                   --threshold $n_agents \
-                  --update \"$service_id\"
-                "
+                  --update "$service_id""
           if [ "${use_staking}" = true ]; then
               cost_of_bonding=1000000000000000000
               cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
