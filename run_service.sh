@@ -178,8 +178,8 @@ get_private_key() {
 
 # Function to warm start the policy
 warm_start() {
-    echo '["claude-prediction-offline", "claude-prediction-online", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-offline-sme", "prediction-online", "prediction-online-sme"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
-    echo '{"counts": [23, 16, 54, 52, 20, 113, 33, 54], "eps": 0.1, "rewards": [0.21330030417382723, -0.06394516434480157, 0.5042296458897277, 0.38925697131774417, -0.2978133327512751, 1.055336834629253, -0.5935249657470777, 0.507192767958923]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
+    echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
+    echo '{"counts": [1,1,1,1,1], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
     echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
 }
 
@@ -773,6 +773,7 @@ export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
 export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
 export BET_THRESHOLD=5000000000000000
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export IRRELEVANT_TOOLS='["openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization", "claude-prediction-offline", "prediction-offline", "prediction-offline-sme", "claude-prediction-online"]'
 
 service_dir="trader_service"
 build_dir="abci_build"
@@ -817,6 +818,7 @@ poetry run autonomy deploy build --n $n_agents -ltm
 cd ..
 
 warm_start
+
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
 
 # Run the deployment

@@ -18,11 +18,20 @@ Ensure your machine satisfies the requirements:
 
 ## Run the script
 
-Clone this repository locally and execute:
+Clone this repository locally and
+
+- either execute (no staking):
 
 ```bash
 chmod +x run_service.sh
 ./run_service.sh
+```
+
+- or execute (with staking):
+
+```bash
+chmod +x run_service.sh
+./run_service.sh --with-staking
 ```
 
 Once the command has completed, i.e. the service is running, you can see the live logs with:
