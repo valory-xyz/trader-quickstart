@@ -178,9 +178,9 @@ get_private_key() {
 
 # Function to warm start the policy
 warm_start() {
-    echo '["claude-prediction-offline", "claude-prediction-online", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-offline-sme", "prediction-online", "prediction-online-sme"]' >| sudo tee "$PWD/../$store/available_tools_store.json"
-    echo '{"counts": [23, 16, 54, 52, 20, 113, 33, 54], "eps": 0.1, "rewards": [0.21330030417382723, -0.06394516434480157, 0.5042296458897277, 0.38925697131774417, -0.2978133327512751, 1.055336834629253, -0.5935249657470777, 0.507192767958923]}' >| sudo tee "$PWD/../$store/policy_store.json"
-    echo '{}' >| sudo tee ".trader_runner/utilized_tools.json"
+    echo '["claude-prediction-offline", "claude-prediction-online", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-offline-sme", "prediction-online", "prediction-online-sme"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
+    echo '{"counts": [23, 16, 54, 52, 20, 113, 33, 54], "eps": 0.1, "rewards": [0.21330030417382723, -0.06394516434480157, 0.5042296458897277, 0.38925697131774417, -0.2978133327512751, 1.055336834629253, -0.5935249657470777, 0.507192767958923]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
+    echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
 }
 
 # Function to add a volume to a service in a Docker Compose file
@@ -429,7 +429,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="feat/staking"
+service_version="v0.8.1"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
