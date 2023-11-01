@@ -16,34 +16,31 @@ Ensure your machine satisfies the requirements:
 - You need xDAI on Gnosis Chain in one of your wallets.
 - You need an RPC for your agent instance. We recommend https://getblock.io/.
 
-## Run the script
+## Run the Script
 
-Clone this repository locally and
+### For Non-Stakers
 
-- either execute (no staking):
+Clone this repository locally and execute:
 
 ```bash
 chmod +x run_service.sh
 ./run_service.sh
 ```
+### For Stakers
 
-- or execute (with staking):
-
-```bash
-chmod +x run_service.sh
-./run_service.sh --with-staking
-```
-
-To run the script with staking capabilities, execute:
+This assumes you have activated staking (see below for instructions). To run the script (with staking) execute:
 ```bash 
 ./run_service.sh --with-staking
 ```
-For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
 
 Otherwise, run: 
 ```bash
 ./run_service.sh
 ```
+
+For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
+
+### Service is Running
 
 Once the command has completed, i.e. the service is running, you can see the live logs with:
 
