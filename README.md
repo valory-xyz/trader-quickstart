@@ -163,10 +163,12 @@ It can easily be done, by removing this method call,
 [here](https://github.com/valory-xyz/trader-quickstart/blob/0f093ebbf0857b8484a017912c3992f00fbe1a29/run_service.sh#L698), 
 in order to set your own custom warm start. 
 Setting your own custom weights can be done by editing the corresponding files in `.trader_runner`.
-Moreover, you may store your current policy as a backup before editing those files, using the following command:
+Moreover, you may store your current policy as a backup before editing those files, using the following set of commands:
 
 ```shell
 cp ".trader_runner/available_tools_store.json" ".trader_runner/available_tools_store_$(date +"%d-%m-%Y")".json
+cp ".trader_runner/policy_store.json" ".trader_runner/policy_store_$(date +"%d-%m-%Y")".json
+cp ".trader_runner/utilized_tools.json" ".trader_runner/utilized_tools_$(date +"%d-%m-%Y")".json
 ```
 
 ##### Tool selection
