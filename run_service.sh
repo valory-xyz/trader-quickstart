@@ -429,7 +429,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="feat/update-mech-abi"
+service_version="v0.8.2"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -630,7 +630,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   -a $AGENT_ID \
                   -n $n_agents \
                   --threshold $n_agents \
-                  --update "$service_id"""
+                  --update \"$service_id\""
           if [ "${use_staking}" = true ]; then
               cost_of_bonding=1000000000000000000
               cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
@@ -638,7 +638,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               cost_of_bonding=10000000000000000
               cmd+=" -c $cost_of_bonding"
           fi
-
           output=$(eval "$cmd")
           if [[ $? -ne 0 ]]; then
               echo "Updating service failed.\n$output"
