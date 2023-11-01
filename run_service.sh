@@ -538,7 +538,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo "The operator and agent addresses need to have enough funds so that the process is not interrupted."
     echo ""
 
-    response="n"
+    response="y"
     if [ "${use_staking}" = true ]; then
       echo "Warning: updating the on-chain may require that your service is unstaked."
       echo "Continuing will automatically unstake your service if it is staked, which may effect your staking rewards."
