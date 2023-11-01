@@ -621,7 +621,12 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
           echo "[Service owner] Updating on-chain service $service_id..."
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-          export cmd="poetry run autonomy mint \
+          export cmd=""
+          if [ "${use_staking}" = true ]; then
+              cost_of_bonding=1000000000000000000
+              poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc"
+          else
+              cmd="poetry run autonomy mint \
                   --skip-hash-check \
                   --use-custom-chain \
                   service packages/valory/services/trader/ \
@@ -631,12 +636,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   -n $n_agents \
                   --threshold $n_agents \
                   --update \"$service_id\""
-          if [ "${use_staking}" = true ]; then
-              cost_of_bonding=1000000000000000000
-              cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
-          else
-              cost_of_bonding=10000000000000000
-              cmd+=" -c $cost_of_bonding"
           fi
           output=$(eval "$cmd")
           if [[ $? -ne 0 ]]; then
