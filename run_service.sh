@@ -630,7 +630,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   -a $AGENT_ID \
                   -n $n_agents \
                   --threshold $n_agents \
-                  --update "$service_id""
+                  --update "$service_id"""
           if [ "${use_staking}" = true ]; then
               cost_of_bonding=1000000000000000000
               cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
