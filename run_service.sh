@@ -429,7 +429,7 @@ fi
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.8.2"
+service_version="v0.9.0"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -464,13 +464,16 @@ echo "-----------------------------------------"
 
 gnosis_chain_id=100
 n_agents=1
+olas_balance_required_to_bond=25000000000000000000
+xdai_balance_required_to_bond=10000000000000000
+suggested_top_up_default=50000000000000000
 
 # setup the minting tool
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x337b53b4471775a7F87c8D5d077B17BbF9a0D369"
+export CUSTOM_STAKING_ADDRESS="0x22bE6fDcd3e29851B29b512F714C328A00A96B83"
 export CUSTOM_OLAS_ADDRESS="0xFC846A9EfC5C00d347Fd5A3759017DebeAdA3B74"
 export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
@@ -484,7 +487,7 @@ export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 if [ -z ${service_id+x} ];
 then
     # Check balances
-    suggested_amount=50000000000000000
+    suggested_amount=$suggested_top_up_default
     ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
     echo "[Service owner] Minting your service on the Gnosis chain..."
@@ -502,10 +505,10 @@ then
       --threshold $n_agents"
 
     if [ "${use_staking}" = true ]; then
-      cost_of_bonding=1000000000000000000
+      cost_of_bonding=$olas_balance_required_to_bond
       cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
     else
-      cost_of_bonding=10000000000000000
+      cost_of_bonding=$xdai_balance_required_to_bond
       cmd+=" -c $cost_of_bonding"
     fi
     service_id=$(eval $cmd)
@@ -555,10 +558,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       fi
 
       # Check balances
-      suggested_amount=50000000000000000
+      suggested_amount=$suggested_top_up_default
       ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
-      suggested_amount=50000000000000000
+      suggested_amount=$suggested_top_up_default
       ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
       echo "------------------------------"
@@ -623,10 +626,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
           export cmd=""
           if [ "${use_staking}" = true ]; then
-              cost_of_bonding=1000000000000000000
+              cost_of_bonding=$olas_balance_required_to_bond
               poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc"
           else
-              cost_of_bonding=10000000000000000
+              cost_of_bonding=$xdai_balance_required_to_bond
               cmd="poetry run autonomy mint \
                   --skip-hash-check \
                   --use-custom-chain \
@@ -666,7 +669,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
     export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id""
     if [ "${use_staking}" = true ]; then
-        minimum_olas_balance=1000000000000000000
+        minimum_olas_balance=$olas_balance_required_to_bond
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
@@ -684,7 +687,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; t
     export cmd="poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address""
 
     if [ "${use_staking}" = true ]; then
-        minimum_olas_balance=1000000000000000000
+        minimum_olas_balance=$olas_balance_required_to_bond
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
@@ -780,7 +783,7 @@ service_dir="trader_service"
 build_dir="abci_build"
 directory="$service_dir/$build_dir"
 
-suggested_amount=50000000000000000
+suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
 suggested_amount=500000000000000000
