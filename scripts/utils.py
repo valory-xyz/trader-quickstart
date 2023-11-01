@@ -108,7 +108,7 @@ def get_stake_txs(
     # we use the ZERO_ADDRESS as the contract address since we don't do any contract interaction here,
     # we are simply encoding
     approval_tx = get_approval_tx(
-        erc20, service_registry_address, staking_contract_address, service_id
+        ledger_api, service_registry_address, staking_contract_address, service_id
     )
 
     # 2. stake the service
