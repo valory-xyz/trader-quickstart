@@ -34,6 +34,17 @@ chmod +x run_service.sh
 ./run_service.sh --with-staking
 ```
 
+To run the script with staking capabilities, execute:
+```bash 
+./run_service.sh --with-staking
+```
+For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
+
+Otherwise, run: 
+```bash
+./run_service.sh
+```
+
 Once the command has completed, i.e. the service is running, you can see the live logs with:
 
 ```bash
