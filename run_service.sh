@@ -177,7 +177,11 @@ get_private_key() {
 }
 
 # Function to warm start the policy
-
+warm_start() {
+    echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
+    echo '{"counts": [1,1,1,1,1], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
+    echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
+}
 
 # Function to add a volume to a service in a Docker Compose file
 add_volume_to_service() {
@@ -813,8 +817,7 @@ poetry run autonomy deploy build --n $n_agents -ltm
 
 cd ..
 
-#Uncomment line below if warm_start() is present
-#warm_start
+warm_start
 
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
 
