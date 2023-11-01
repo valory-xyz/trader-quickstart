@@ -626,6 +626,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               cost_of_bonding=1000000000000000000
               poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc"
           else
+              cost_of_bonding=10000000000000000
               cmd="poetry run autonomy mint \
                   --skip-hash-check \
                   --use-custom-chain \
@@ -634,6 +635,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   --nft $nft \
                   -a $AGENT_ID \
                   -n $n_agents \
+                  -c $cost_of_bonding \
                   --threshold $n_agents \
                   --update \"$service_id\""
           fi
