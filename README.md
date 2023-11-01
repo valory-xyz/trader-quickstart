@@ -16,23 +16,34 @@ Ensure your machine satisfies the requirements:
 - You need xDAI on Gnosis Chain in one of your wallets.
 - You need an RPC for your agent instance. We recommend https://getblock.io/.
 
-## Run the script
+## Run the Script
 
-Clone this repository locally and
+### For Non-Stakers
 
-- either execute (no staking):
+Clone this repository locally and execute:
 
 ```bash
 chmod +x run_service.sh
 ./run_service.sh
 ```
+### For Stakers
 
-- or execute (with staking):
+Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
 
-```bash
-chmod +x run_service.sh
+To run the script (with staking) execute:
+```bash 
 ./run_service.sh --with-staking
 ```
+
+Otherwise, run: 
+```bash
+./run_service.sh
+```
+
+Note: Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited. 
+
+
+### Service is Running
 
 Once the command has completed, i.e. the service is running, you can see the live logs with:
 
@@ -45,17 +56,6 @@ To stop your agent, use:
 ```bash
 cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd .. 
 ```
-
-## Activate Staking
-This is an enhancement of the usual script with an additional guided step for staking. This will guide you through the process of getting your Trader agent service ready for earning staking rewards. Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain.
-
-With your agents stopped, execute the staking command:
-
-```bash
-chmod +x run_service.sh && ./run_service.sh --with-staking
-```
-
-Note: Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited. 
 
 
 ## Observe your agents
