@@ -26,22 +26,29 @@ Clone this repository locally and execute:
 chmod +x run_service.sh
 ./run_service.sh
 ```
+
 ### For Stakers
+
+> :warning: **Warning** <br />
+> The code within this repository is provided without any warranties. It is important to note that the code has not been audited for potential security vulnerabilities.
+> Using this code could potentially lead to loss of funds, compromised data, or asset risk.
+> Exercise caution and use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
 
 Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
 
 To run the script (with staking) execute:
+
 ```bash 
 ./run_service.sh --with-staking
 ```
 
-Otherwise, run: 
+Otherwise, run:
+
 ```bash
 ./run_service.sh
 ```
 
-Note: Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited. 
-
+Note: Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
 
 ### Service is Running
 
@@ -56,7 +63,6 @@ To stop your agent, use:
 ```bash
 cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd .. 
 ```
-
 
 ## Observe your agents
 
