@@ -30,9 +30,9 @@ chmod +x run_service.sh
 ### For Stakers
 
 > :warning: **Warning** <br />
-> The code in this repository is provided without any warranties. In particular, the code has not been audited for security vulnerabilities.
-> Using this code may result in loss of funds, data or assets.
-> Use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
+> The code within this repository is provided without any warranties. It is important to note that, the code has not been audited for potential security vulnerabilities.
+> Using this code could potentially lead to loss of funds, data compromised, or asset risk.
+> Please exercise caution and use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
 
 Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
 
