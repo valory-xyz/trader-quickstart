@@ -18,7 +18,7 @@
 #
 # ------------------------------------------------------------------------------
 
-"""Get a Safe current owners' addresses"""
+"""Get a Safe current owners' addresses."""
 
 import argparse
 import sys
@@ -45,12 +45,12 @@ def load_contract(ctype: ContractType) -> ContractType:
 if __name__ == "__main__":
     try:
         parser = argparse.ArgumentParser(
-            description="Swap ownership of a Safe with a single owner on the Gnosis chain."
+            description="Get a Safe current owners' addresses."
         )
         parser.add_argument(
             "safe_address",
             type=str,
-            help="Path to the file containing the Ethereum private key",
+            help="Safe address",
         )
         parser.add_argument(
             "private_key_path",
