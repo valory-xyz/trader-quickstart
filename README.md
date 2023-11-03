@@ -48,7 +48,10 @@ Otherwise, run:
 ./run_service.sh
 ```
 
-Note: Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
+__Notes__: 
+
+- Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
+- Currently the script only supports staking with newly registered trader services (staking an already registered trader service is not supported by the script). We are working on adding the missing support.
 
 ### Service is Running
 
