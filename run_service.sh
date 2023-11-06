@@ -573,19 +573,18 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       echo "Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve."
       echo ""
 
-      # TODO this condition should be increased to be service_state=DEPLOYED && current_safe_owner=agent_address.
-      # Otherwise the script will not recover the on-chain state in the (rare) case where this transaction succeeds but terminating transaction fails.
-      if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
-          # transfer the ownership of the Safe from the agent to the service owner
-          # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
-          service_safe_address=$(<"../$service_safe_address_path")
+      service_safe_address=$(<"../$service_safe_address_path")
+      current_safe_owners=$(poetry run python "../scripts/get_safe_owners.py" "$service_safe_address" "../$agent_pkey_path" "$rpc" | awk '{gsub(/\"/, "\047", $0); print $0}')
+
+      # transfer the ownership of the Safe from the agent to the service owner
+      # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
+      if [[ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" && "$current_safe_owners" == "['$agent_address']" ]]; then
           echo "[Agent instance] Swapping Safe owner..."
-          output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc")
+          poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc"
           if [[ $? -ne 0 ]]; then
-              echo "Swapping Safe owner failed.\n$output"
+              echo "Swapping Safe owner failed."
               exit 1
           fi
-          echo "$output"
       fi
 
       # terminate current service

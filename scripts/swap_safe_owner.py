@@ -66,7 +66,7 @@ if __name__ == "__main__":
         parser.add_argument(
             "safe_address",
             type=str,
-            help="Path to the file containing the Ethereum private key",
+            help="Safe address",
         )
         parser.add_argument(
             "current_owner_private_key_path",
