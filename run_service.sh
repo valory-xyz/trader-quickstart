@@ -241,6 +241,14 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+# Function to retrieve the multisig address of a service
+get_multisig_address() {
+    local service_id="$1"
+    local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
+    local state="$(echo "$service_info" | awk '/Multisig Address/ {sub(/\|[ \t]*Multisig Address[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
+    echo "$state"
+}
+
 # stake or unstake a service
 perform_staking_ops() {
     local unstake="$1"
@@ -264,6 +272,7 @@ agent_address_path="$store/agent_address.txt"
 service_id_path="$store/service_id.txt"
 service_safe_address_path="$store/service_safe_address.txt"
 store_readme_path="$store/README.txt"
+zero_address="0x0000000000000000000000000000000000000000"
 
 # Check the command-line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -701,7 +710,8 @@ fi
 
 # deploy on-chain service
 service_state="$(get_on_chain_service_state "$service_id")"
-if [ "$service_state" == "FINISHED_REGISTRATION" ] && [ "$first_run" = "true" ]; then
+multisig_address="$(get_multisig_address "$service_id")"
+if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) && [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path")
     if [[ $? -ne 0 ]]; then
