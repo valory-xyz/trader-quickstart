@@ -422,6 +422,18 @@ try_read_storage
 # Prompt for RPC
 [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
 
+# Check if RPC out of requests
+out_of_requests=$(curl -s -S -X POST \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc" | \
+  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='Out of requests')$"
+
+if [ "$out_of_requests" = True ]
+then
+    echo "The given RPC ($rpc) does not have any requests left! Terminating script..."
+    exit 1
+fi
+
 # Check if eth_newFilter is supported
 new_filter_supported=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
