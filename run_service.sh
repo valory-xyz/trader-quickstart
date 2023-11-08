@@ -426,7 +426,7 @@ try_read_storage
 out_of_requests=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
   --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc" | \
-  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='Out of requests')$"
+  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='Out of requests')$")
 
 if [ "$out_of_requests" = True ]
 then
