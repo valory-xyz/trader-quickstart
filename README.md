@@ -14,7 +14,7 @@ Ensure your machine satisfies the requirements:
 ## Resource Requirements
 
 - You need xDAI on Gnosis Chain in one of your wallets.
-- You need an RPC for your agent instance. We recommend https://getblock.io/.
+- You need an RPC for your agent instance. We recommend [QuickNode](https://www.quicknode.com/chains/xdai).
 
 ## Run the Script
 
