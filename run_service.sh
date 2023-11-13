@@ -834,6 +834,7 @@ cd ..
 warm_start
 
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
+sudo chown -R $(whoami) "$PWD/../$store/"
 
 # Run the deployment
 poetry run autonomy deploy run --build-dir $directory --detach
