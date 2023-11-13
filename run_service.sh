@@ -423,16 +423,23 @@ try_read_storage
 [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
 
 # Check if eth_newFilter is supported
-new_filter_supported=$(curl -s -S -X POST \
+echo "Checking if the RPC supports 'eth_newFilter'..."
+response=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc" | \
-  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='The method eth_newFilter does not exist/is not available')")
+  --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc")
 
-if [ "$new_filter_supported" = True ]
-then
-    echo "The given RPC ($rpc) does not support 'eth_newFilter'! Terminating script..."
+new_filter_supported=$(echo "$response" | \
+$PYTHON_CMD -c "import sys, json;
+try: response = sys.stdin.read().strip(); print(json.load(input_data)['error']['message']!='The method eth_newFilter does not exist/is not available')
+except Exception as e: print(f'Error: The provided RPC response is malformed or unexpected (response=\"{response}\"). Please verify the RPC behavior. Terminating script.')")
+
+if [ "$new_filter_supported" = False ]; then
+    echo "Error: The provided RPC does not support 'eth_newFilter'. Terminating script."
     exit 1
 fi
+
+echo "The provided RPC supports 'eth_newFilter'."
+echo ""
 
 # clone repo
 directory="trader"
