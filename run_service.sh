@@ -430,11 +430,14 @@ response=$(curl -s -S -X POST \
 
 new_filter_supported=$(echo "$response" | \
 $PYTHON_CMD -c "import sys, json;
-try: response = sys.stdin.read().strip(); print(json.load(input_data)['error']['message']!='The method eth_newFilter does not exist/is not available')
-except Exception as e: print(f'Error: The provided RPC response is malformed or unexpected (response=\"{response}\"). Please verify the RPC behavior. Terminating script.')")
+try: print(json.load(sys.stdin)['error']['message']!='The method eth_newFilter does not exist/is not available')
+except Exception as e: print('False')")
 
 if [ "$new_filter_supported" = False ]; then
-    echo "Error: The provided RPC does not support 'eth_newFilter'. Terminating script."
+    echo "Error: Either the provided RPC does not support 'eth_newFilter' or the received response is malformed. Please verify the RPC behavior."
+    echo "  Received response:"
+    echo "  $response"
+    echo "Terminating script."
     exit 1
 fi
 
