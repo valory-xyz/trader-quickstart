@@ -64,7 +64,7 @@ docker logs trader_abci_0 --follow
 To stop your agent, use:
 
 ```bash
-./stop_agent.sh
+./stop_service.sh
 ```
 
 ## Observe your agents
