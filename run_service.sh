@@ -433,7 +433,7 @@ $PYTHON_CMD -c "import sys, json;
 try: print(json.load(sys.stdin)['error']['message']!='The method eth_newFilter does not exist/is not available')
 except Exception as e: print('False')")
 
-if [ "$new_filter_supported" = False ]; then
+if [ "$new_filter_supported" != "True" ]; then
     echo "Error: Either the provided RPC does not support 'eth_newFilter' or the received response is malformed. Please verify the RPC behavior."
     echo "  Received response:"
     echo "  $response"
