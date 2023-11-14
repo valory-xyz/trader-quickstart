@@ -422,17 +422,44 @@ try_read_storage
 # Prompt for RPC
 [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
 
-# Check if eth_newFilter is supported
-new_filter_supported=$(curl -s -S -X POST \
-  -H "Content-Type: application/json" \
-  --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc" | \
-  $PYTHON_CMD -c "import sys, json; print(json.load(sys.stdin)['error']['message']=='The method eth_newFilter does not exist/is not available')")
+# Check the RPC
+echo "Checking the provided RCP..."
 
-if [ "$new_filter_supported" = True ]
-then
-    echo "The given RPC ($rpc) does not support 'eth_newFilter'! Terminating script..."
+rcp_response=$(curl -s -S -X POST \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_newFilter","params":["invalid"],"id":1}' "$rpc")
+
+rcp_error_message=$(echo "$rcp_response" | \
+$PYTHON_CMD -c "import sys, json;
+try: print(json.load(sys.stdin)['error']['message'])
+except Exception as e: print('Exception processing RCP response')")
+
+rcp_exception=$([[ "$rcp_error_message" == "Exception processing RCP response" ]] && echo true || echo false)
+if [ "$rcp_exception" = true ]; then
+    echo "Error: The received RCP response is malformed. Please verify the RPC address and/or RCP behavior."
+    echo "  Received response:"
+    echo "  $rcp_response"
+    echo ""
+    echo "Terminating script."
     exit 1
 fi
+
+rcp_out_of_requests=$([[ "$rcp_error_message" == "Out of requests" ]] && echo true || echo false)
+if [ "$rcp_out_of_requests" = true ]; then
+    echo "Error: The provided RCP is out of requests."
+    echo "Terminating script."
+    exit 1
+fi
+
+rcp_new_filter_supported=$([[ "$rcp_error_message" == "The method eth_newFilter does not exist/is not available" ]] && echo false || echo true)
+if [ "$rcp_new_filter_supported" = false ]; then
+    echo "Error: The provided RPC does not support 'eth_newFilter'."
+    echo "Terminating script."
+    exit 1
+fi
+
+echo "RPC checks passed."
+echo ""
 
 # clone repo
 directory="trader"
