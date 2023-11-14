@@ -112,7 +112,7 @@ ensure_erc20_balance() {
 
     if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
         echo ""
-        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance")."
+        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance") $token_name."
 
         local spin='-\|/'
         local i=0
@@ -300,7 +300,7 @@ create_storage() {
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
 
-    # Generate the operator's key
+    # Generate the owner/operator's key
     poetry run autonomy generate-key -n1 ethereum
     mv "$keys_json" "../$operator_keys_file"
     operator_address=$(get_address "../$operator_keys_file")
@@ -501,6 +501,7 @@ echo "-----------------------------------------"
 gnosis_chain_id=100
 n_agents=1
 olas_balance_required_to_bond=25000000000000000000
+olas_balance_required_to_stake=25000000000000000000
 xdai_balance_required_to_bond=10000000000000000
 suggested_top_up_default=50000000000000000
 
@@ -524,7 +525,7 @@ if [ -z ${service_id+x} ];
 then
     # Check balances
     suggested_amount=$suggested_top_up_default
-    ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+    ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
 
     echo "[Service owner] Minting your service on the Gnosis chain..."
 
@@ -595,7 +596,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 
       # Check balances
       suggested_amount=$suggested_top_up_default
-      ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+      ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
 
       suggested_amount=$suggested_top_up_default
       ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
@@ -696,7 +697,7 @@ echo "Ensuring on-chain service $service_id is in DEPLOYED state..."
 
 if [ "$(get_on_chain_service_state "$service_id")" != "DEPLOYED" ]; then
     suggested_amount=25000000000000000
-    ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
+    ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
 fi
 
 # activate service
@@ -704,8 +705,13 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
     export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id""
     if [ "${use_staking}" = true ]; then
-        minimum_olas_balance=$olas_balance_required_to_bond
-        ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
+        minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
+        echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address:"
+        echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for bonding (service owner)"
+        echo "        +"
+        echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for staking (operator)."
+        echo ""
+        ensure_erc20_balance "$operator_address" $minimum_olas_balance "owner/operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
     output=$(eval "$cmd")
@@ -722,8 +728,6 @@ if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; t
     export cmd="poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address""
 
     if [ "${use_staking}" = true ]; then
-        minimum_olas_balance=$olas_balance_required_to_bond
-        ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
 
