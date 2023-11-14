@@ -64,14 +64,12 @@ docker logs trader_abci_0 --follow
 To stop your agent, use:
 
 ```bash
-cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd .. 
+./stop_agent.sh
 ```
 
 ## Observe your agents
 
-1. Check out this handy app: https://predictions.oaksprout.repl.co/
-
-2. Use the `trades` command to display information about placed trades by a given address:
+1. Use the `trades` command to display information about placed trades by a given address:
 
     ```bash
     cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS; cd ..
@@ -82,7 +80,7 @@ cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build
     cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00; cd ..
     ```
 
-3. Use this command to investigate your agent's logs:
+2. Use this command to investigate your agent's logs:
 
     ```bash
     cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --reset-db; cd ..
