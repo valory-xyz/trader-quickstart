@@ -458,8 +458,6 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
 
 try_read_storage
 
-
-
 # Prompt for RPC
 [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
 
