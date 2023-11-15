@@ -407,7 +407,7 @@ echo ""
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --with-staking)
-            read -n 1 -s -r -p "WARNING: the flag '--with-staking' is deprecated. Instead, use the environment variable 'USE_STAKING=true' stored in '$env_file_path'. Press any key to continue..."
+            read -n 1 -s -r -p "WARNING: the flag '--with-staking' is deprecated. Instead, the value is stored in the '$store' folder. You will be prompted in case the value has not been set. Press any key to continue..."
             ;;
         *) echo "Unknown parameter: $1" ;;
     esac
