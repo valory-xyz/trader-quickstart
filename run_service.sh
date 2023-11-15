@@ -347,6 +347,7 @@ try_read_storage() {
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ ! -f "$env_file_path" ]; then
+            prompt_use_staking
             touch "$env_file_path"
             echo "USE_STAKING=$USE_STAKING" > "$env_file_path"
         fi
@@ -403,13 +404,10 @@ echo "This script will assist you in setting up and running the Trader service (
 echo ""
 
 # Check the command-line arguments
-USE_STAKING=false
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --with-staking)
-            USE_STAKING=true
-            echo 
-            read -n 1 -s -r -p "WARNING: the flag '--with-staking' is deprecated. Instead, use the environment variable stored in '$env_file_path'. Press any key to continue..."
+            read -n 1 -s -r -p "WARNING: the flag '--with-staking' is deprecated. Instead, use the environment variable 'USE_STAKING=true' stored in '$env_file_path'. Press any key to continue..."
             ;;
         *) echo "Unknown parameter: $1" ;;
     esac
@@ -508,7 +506,8 @@ echo ""
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.9.2.post1"
+#service_version="v0.9.2.post1"
+service_version="feat/checkpoint"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
