@@ -347,8 +347,8 @@ try_read_storage() {
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ ! -f "$env_file_path" ]; then
-            prompt_use_staking
             touch "$env_file_path"
+            prompt_use_staking
             echo "USE_STAKING=$USE_STAKING" > "$env_file_path"
         fi
 
