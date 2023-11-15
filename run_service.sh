@@ -265,7 +265,6 @@ prompt_use_staking() {
     while true; do
         read -p "Do you want to use staking in this service? (yes/no): " use_staking
 
-        # Convert yes/no to true/false
         case "$use_staking" in
             [Yy]|[Yy][Ee][Ss])
                 USE_STAKING="true"
@@ -276,7 +275,7 @@ prompt_use_staking() {
                 break
                 ;;
             *)
-                echo "Invalid input. Please enter 'yes' or 'no'."
+                echo "Please enter 'yes' or 'no'."
                 ;;
         esac
     done
@@ -403,6 +402,20 @@ echo ""
 echo "This script will assist you in setting up and running the Trader service (https://github.com/valory-xyz/trader)."
 echo ""
 
+# Check the command-line arguments
+USE_STAKING=false
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --with-staking)
+            USE_STAKING=true
+            echo 
+            read -n 1 -s -r -p "WARNING: the flag '--with-staking' is deprecated. Instead, use the environment variable stored in '$env_file_path'. Press any key to continue..."
+            ;;
+        *) echo "Unknown parameter: $1" ;;
+    esac
+    shift
+done
+
 # Check if user is inside a venv
 if [[ "$VIRTUAL_ENV" != "" ]]
 then
@@ -447,14 +460,7 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
 
 try_read_storage
 
-# Check the command-line arguments
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --with-staking) use_staking=true ;;
-        *) echo "Unknown parameter: $1" ;;
-    esac
-    shift
-done
+
 
 # Prompt for RPC
 [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
