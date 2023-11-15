@@ -66,12 +66,6 @@ if __name__ == "__main__":
             help="True if the service should be unstaked, False if it should be staked",
             default=False,
         )
-        parser.add_argument(
-            "skip_livenesss_check",
-            type=bool,
-            help="Set to true to skip the liveness check, note that this might end up causing you to lose staking rewards.",
-            default=False,
-        )
         args = parser.parse_args()
         ledger_api = EthereumApi(address=args.rpc)
         owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path)
@@ -84,13 +78,25 @@ if __name__ == "__main__":
             next_ts = get_next_checkpoint_ts(
                 ledger_api, args.staking_contract_address
             )
-            if next_ts > time.time() and not args.skip_livenesss_check:
+
+            liveness_period = 24*60*60 # TODO Read from contract
+            last_ts = next_ts - liveness_period
+            now = time.time()
+
+            if now < next_ts:
+                formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
+
                 print(
-                    f"The liveness period has not passed. "
-                    f"If you want to unstake anyway, "
-                    f"run the script by running with SKIP_LAST_EPOCH_REWARDS=true."
+                    f"WARNING: The liveness period ({liveness_period/3600} hours) has not passed since the last checkpoint was called on the staking contract (on {formatted_last_ts}).\n"
+                    "If you proceed with unstaking, you might lose any rewards accrued after that moment.\n"
+                    "Consider waiting until the liveness period has passed."
                 )
-                sys.exit(1)
+
+                user_input = input("Do you want to continue? (yes/no): ").lower()
+
+                if user_input not in ["yes", "y"]:
+                    print("Terminating script.")
+                    sys.exit(1)
 
             print(f"Unstaking service {args.service_id}")
             unstake_txs = get_unstake_txs(
