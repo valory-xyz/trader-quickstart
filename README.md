@@ -16,7 +16,7 @@ Ensure your machine satisfies the requirements:
 - You need xDAI on Gnosis Chain in one of your wallets.
 - You need an RPC for your agent instance. We recommend [QuickNode](https://www.quicknode.com/chains/xdai).
 
-## Run the Script
+## Run the Service
 
 ### For Non-Stakers
 
@@ -25,6 +25,12 @@ Clone this repository locally and execute:
 ```bash
 chmod +x run_service.sh
 ./run_service.sh
+```
+
+Answer 'No' when prompted:
+
+```text
+Do you want to use staking in this service? (yes/no): n
 ```
 
 ### For Stakers
@@ -36,16 +42,17 @@ chmod +x run_service.sh
 
 Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
 
-To run the script (with staking) execute:
-
-```bash 
-./run_service.sh --with-staking
-```
-
-Otherwise, run:
+Clone this repository locally and execute:
 
 ```bash
+chmod +x run_service.sh
 ./run_service.sh
+```
+
+Answer 'Yes' when prompted:
+
+```text
+Do you want to use staking in this service? (yes/no): y
 ```
 
 __Notes__: 
