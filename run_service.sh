@@ -252,12 +252,8 @@ get_multisig_address() {
 # stake or unstake a service
 perform_staking_ops() {
     local unstake="$1"
-    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake" "$SKIP_LAST_EPOCH_REWARDS")
-    if [[ $? -ne 0 ]]; then
-      echo "Swapping Safe owner failed.\n$output"
-      exit 1
-    fi
-    echo "$output"
+    poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake"
+    echo ""
 }
 
 
@@ -520,7 +516,6 @@ export AGENT_ID=12
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
-
 if [ -z ${service_id+x} ];
 then
     # Check balances
@@ -569,6 +564,8 @@ operator_address=$(get_address "../$operator_keys_file")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
+    echo "WARNING: Your on-chain service is out-of-date"
+    echo "---------------------------------------------"
     echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
     echo "  - On-chain service hash (id $service_id): $remote_service_hash"
@@ -580,14 +577,17 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 
     response="y"
     if [ "${use_staking}" = true ]; then
-      echo "Warning: updating the on-chain may require that your service is unstaked."
-      echo "Continuing will automatically unstake your service if it is staked, which may effect your staking rewards."
-      echo "Do you want to continue? [y/N]"
+      echo "WARNING: Your on-chain service is staked"
+      echo "----------------------------------------"
+      echo "Updating your on-chain service requires that it is unstaked."
+      echo "Continuing will automatically unstake your service if it is staked, which may affect your staking rewards."
+      echo "Do you want to continue updating your service? (yes/no)"
       read -r response
+      echo ""
     fi
 
     if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        echo "Skipping on-chain hash update."
+        echo "Skipping on-chain service update."
     else
       # unstake the service
       if [ "${use_staking}" = true ]; then

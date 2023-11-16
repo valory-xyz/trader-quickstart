@@ -26,15 +26,16 @@ import time
 import traceback
 from pathlib import Path
 
+from datetime import datetime
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
 
 
-from utils import is_service_staked, get_next_checkpoint_ts, get_unstake_txs, send_tx_and_wait_for_receipt, \
+from utils import is_service_staked, get_liveness_period, get_next_checkpoint_ts, get_service_info, get_unstake_txs, send_tx_and_wait_for_receipt, \
     get_available_rewards, get_stake_txs
 
 if __name__ == "__main__":
     try:
-        print(f"  - Starting {Path(__file__).name} script...")
+        print(f"Starting {Path(__file__).name} script...\n")
 
         parser = argparse.ArgumentParser(
             description="Stake or unstake the service based on the state."
@@ -66,12 +67,6 @@ if __name__ == "__main__":
             help="True if the service should be unstaked, False if it should be staked",
             default=False,
         )
-        parser.add_argument(
-            "skip_livenesss_check",
-            type=bool,
-            help="Set to true to skip the liveness check, note that this might end up causing you to lose staking rewards.",
-            default=False,
-        )
         args = parser.parse_args()
         ledger_api = EthereumApi(address=args.rpc)
         owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path)
@@ -84,15 +79,35 @@ if __name__ == "__main__":
             next_ts = get_next_checkpoint_ts(
                 ledger_api, args.staking_contract_address
             )
-            if next_ts > time.time() and not args.skip_livenesss_check:
-                print(
-                    f"The liveness period has not passed. "
-                    f"If you want to unstake anyway, "
-                    f"run the script by running with SKIP_LAST_EPOCH_REWARDS=true."
-                )
-                sys.exit(1)
 
-            print(f"Unstaking service {args.service_id}")
+            liveness_period = get_liveness_period(
+                ledger_api, args.staking_contract_address
+            )
+            last_ts = next_ts - liveness_period
+            now = time.time()
+
+            if now < next_ts:
+                formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
+                formatted_next_ts = datetime.utcfromtimestamp(next_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+                print(
+                    "WARNING: The liveness period has not been reached\n"
+                    "-------------------------------------------------\n"
+                    f"The liveness period ({liveness_period/3600} hours) has not passed since the last checkpoint call.\n"
+                    f"  - {formatted_last_ts} - Last checkpoint call.\n"
+                    f"  - {formatted_next_ts} - Next checkpoint call availability.\n"
+                    "\n"
+                    "If you proceed with unstaking, you will lose any rewards accrued after the last checkpoint call.\n"
+                    "Consider waiting until the liveness period has passed."
+                )
+
+                user_input = input("Do you want to continue unstaking? (yes/no)\n").lower()
+
+                if user_input not in ["yes", "y"]:
+                    print("Terminating script.")
+                    sys.exit(1)
+
+            print(f"Unstaking service {args.service_id}...")
             unstake_txs = get_unstake_txs(
                 ledger_api, args.service_id, args.staking_contract_address
             )

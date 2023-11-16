@@ -180,6 +180,26 @@ def get_staking_rewards(
     return rewards
 
 
+def get_liveness_period(
+    ledger_api: EthereumApi, staking_contract_address: str
+) -> int:
+    """Get the liveness period."""
+    liveness_period = staking_contract.get_liveness_period(
+        ledger_api, staking_contract_address
+    ).pop("data")
+    return liveness_period
+
+
+def get_service_info(
+    ledger_api: EthereumApi, service_id: int, staking_contract_address: str
+) -> typing.List:
+    """Check if service is staked."""
+    info = staking_contract.get_service_info(
+        ledger_api, staking_contract_address, service_id
+    ).pop("data")
+    return info
+
+
 def send_tx(
     ledger_api: EthereumApi,
     crypto: EthereumCrypto,
