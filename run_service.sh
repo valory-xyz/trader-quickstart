@@ -386,10 +386,11 @@ try_read_storage() {
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ -z "$AGENT_ID" ] && [ "$USE_STAKING" = true ]; then
             AGENT_ID=12
+            echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
         elif [ -z "$AGENT_ID" ]; then
             AGENT_ID=14
+            echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
         fi
-        echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
 
     else
         first_run=true
