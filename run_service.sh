@@ -253,7 +253,6 @@ get_multisig_address() {
 perform_staking_ops() {
     local unstake="$1"
     poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake"
-    sleep TX_WAIT_TIMEOUT
 }
 
 
@@ -516,8 +515,6 @@ export AGENT_ID=12
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
-TX_WAIT_TIMEOUT=5
-
 if [ -z ${service_id+x} ];
 then
     # Check balances
@@ -556,7 +553,6 @@ then
     fi
 
     echo -n "$service_id" > "../$service_id_path"
-    sleep TX_WAIT_TIMEOUT
 fi
 
 # Update the on-chain service if outdated
@@ -620,7 +616,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               echo "Swapping Safe owner failed."
               exit 1
           fi
-          sleep TX_WAIT_TIMEOUT
       fi
 
       # terminate current service
@@ -637,7 +632,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               echo "Please, delete or rename the ./trader folder and try re-run this script again."
               exit 1
           fi
-          sleep TX_WAIT_TIMEOUT
       fi
 
       # unbond current service
@@ -654,7 +648,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               echo "Please, delete or rename the ./trader folder and try re-run this script again."
               exit 1
           fi
-          sleep TX_WAIT_TIMEOUT
       fi
 
       # update service
@@ -685,7 +678,6 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               echo "Please, delete or rename the ./trader folder and try re-run this script again."
               exit 1
           fi
-          sleep TX_WAIT_TIMEOUT
       fi
 
       echo ""
@@ -722,7 +714,6 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
         exit 1
     fi
-    sleep TX_WAIT_TIMEOUT
 fi
 
 # register agent instance
@@ -740,7 +731,6 @@ if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; t
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
         exit 1
     fi
-    sleep TX_WAIT_TIMEOUT    
 fi
 
 # deploy on-chain service
@@ -754,7 +744,6 @@ if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) &
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
         exit 1
     fi
-    sleep TX_WAIT_TIMEOUT
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" --reuse-multisig)
@@ -763,7 +752,6 @@ elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
         exit 1
     fi
-    sleep TX_WAIT_TIMEOUT
 fi
 
 # perform staking operations
