@@ -80,16 +80,29 @@ if __name__ == "__main__":
                 ledger_api, args.staking_contract_address
             )
 
+            staked_ts = 0 # TODO read from contract
             liveness_period = 24*60*60 # TODO Read from contract
             last_ts = next_ts - liveness_period
             now = time.time()
 
-            if now < next_ts:
+            if (now - staked_ts) < liveness_period:
+                print(
+                    f"WARNING: Your service has been staked for less than one liveness period ({liveness_period/3600} hours).\n"
+                    "If you proceed with unstaking, you will lose any rewards accrued.\n"
+                    "Consider waiting until the liveness period has passed."
+                )
+                user_input = input("Do you want to continue? (yes/no): ").lower()
+
+                if user_input not in ["yes", "y"]:
+                    print("Terminating script.")
+                    sys.exit(1)                
+
+            elif now < next_ts:
                 formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
 
                 print(
                     f"WARNING: The liveness period ({liveness_period/3600} hours) has not passed since the last checkpoint was called on the staking contract (on {formatted_last_ts}).\n"
-                    "If you proceed with unstaking, you might lose any rewards accrued after that moment.\n"
+                    "If you proceed with unstaking, you will lose any rewards accrued after the last checkpoint call.\n"
                     "Consider waiting until the liveness period has passed."
                 )
 
