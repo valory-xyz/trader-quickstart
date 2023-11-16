@@ -253,6 +253,7 @@ get_multisig_address() {
 perform_staking_ops() {
     local unstake="$1"
     poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake"
+    echo ""
 }
 
 
@@ -460,7 +461,8 @@ echo ""
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.9.2.post1"
+#service_version="v0.9.2.post1"
+service_version="main"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -563,6 +565,8 @@ operator_address=$(get_address "../$operator_keys_file")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
+    echo "WARNING: Your on-chain service is out-of-date"
+    echo "---------------------------------------------"
     echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
     echo "  - On-chain service hash (id $service_id): $remote_service_hash"
@@ -574,14 +578,17 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
 
     response="y"
     if [ "${use_staking}" = true ]; then
-      echo "Warning: updating the on-chain may require that your service is unstaked."
-      echo "Continuing will automatically unstake your service if it is staked, which may effect your staking rewards."
-      echo "Do you want to continue? [y/N]"
+      echo "WARNING: Your on-chain service is staked"
+      echo "----------------------------------------"
+      echo "Updating your on-chain service requires that it is unstaked."
+      echo "Continuing will automatically unstake your service if it is staked, which may affect your staking rewards."
+      echo "Do you want to continue updating your service? (yes/no)"
       read -r response
+      echo ""
     fi
 
     if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        echo "Skipping on-chain hash update."
+        echo "Skipping on-chain service update."
     else
       # unstake the service
       if [ "${use_staking}" = true ]; then
