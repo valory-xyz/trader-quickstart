@@ -252,12 +252,8 @@ get_multisig_address() {
 # stake or unstake a service
 perform_staking_ops() {
     local unstake="$1"
-    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake" "$SKIP_LAST_EPOCH_REWARDS")
-    if [[ $? -ne 0 ]]; then
-      echo "Swapping Safe owner failed.\n$output"
-      exit 1
-    fi
-    echo "$output"
+    poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake"
+    echo ""
 }
 
 # Prompt user for staking preference
@@ -504,7 +500,7 @@ echo ""
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.9.2.post1"
+service_version="v0.9.3"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -559,7 +555,6 @@ export AGENT_ID=12
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
-
 if [ -z ${service_id+x} ];
 then
     # Check balances
@@ -608,6 +603,8 @@ operator_address=$(get_address "../$operator_keys_file")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
+    echo "WARNING: Your on-chain service is out-of-date"
+    echo "---------------------------------------------"
     echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
     echo "  - On-chain service hash (id $service_id): $remote_service_hash"
@@ -618,15 +615,18 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
 
     response="y"
-    if [ "${USE_STAKING}" = true ]; then
-      echo "Warning: updating the on-chain may require that your service is unstaked."
-      echo "Continuing will automatically unstake your service if it is staked, which may effect your staking rewards."
-      echo "Do you want to continue? [y/N]"
+    if [ "${use_staking}" = true ]; then
+      echo "WARNING: Your on-chain service is staked"
+      echo "----------------------------------------"
+      echo "Updating your on-chain service requires that it is unstaked."
+      echo "Continuing will automatically unstake your service if it is staked, which may affect your staking rewards."
+      echo "Do you want to continue updating your service? (yes/no)"
       read -r response
+      echo ""
     fi
 
     if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-        echo "Skipping on-chain hash update."
+        echo "Skipping on-chain service update."
     else
       # unstake the service
       if [ "${USE_STAKING}" = true ]; then
@@ -840,6 +840,7 @@ echo ""
 # Set environment variables. Tweak these to modify your strategy
 export RPC_0="$rpc"
 export CHAIN_ID=$gnosis_chain_id
+export ON_CHAIN_SERVICE_ID=$service_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'

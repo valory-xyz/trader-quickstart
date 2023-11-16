@@ -214,3 +214,24 @@ and can be overriden by setting it anywhere in the `run_service.sh` script with 
 ```shell
 IRRELEVANT_TOOLS=["some-misbehaving-tool", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1"]
 ```
+
+## Backup and Recovery
+
+When executed for the first time, the `run_service.sh` script creates a number of Gnosis chain accounts:
+
+- one EOA account will be used as the service owner and agent operator,
+- one EOA account will be used for the trading agent, and
+- one smart contract account corresponds to a [Safe](https://app.safe.global/) wallet with a single owner (the agent account).
+
+The addresses and private keys of the EOA accounts (plus some additional configuration) are stored within the folder `.trader_runner`. In order to avoid losing your assets, back up this folder in a safe place, and do not publish or share its contents with unauthorized parties.
+
+You can gain access to the assets of your service as follows:
+
+1. Ensure that your service is stopped by running `stop_service.sh`.
+2. Ensure that you have a hot wallet (e.g., [MetaMask](https://metamask.io/)) installed and set up in your browser.
+3. Import the two EOAs accounts using the private keys. In MetaMask, select "Add account or hardware wallet" &#8594; "Import account" &#8594; "Select Type: Private Key", and enter the private key of the owner/operator EOA account (located in `.trader_runner/operator_pkey.txt`):
+    <img src="images/metamask_import_private_key.png" alt="MetaMask import private key" style="width: 80%;">
+
+4. Repeat the same process with the agent EOA account (private key located in `.trader_runner/agent_pkey.json`).
+
+Now, you have full access through the hot wallet to the EOAs addresses associated to your service and you can transfer their assets to any other address. You can also manage the assets of the service Safe through the DApp https://app.safe.global/, using the address located in the file `.trader_runner/service_safe_address.txt`.
