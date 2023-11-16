@@ -801,6 +801,7 @@ echo ""
 # Set environment variables. Tweak these to modify your strategy
 export RPC_0="$rpc"
 export CHAIN_ID=$gnosis_chain_id
+export ON_CHAIN_SERVICE_ID=$service_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
