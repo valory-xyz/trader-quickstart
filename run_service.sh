@@ -465,7 +465,7 @@ echo ""
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.9.2.post1"
+service_version="v0.9.3"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
@@ -801,6 +801,7 @@ echo ""
 # Set environment variables. Tweak these to modify your strategy
 export RPC_0="$rpc"
 export CHAIN_ID=$gnosis_chain_id
+export ON_CHAIN_SERVICE_ID=$service_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
