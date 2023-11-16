@@ -30,7 +30,7 @@ from datetime import datetime
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
 
 
-from utils import get_liveness_period, is_service_staked, get_liveness_period, get_next_checkpoint_ts, get_service_info, get_unstake_txs, send_tx_and_wait_for_receipt, \
+from utils import is_service_staked, get_liveness_period, get_next_checkpoint_ts, get_service_info, get_unstake_txs, send_tx_and_wait_for_receipt, \
     get_available_rewards, get_stake_txs
 
 if __name__ == "__main__":
