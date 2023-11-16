@@ -227,11 +227,11 @@ The addresses and private keys of the EOA accounts (plus some additional configu
 
 You can gain access to the assets of your service as follows:
 
-1- Ensure that your service is stopped by running `stop_service.sh`.
-2- Ensure that you have a hot wallet (e.g., [MetaMask](https://metamask.io/)) installed and set up in your browser.
-3- Import the two EOAs accounts using the private keys. In MetaMask, select "Add account or hardware wallet" -> "Import account" -> "Select Type = Private Key", and enter the private key of the owner/operator account (located in `.trader_runner/operator_pkey.txt`):
-    ![MetaMask import private key](images/metamask_import_private_key.png)
+1. Ensure that your service is stopped by running `stop_service.sh`.
+2. Ensure that you have a hot wallet (e.g., [MetaMask](https://metamask.io/)) installed and set up in your browser.
+3. Import the two EOAs accounts using the private keys. In MetaMask, select "Add account or hardware wallet" &#8594; "Import account" &#8594; "Select Type: Private Key", and enter the private key of the owner/operator EOA account (located in `.trader_runner/operator_pkey.txt`):
+    <img src="images/metamask_import_private_key.png" alt="MetaMask import private key" style="width: 80%;">
 
-4- Repeat the same process with the agent account (private key located in `.trader_runner/agent_pkey.json`).
+4. Repeat the same process with the agent EOA account (private key located in `.trader_runner/agent_pkey.json`).
 
 Now, you have full access through the hot wallet to the EOAs addresses associated to your service and you can transfer their assets to any other address. You can also manage the assets of the service Safe through the DApp https://app.safe.global/, using the address located in the file `.trader_runner/service_safe_address.txt`.
