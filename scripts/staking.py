@@ -30,7 +30,7 @@ from datetime import datetime
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
 
 
-from utils import is_service_staked, get_next_checkpoint_ts, get_unstake_txs, send_tx_and_wait_for_receipt, \
+from utils import get_liveness_period, is_service_staked, get_liveness_period, get_next_checkpoint_ts, get_service_info, get_unstake_txs, send_tx_and_wait_for_receipt, \
     get_available_rewards, get_stake_txs
 
 if __name__ == "__main__":
@@ -80,24 +80,13 @@ if __name__ == "__main__":
                 ledger_api, args.staking_contract_address
             )
 
-            staked_ts = 0 # TODO read from contract
-            liveness_period = 24*60*60 # TODO Read from contract
+            liveness_period = get_liveness_period(
+                ledger_api, args.staking_contract_address
+            )
             last_ts = next_ts - liveness_period
             now = time.time()
 
-            if (now - staked_ts) < liveness_period:
-                print(
-                    f"WARNING: Your service has been staked for less than one liveness period ({liveness_period/3600} hours).\n"
-                    "If you proceed with unstaking, you will lose any rewards accrued.\n"
-                    "Consider waiting until the liveness period has passed."
-                )
-                user_input = input("Do you want to continue? (yes/no): ").lower()
-
-                if user_input not in ["yes", "y"]:
-                    print("Terminating script.")
-                    sys.exit(1)                
-
-            elif now < next_ts:
+            if now < next_ts:
                 formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
 
                 print(
