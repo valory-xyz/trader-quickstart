@@ -310,6 +310,9 @@ create_storage() {
     prompt_use_staking
     touch "../$env_file_path"
     echo "USE_STAKING=$USE_STAKING" > "../$env_file_path"
+    AGENT_ID=14
+    echo "AGENT_ID"=$AGENT_ID >> "../$env_file_path"
+
 
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
@@ -376,7 +379,15 @@ try_read_storage() {
         rpc=$(cat $rpc_path)
         agent_address=$(cat $agent_address_path)
         operator_address=$(get_address "$operator_keys_file")
-        if [ -f "$service_id_pa=14
+        if [ -f "$service_id_path" ]; then
+            service_id=$(cat $service_id_path)
+        fi
+
+        # INFO: This is a fix to avoid corrupting already-created stores
+        if [ -z "$AGENT_ID" ] && [ "$USE_STAKING" = true ]; then
+            AGENT_ID=12
+        elif [ -z "$AGENT_ID" ]; then
+            AGENT_ID=14
         fi
         echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
 
@@ -551,8 +562,7 @@ export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF8364
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
 export CUSTOM_STAKING_ADDRESS="0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
 export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
-export Cexport AGENT_ID=12
-USTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
+export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
