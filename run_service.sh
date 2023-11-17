@@ -351,9 +351,7 @@ try_read_storage() {
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ ! -f "$env_file_path" ]; then
-            prompt_use_staking
             touch "$env_file_path"
-            echo "USE_STAKING=$USE_STAKING" > "$env_file_path"
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
@@ -382,12 +380,21 @@ try_read_storage() {
             fi
         done
 
+        unset USE_STAKING
+        unset AGENT_ID
         source "$env_file_path"
+
         rpc=$(cat $rpc_path)
         agent_address=$(cat $agent_address_path)
         operator_address=$(get_address "$operator_keys_file")
         if [ -f "$service_id_path" ]; then
             service_id=$(cat $service_id_path)
+        fi
+
+        # INFO: This is a fix to avoid corrupting already-created stores
+        if [ -z "$USE_STAKING" ]; then
+            prompt_use_staking
+            echo "USE_STAKING=$USE_STAKING" > "$env_file_path"
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
