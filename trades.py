@@ -355,12 +355,18 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
     return all_results
 
 
-def wei_to_dai(wei: int) -> str:
-    """Converts and formats Wei to DAI."""
-    dai = wei / 10**18
-    formatted_dai = "{:.2f}".format(dai)
-    return f"{formatted_dai}"
+def wei_to_unit(wei: int) -> float:
+    """Converts wei to currency unit."""
+    return wei / 10**18
 
+
+def wei_to_xdai(wei: int) -> str:
+    """Converts and formats wei to xDAI."""
+    return "{:.2f} xDAI".format(wei_to_unit(wei))
+
+def wei_to_wxdai(wei: int) -> str:
+    """Converts and formats wei to WxDAI."""
+    return "{:.2f} xDAI".format(wei_to_unit(wei))
 
 def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
     user_positions = user_json["data"]["user"]["userPositions"]
@@ -457,7 +463,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.INVESTMENT:<{column_width}}"
         + "".join(
             [
-                f"{wei_to_dai(table[MarketAttribute.INVESTMENT][c]):>{column_width}}"
+                f"{wei_to_xdai(table[MarketAttribute.INVESTMENT][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -467,7 +473,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.FEES:<{column_width}}"
         + "".join(
             [
-                f"{wei_to_dai(table[MarketAttribute.FEES][c]):>{column_width}}"
+                f"{wei_to_xdai(table[MarketAttribute.FEES][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -477,7 +483,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.EARNINGS:<{column_width}}"
         + "".join(
             [
-                f"{wei_to_dai(table[MarketAttribute.EARNINGS][c]):>{column_width}}"
+                f"{wei_to_xdai(table[MarketAttribute.EARNINGS][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -487,7 +493,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.NET_EARNINGS:<{column_width}}"
         + "".join(
             [
-                f"{wei_to_dai(table[MarketAttribute.NET_EARNINGS][c]):>{column_width}}"
+                f"{wei_to_xdai(table[MarketAttribute.NET_EARNINGS][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -497,7 +503,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.REDEMPTIONS:<{column_width}}"
         + "".join(
             [
-                f"{wei_to_dai(table[MarketAttribute.REDEMPTIONS][c]):>{column_width}}"
+                f"{wei_to_xdai(table[MarketAttribute.REDEMPTIONS][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -507,7 +513,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.ROI:<{column_width}}"
         + "".join(
             [
-                f"{table[MarketAttribute.ROI][c]*100.0:>{column_width-4}.2f} %  "
+                f"{table[MarketAttribute.ROI][c]*100.0:>{column_width-5}.2f} %   "
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -572,8 +578,8 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
 
             output += f" Market status: {market_status}\n"
-            output += f"        Bought: {wei_to_dai(collateral_amount)} for {wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
-            output += f"           Fee: {wei_to_dai(fee_amount)}\n"
+            output += f"        Bought: {wei_to_xdai(collateral_amount)} for {wei_to_xdai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
+            output += f"           Fee: {wei_to_xdai(fee_amount)}\n"
             output += f"   Your answer: {fpmm['outcomes'][outcome_index]!r}\n"
 
             if market_status == MarketState.FINALIZING:
@@ -600,11 +606,11 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 if is_invalid:
                     earnings = collateral_amount
                     output += "  Final answer: Market has been declared invalid.\n"
-                    output += f"      Earnings: {wei_to_dai(earnings)}\n"
+                    output += f"      Earnings: {wei_to_xdai(earnings)}\n"
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
-                    output += f"      Earnings: {wei_to_dai(earnings)}\n"
+                    output += f"      Earnings: {wei_to_xdai(earnings)}\n"
                     redeemed = _is_redeemed(user_json, fpmmTrade)
                     output += f"      Redeemed: {redeemed}\n"
                     statistics_table[MarketAttribute.WINNER_TRADES][market_status] += 1
@@ -641,12 +647,12 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     safe_address = user_args.creator
     safe_address_balance = _get_balance(safe_address, rpc_url)
 
-    output += f"Safe address: {safe_address}\n"
-    output += f"Address balance: {_wei_to_dai(int(safe_address_balance, 16))} xDAI\n"
+    output += f"Safe address:    {safe_address}\n"
+    output += f"Address balance: {wei_to_xdai(int(safe_address_balance, 16))}\n"
 
     wxdai_contract_address = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
     wxdai_balance = _get_token_balance(safe_address, wxdai_contract_address, rpc_url)
-    output += f"Token balance: {_wei_to_dai(wxdai_balance)} wxDAI\n\n"
+    output += f"Token balance:   {wei_to_wxdai(wxdai_balance)}\n\n"
 
     _compute_totals(statistics_table)
     output += _format_table(statistics_table)
