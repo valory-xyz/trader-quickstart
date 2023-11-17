@@ -527,7 +527,7 @@ echo ""
 directory="trader"
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.9.3"
+service_version="v0.9.4"
 service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
