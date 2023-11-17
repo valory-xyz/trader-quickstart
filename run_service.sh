@@ -243,11 +243,13 @@ get_on_chain_service_state() {
 
 # Asks if user wishes to use password-protected key files
 ask_confirm_password() {
+    echo "Use a password?"
+    echo "---------------"
     echo "You can use a password to encrypt the generated key files. You will be asked for the password each time the script is run."
     while true; do
-        read -p "Do you want to use a password? (y/n): " use_password
+        read -p "Do you want to use a password? (yes/no): " use_password
         case "$use_password" in
-            [Yy] )
+            [Yy]|[Yy][Ee][Ss])
                 echo "WARNING:"
                 echo "  - Passwords are case-sensitive. Check your Caps Lock before continuing."
                 echo "  - Passwords are not stored on disk."
@@ -272,20 +274,21 @@ ask_confirm_password() {
                         echo "Password confirmed. Please, store your pasword in a safe place."
                         read -n 1 -s -r -p "Press any key to continue..."
                         echo ""
+                        echo ""
                         return 0
                     else
                         echo "Passwords do not match. Please try again."
                     fi
                 done
                 ;;
-            [Nn] )
+            [Nn]|[Nn][Oo])
                 use_password=false
                 password_argument=""
                 echo ""
                 return 0
                 ;;
             * )
-                echo "Please answer 'y' for yes or 'n' for no."
+                echo "Please enter 'yes' or 'no'."
                 ;;
         esac
     done
@@ -297,10 +300,13 @@ ask_confirm_password() {
 ask_password_if_needed() {
     agent_pkey=$(get_private_key "$keys_json_path")
     if [[ "$agent_pkey" = *crypto* ]]; then
+        echo "Enter your password"
+        echo "-------------------"
         echo "Your key files are protected with a password."
-        read -s -p "Enter your password: " password
+        read -s -p "Please, enter your password: " password
         use_password=true
         password_argument="--password $password"
+        echo ""
     else
         echo "Your key files are not protected with a password."
         use_password=false
@@ -327,7 +333,9 @@ perform_staking_ops() {
 # Prompt user for staking preference
 prompt_use_staking() {
     while true; do
-        read -p "Do you want to use staking in this service? (yes/no): " use_staking
+        echo "Use staking?"
+        echo "------------"
+        read -p "Do you want to use this service in a staking program? (yes/no): " use_staking
 
         case "$use_staking" in
             [Yy]|[Yy][Ee][Ss])
@@ -343,6 +351,7 @@ prompt_use_staking() {
                 ;;
         esac
     done
+    echo ""
 }
 
 
@@ -778,7 +787,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               poetry run autonomy service \
                   --use-custom-chain \
                   terminate "$service_id" \
-                  --key "../$operator_pkey_path $password_argument"
+                  --key "../$operator_pkey_path" $password_argument
           )
           if [[ $? -ne 0 ]]; then
               echo "Terminating service failed.\n$output"
@@ -794,7 +803,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
               poetry run autonomy service \
                   --use-custom-chain \
                   unbond "$service_id" \
-                  --key "../$operator_pkey_path $password_argument"
+                  --key "../$operator_pkey_path" $password_argument
           )
           if [[ $? -ne 0 ]]; then
               echo "Unbonding service failed.\n$output"
@@ -976,7 +985,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
-suggested_amount=500000000000000000
+suggested_amount=50000000000000000
 ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
@@ -1016,11 +1025,5 @@ add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trad
 sudo chown -R $(whoami) "$PWD/../$store/"
 
 # Run the deployment
-poetry run autonomy deploy run --build-dir $directory --detach || true
+poetry run export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD=$password; autonomy deploy run --build-dir $directory --detach
 
-# TODO Clear password
-#password=""
-#password_argument=""
-#temp_file="$directory/docker-compose.yaml.tmp"
-#cat "$directory/docker-compose.yaml" | awk '$0 !~ /AEA_PASSWORD=/' > "$temp_file"
-#mv -f "$temp_file" "$directory/docker-compose.yaml"
