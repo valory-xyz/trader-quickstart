@@ -310,7 +310,14 @@ create_storage() {
     prompt_use_staking
     touch "../$env_file_path"
     echo "USE_STAKING=$USE_STAKING" > "../$env_file_path"
-    AGENT_ID=14
+
+    if [ "$USE_STAKING" = true ]; then
+        # New staking services use AGENT_ID=12 until end of Everest staking program
+        AGENT_ID=12
+    else
+        # New non-staking services use AGENT_ID=14
+        AGENT_ID=14
+    fi
     echo "AGENT_ID"=$AGENT_ID >> "../$env_file_path"
 
 
@@ -384,10 +391,14 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
+        # If $AGENT_ID is not defined at this point, it means it is a service created
+        # before the AGENT_ID fix was implemented.
         if [ -z "$AGENT_ID" ] && [ "$USE_STAKING" = true ]; then
+            # Existing staking services use AGENT_ID=12
             AGENT_ID=12
             echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
         elif [ -z "$AGENT_ID" ]; then
+            # Existing non-staking services use AGENT_ID=14
             AGENT_ID=14
             echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
         fi
