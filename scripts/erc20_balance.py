@@ -31,8 +31,8 @@ WXDAI_ABI_PATH = "../contracts/wxdai.json"
 def get_balance() -> int:
     """Get the wxDAI balance of an address in WEI."""
     w3 = Web3(HTTPProvider(rpc))
-    contract_instance = w3.eth.contract(address=WXDAI_CONTRACT_ADDRESS, abi=abi)
-    return contract_instance.functions.balanceOf(address).call()
+    contract_instance = w3.eth.contract(address=token, abi=abi)
+    return contract_instance.functions.balanceOf(w3.to_checksum_address(address)).call()
 
 
 def read_abi() -> str:
@@ -42,10 +42,11 @@ def read_abi() -> str:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         raise ValueError("Expected the address and the rpc as positional arguments.")
     else:
-        address = sys.argv[1]
-        rpc = sys.argv[2]
+        token = sys.argv[1]
+        address = sys.argv[2]
+        rpc = sys.argv[3]
         abi = read_abi()
         print(get_balance())
