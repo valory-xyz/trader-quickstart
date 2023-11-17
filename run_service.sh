@@ -636,6 +636,10 @@ if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
     poetry run autonomy packages sync
+
+    # TODO: remove (use these lines for testing only)
+    # poetry run pip3 install -e ../../open-autonomy 
+    # poetry run autonomy --version
 else
     echo "$directory is not a git repo!"
     exit 1
@@ -1015,7 +1019,7 @@ else
 fi
 
 # Build the deployment with a single agent
-poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm $password_argument
+export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry cdrun autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
 
 cd ..
 
@@ -1025,5 +1029,4 @@ add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trad
 sudo chown -R $(whoami) "$PWD/../$store/"
 
 # Run the deployment
-poetry run export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD=$password; autonomy deploy run --build-dir $directory --detach
-
+export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy run --build-dir "$directory" --detach
