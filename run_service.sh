@@ -648,7 +648,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
 
     response="y"
-    if [ "${use_staking}" = true ]; then
+    if [ "${USE_STAKING}" = true ]; then
       echo "WARNING: Your on-chain service is staked"
       echo "----------------------------------------"
       echo "Updating your on-chain service requires that it is unstaked."

@@ -102,6 +102,7 @@ if __name__ == "__main__":
                 )
 
                 user_input = input("Do you want to continue unstaking? (yes/no)\n").lower()
+                print("")
 
                 if user_input not in ["yes", "y"]:
                     print("Terminating script.")
