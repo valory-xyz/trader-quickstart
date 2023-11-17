@@ -311,6 +311,16 @@ create_storage() {
     touch "../$env_file_path"
     echo "USE_STAKING=$USE_STAKING" > "../$env_file_path"
 
+    if [ "$USE_STAKING" = true ]; then
+        # New staking services use AGENT_ID=12 until end of Everest staking program
+        AGENT_ID=12
+    else
+        # New non-staking services use AGENT_ID=14
+        AGENT_ID=14
+    fi
+    echo "AGENT_ID"=$AGENT_ID >> "../$env_file_path"
+
+
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
 
@@ -379,6 +389,20 @@ try_read_storage() {
         if [ -f "$service_id_path" ]; then
             service_id=$(cat $service_id_path)
         fi
+
+        # INFO: This is a fix to avoid corrupting already-created stores
+        # If $AGENT_ID is not defined at this point, it means it is a service created
+        # before the AGENT_ID fix was implemented.
+        if [ -z "$AGENT_ID" ] && [ "$USE_STAKING" = true ]; then
+            # Existing staking services use AGENT_ID=12
+            AGENT_ID=12
+            echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
+        elif [ -z "$AGENT_ID" ]; then
+            # Existing non-staking services use AGENT_ID=14
+            AGENT_ID=14
+            echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
+        fi
+
     else
         first_run=true
     fi
@@ -554,7 +578,6 @@ export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb1
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
-export AGENT_ID=12
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
