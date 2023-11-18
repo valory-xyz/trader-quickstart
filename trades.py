@@ -366,7 +366,7 @@ def wei_to_xdai(wei: int) -> str:
 
 def wei_to_wxdai(wei: int) -> str:
     """Converts and formats wei to WxDAI."""
-    return "{:.2f} xDAI".format(wei_to_unit(wei))
+    return "{:.2f} WxDAI".format(wei_to_unit(wei))
 
 def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
     user_positions = user_json["data"]["user"]["userPositions"]
