@@ -424,12 +424,12 @@ try_read_storage() {
 set -e  # Exit script on first error
 
 # Initialize repo and version variables
-# This is a tested version that works well.
-# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
 org_name="valory-xyz"
 directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
-service_version="v0.6.6"
+# This is a tested version that works well.
+# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
+service_version="v0.9.6"
 
 echo ""
 echo "---------------"
