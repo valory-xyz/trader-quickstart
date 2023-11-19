@@ -422,12 +422,21 @@ try_read_storage() {
 # ------------------
 
 set -e  # Exit script on first error
+
+# Initialize repo and version variables
+org_name="valory-xyz"
+directory="trader"
+service_repo=https://github.com/$org_name/$directory.git
+# This is a tested version that works well.
+# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
+service_version="v0.9.6"
+
 echo ""
 echo "---------------"
 echo " Trader runner "
 echo "---------------"
 echo ""
-echo "This script will assist you in setting up and running the Trader service (https://github.com/valory-xyz/trader)."
+echo "This script will assist you in setting up and running the Trader service ($service_repo)."
 echo ""
 
 # Check the command-line arguments
@@ -533,19 +542,14 @@ echo "RPC checks passed."
 echo ""
 
 # clone repo
-directory="trader"
-# This is a tested version that works well.
-# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.9.6"
-service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
-    echo "Detected an existing $directory repo. Using this one..."
+    echo "Detected an existing $directory directory. Using this one..."
     echo "Please stop and manually delete the $directory repo if you updated the service's version ($service_version)!"
     echo "You can run the following command, or continue with the pre-existing version of the service:"
     echo "rm -r $directory"
 else
-    echo "Cloning the $directory repo..."
+    echo "Cloning the $directory repo from $org_name GitHub..."
     git clone --depth 1 --branch $service_version $service_repo
 fi
 
