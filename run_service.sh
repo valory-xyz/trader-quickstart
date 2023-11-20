@@ -277,6 +277,33 @@ prompt_use_staking() {
     done
 }
 
+# Function to set or add a variable in the .env file and export it
+dotenv_set_key() {
+    local dotenv_path="$1"
+    local key_to_set="$2"
+    local value_to_set="$3"
+
+    # Check if the .env file exists
+    if [ -f "$dotenv_path" ]; then
+        # Check if the variable already exists in the .env file
+        if grep -q "^$key_to_set=" "$dotenv_path"; then
+            # Variable exists, so update its value using awk
+            awk -v key="$key_to_set" -v val="$value_to_set" '{gsub("^" key "=.*", key "=" val); print}' "$dotenv_path" > temp && mv temp "$dotenv_path"
+            echo "Updated '$key_to_set=$value_to_set' in $dotenv_path"
+        else
+            # Variable doesn't exist, so add it to the .env file
+            echo "$key_to_set=$value_to_set" >> "$dotenv_path"
+            echo "Added '$key_to_set=$value_to_set' to $dotenv_path"
+        fi
+    else
+        # .env file doesn't exist, so create it and add the variable
+        echo "$key_to_set=$value_to_set" > "$dotenv_path"
+        echo "Created $dotenv_path and added '$key_to_set=$value_to_set'"
+    fi
+
+    export "$key_to_set=$value_to_set"
+}
+
 
 store=".trader_runner"
 env_file_path="$store/.env"
@@ -311,7 +338,7 @@ create_storage() {
 
     # Prompt use staking
     prompt_use_staking
-    echo "USE_STAKING=$USE_STAKING" > "../$env_file_path"
+    dotenv_set_key "../$env_file_path" "USE_STAKING" "$USE_STAKING"
 
     if [ "$USE_STAKING" = true ]; then
         # New staking services use AGENT_ID=12 until end of Everest staking program
@@ -320,7 +347,7 @@ create_storage() {
         # New non-staking services use AGENT_ID=14
         AGENT_ID=14
     fi
-    echo "AGENT_ID"=$AGENT_ID >> "../$env_file_path"
+    dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
 
 
     # Generate the RPC file
@@ -396,22 +423,18 @@ try_read_storage() {
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ -z "$USE_STAKING" ]; then
             prompt_use_staking
-            echo "USE_STAKING=$USE_STAKING" > "$env_file_path"
+            dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        # If $AGENT_ID is not defined at this point, it means it is a service created
-        # before the AGENT_ID fix was implemented.
-        if [ -z "$AGENT_ID" ] && [ "$USE_STAKING" = true ]; then
+        if [ "$USE_STAKING" = true ]; then
             # Existing staking services use AGENT_ID=12
             AGENT_ID=12
-            echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
-        elif [ -z "$AGENT_ID" ]; then
+        else
             # Existing non-staking services use AGENT_ID=14
             AGENT_ID=14
-            echo "AGENT_ID=$AGENT_ID" >> "$env_file_path"
         fi
-
+        dotenv_set_key "$env_file_path" "AGENT_ID" "$AGENT_ID"
     else
         first_run=true
     fi
