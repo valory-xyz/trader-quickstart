@@ -642,8 +642,8 @@ then
     poetry run autonomy packages sync
 
     # TODO: remove (use these lines for testing only)
-    # poetry run pip3 install -e ../../open-autonomy 
-    # poetry run autonomy --version
+    poetry run pip3 install -e ../../open-autonomy 
+    poetry run autonomy --version
 else
     echo "$directory is not a git repo!"
     exit 1
@@ -1023,7 +1023,7 @@ else
 fi
 
 # Build the deployment with a single agent
-export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry cdrun autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
+export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
 
 cd ..
 
