@@ -25,13 +25,13 @@ import json
 import tempfile
 from pathlib import Path
 
-from aea.crypto.helpers import DecryptError
+from aea.crypto.helpers import DecryptError, KeyIsIncorrect
 from aea_ledger_ethereum.ethereum import EthereumCrypto
 
 
 def _change_keys_json_password(
     keys_json_path: Path, pkey_txt_path: Path, current_password: str, new_password: str
-) -> None:
+) -> None:  # pylint: disable=too-many-arguments
     keys_json_reencrypeted = []
     keys = json.load(keys_json_path.open("r"))
 
@@ -44,20 +44,37 @@ def _change_keys_json_password(
                     str(temp_file), password=current_password
                 )
 
-                private_key_reencrypted = crypto.encrypt(new_password)
+                if new_password:
+                    new_private_key_value = (
+                        f"{json.dumps(crypto.encrypt(new_password))}"
+                    )
+                else:
+                    print(
+                        "WARNING: No new password provided. Files will be not encrypted."
+                    )
+                    new_private_key_value = crypto.key.hex()
+
                 keys_json_reencrypeted.append(
                     {
                         "address": crypto.address,
-                        "private_key": f"{json.dumps(private_key_reencrypted)}",
+                        "private_key": new_private_key_value,
                     }
                 )
                 json.dump(keys_json_reencrypeted, keys_json_path.open("w+"), indent=2)
                 print(f"Changed password {keys_json_path}")
 
-                json.dump(private_key_reencrypted, pkey_txt_path.open("w+"))
-                print(f"Ovewritten {keys_json_path}")
-            except DecryptError:
+                with open(pkey_txt_path, "w", encoding="utf-8") as file:
+                    if new_private_key_value.startswith("0x"):
+                        file.write(new_private_key_value[2:])
+                    else:
+                        file.write(new_private_key_value)
+                    print(f"Ovewritten {pkey_txt_path}")
+            except (DecryptError, KeyIsIncorrect):
                 print("Bad password provided.")
+            except json.decoder.JSONDecodeError:
+                print(
+                    "Wrong key file format. If key file is not encrypted, do not provide '--current_password' parameter"
+                )
 
 
 if __name__ == "__main__":
@@ -65,14 +82,29 @@ if __name__ == "__main__":
     parser.add_argument(
         "store_path", type=str, help="Path to the trader store directory."
     )
-    parser.add_argument("current_password", type=str, help="Current password.")
-    parser.add_argument("new_password", type=str, help="New password.")
+    parser.add_argument(
+        "--current_password",
+        type=str,
+        help="Current password. If not provided, it is assumed files are not encrypted.",
+    )
+    parser.add_argument(
+        "--new_password",
+        type=str,
+        help="New password. If not provided, it will decrypt key files.",
+    )
     args = parser.parse_args()
 
-    for json_file, pkey_file in (("keys", "agent_pkey"), ("operator_keys", "operator_pkey")):
-        filepaths = (Path(args.store_path, file) for file in (f"{json_file}.json", f"{pkey_file}.txt"))
+    for json_file, pkey_file in (
+        ("keys", "agent_pkey"),
+        ("operator_keys", "operator_pkey"),
+    ):
+        filepaths = (
+            Path(args.store_path, file)
+            for file in (f"{json_file}.json", f"{pkey_file}.txt")
+        )
         _change_keys_json_password(
             *filepaths,
             args.current_password,
             args.new_password,
         )
+        print("")
