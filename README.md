@@ -132,7 +132,7 @@ Then continue above with "Run the script".
 If you have started you script specifying a password to protect your key files, you can change it by running the following command:
 
 ```bash
-cd trader; poetry run python ../scripts/change_keys_json_password.py ../.trader_runner <current_password> <new_password>; cd ..
+cd trader; poetry run python ../scripts/change_keys_json_password.py ../.trader_runner --current_password <current_password> --new_password <new_password>; cd ..
 ```
 
 This will change the password in the following files:
@@ -141,6 +141,9 @@ This will change the password in the following files:
 - `.trader_runner/operator_keys.json`
 - `.trader_runner/agent_pkey.txt`
 - `.trader_runner/operator_pkey.txt`
+
+If your key files are not encrypted, you must not use the `--current-password` argument. If you want to remove the password protection of your key files,
+you must not specify the `--new-password` argument.
 
 ## Advice for Mac users
 
