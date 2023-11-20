@@ -640,10 +640,6 @@ if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
     poetry run autonomy packages sync
-
-    # TODO: remove (use these lines for testing only)
-    poetry run pip3 install -e ../../open-autonomy 
-    poetry run autonomy --version
 else
     echo "$directory is not a git repo!"
     exit 1
