@@ -988,7 +988,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
-suggested_amount=50000000000000000
+suggested_amount=500000000000000000
 ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
