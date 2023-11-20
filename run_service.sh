@@ -315,6 +315,18 @@ ask_password_if_needed() {
     echo ""
 }
 
+# Validates the provided password
+validate_password() {
+    local is_password_valid_1=$(poetry run $PYTHON_CMD ../scripts/is_keys_json_password_valid.py ../$keys_json_path $password_argument)
+    local is_password_valid_2=$(poetry run $PYTHON_CMD ../scripts/is_keys_json_password_valid.py ../$operator_keys_file $password_argument)
+
+    if [ "$is_password_valid_1" != "True" ] || [ "$is_password_valid_2" != "True" ]; then
+        echo "Could not decrypt key files. Please verify if your key files are password-protected, and if the provided password is correct (passwords are case-sensitive)."
+        echo "Terminating the script."
+        exit 1
+    fi
+}
+
 # Function to retrieve the multisig address of a service
 get_multisig_address() {
     local service_id="$1"
@@ -649,6 +661,8 @@ if [ "$first_run" = "true" ]
 then
     create_storage "$rpc"
 fi
+
+validate_password
 
 echo ""
 echo "-----------------------------------------"
