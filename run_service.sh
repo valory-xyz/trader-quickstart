@@ -284,21 +284,20 @@ dotenv_set_key() {
     local value_to_set="$3"
 
     # Check if the .env file exists
-    if [ -f "$dotenv_path" ]; then
-        # Check if the variable already exists in the .env file
-        if grep -q "^$key_to_set=" "$dotenv_path"; then
-            # Variable exists, so update its value using awk
-            awk -v key="$key_to_set" -v val="$value_to_set" '{gsub("^" key "=.*", key "=" val); print}' "$dotenv_path" > temp && mv temp "$dotenv_path"
-            echo "Updated '$key_to_set=$value_to_set' in $dotenv_path"
-        else
-            # Variable doesn't exist, so add it to the .env file
-            echo "$key_to_set=$value_to_set" >> "$dotenv_path"
-            echo "Added '$key_to_set=$value_to_set' to $dotenv_path"
-        fi
+    if [ ! -f "$dotenv_path" ]; then
+        touch "$dotenv_path"
+        echo "Created $dotenv_path"
+    fi
+
+    # Check if the variable already exists in the .env file
+    if grep -q "^$key_to_set=" "$dotenv_path"; then
+        # Variable exists, so update its value using awk
+        awk -v key="$key_to_set" -v val="$value_to_set" '{gsub("^" key "=.*", key "=" val); print}' "$dotenv_path" > temp && mv temp "$dotenv_path"
+        echo "Updated '$key_to_set=$value_to_set' in $dotenv_path"
     else
-        # .env file doesn't exist, so create it and add the variable
-        echo "$key_to_set=$value_to_set" > "$dotenv_path"
-        echo "Created $dotenv_path and added '$key_to_set=$value_to_set'"
+        # Variable doesn't exist, so add it to the .env file
+        echo "$key_to_set=$value_to_set" >> "$dotenv_path"
+        echo "Added '$key_to_set=$value_to_set' to $dotenv_path"
     fi
 
     export "$key_to_set=$value_to_set"
