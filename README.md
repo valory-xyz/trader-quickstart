@@ -132,7 +132,7 @@ Then continue above with "Run the script".
 > :warning: **Warning** <br />
 > The code within this repository is provided without any warranties. It is important to note that the code has not been audited for potential security vulnerabilities.
 >
-> If you are updating the password for your key files, it is strongly advised to create a backup of the old configuration (located in the ./trader_runner folder) before proceeding. This backup should be retained until you can verify that the changes are functioning as expected. For instance, run the service multiple times to ensure there are no issues with the new password before discarding the backup.
+> If you are updating the password for your key files, it is strongly advised to create a backup of the old configuration (located in the `./trader_runner` folder) before proceeding. This backup should be retained until you can verify that the changes are functioning as expected. For instance, run the service multiple times to ensure there are no issues with the new password before discarding the backup.
 
 If you have started you script specifying a password to protect your key files, you can change it by running the following command:
 
