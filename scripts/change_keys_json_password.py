@@ -98,12 +98,9 @@ if __name__ == "__main__":
         ("keys", "agent_pkey"),
         ("operator_keys", "operator_pkey"),
     ):
-        filepaths = (
-            Path(args.store_path, file)
-            for file in (f"{json_file}.json", f"{pkey_file}.txt")
-        )
         _change_keys_json_password(
-            *filepaths,
+            Path(args.store_path, f"{json_file}.json"),
+            Path(args.store_path, f"{pkey_file}.txt"),
             args.current_password,
             args.new_password,
         )
