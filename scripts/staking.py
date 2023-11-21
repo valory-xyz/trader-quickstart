@@ -21,6 +21,7 @@
 """This script performs staking related operations."""
 
 import argparse
+import dotenv
 import sys
 import time
 import traceback
@@ -160,4 +161,6 @@ if __name__ == "__main__":
     except Exception as e:  # pylint: disable=broad-except
         print(f"An error occurred while executing {Path(__file__).name}: {str(e)}")
         traceback.print_exc()
+        dotenv.unset_key("../.trader_runner/.env", "USE_STAKING")
+        print("\nPlease confirm whether your service is participating in a staking program, and then retry running the script.")
         sys.exit(1)
