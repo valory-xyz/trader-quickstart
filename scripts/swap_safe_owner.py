@@ -77,12 +77,13 @@ if __name__ == "__main__":
             "new_owner_address", type=str, help="Recipient address on the Gnosis chain"
         )
         parser.add_argument("rpc", type=str, help="RPC for the Gnosis chain")
+        parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
 
         ledger_api = EthereumApi(address=args.rpc)
         current_owner_crypto: EthereumCrypto
         current_owner_crypto = EthereumCrypto(
-            private_key_path=args.current_owner_private_key_path
+            private_key_path=args.current_owner_private_key_path, password=args.password
         )
         owner_cryptos: list[EthereumCrypto] = [current_owner_crypto]
 

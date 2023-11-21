@@ -180,9 +180,10 @@ if __name__ == "__main__":
             help="The directory of the service package.",
         )
         parser.add_argument("rpc", type=str, help="RPC for the Gnosis chain")
+        parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
         ledger_api = EthereumApi(address=args.rpc)
-        owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path)
+        owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path, password=args.password)
         update_service(
             ledger_api=ledger_api,
             crypto=owner_crypto,

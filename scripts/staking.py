@@ -68,9 +68,10 @@ if __name__ == "__main__":
             help="True if the service should be unstaked, False if it should be staked",
             default=False,
         )
+        parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
         ledger_api = EthereumApi(address=args.rpc)
-        owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path)
+        owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path, password=args.password)
         if args.unstake:
             if not is_service_staked(ledger_api, args.service_id, args.staking_contract_address):
                 # the service is not staked, so we don't need to do anything

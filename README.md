@@ -127,6 +127,29 @@ rm -rf trader
 
 Then continue above with "Run the script".
 
+## Change the password of your key files
+
+> :warning: **Warning** <br />
+> The code within this repository is provided without any warranties. It is important to note that the code has not been audited for potential security vulnerabilities.
+>
+> If you are updating the password for your key files, it is strongly advised to create a backup of the old configuration (located in the `./trader_runner` folder) before proceeding. This backup should be retained until you can verify that the changes are functioning as expected. For instance, run the service multiple times to ensure there are no issues with the new password before discarding the backup.
+
+If you have started you script specifying a password to protect your key files, you can change it by running the following command:
+
+```bash
+cd trader; poetry run python ../scripts/change_keys_json_password.py ../.trader_runner --current_password <current_password> --new_password <new_password>; cd ..
+```
+
+This will change the password in the following files:
+
+- `.trader_runner/keys.json`
+- `.trader_runner/operator_keys.json`
+- `.trader_runner/agent_pkey.txt`
+- `.trader_runner/operator_pkey.txt`
+
+If your key files are not encrypted, you must not use the `--current-password` argument. If you want to remove the password protection of your key files,
+you must not specify the `--new-password` argument.
+
 ## Advice for Mac users
 
 In Docker Desktop make sure that in `Settings -> Advanced` the following boxes are ticked
