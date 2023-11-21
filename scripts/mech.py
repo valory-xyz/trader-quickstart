@@ -30,7 +30,7 @@ EARLIEST_BLOCK = 30663133  # New mech contract created.
 #LATEST_BLOCK: Optional[int] = 28991547
 # LATEST_BLOCK: Optional[int] = None
 #EARLIEST_BLOCK = 31029201
-#LATEST_BLOCK   = 31057341
+LATEST_BLOCK   = 31057341
 
 
 
@@ -147,10 +147,16 @@ def _get_mech_events(rpc: str, mech_contract_address: str, event_name: str, star
         filtered_events = [event for event in chunk if event['args']['sender'] == sender]
         events.extend(filtered_events)
 
-    mech_requests = [MechRequest(entry) for entry in events]
-    filtered_mech_requests = [entry for entry in mech_requests if entry.tool not in irrelevant_tools]
+    mech_requests = []
+    for event in tqdm(
+        events,
+        desc=f"Reading metadata for the Mech {event_name} events on IPFS..."
+    ):
+        mech_request = MechRequest(event)
+        if mech_request.tool not in irrelevant_tools:
+            mech_requests.append(mech_request)
 
-    return filtered_mech_requests
+    return mech_requests
 
 def get_mech_requests(rpc, sender):
     mech_requests = []
