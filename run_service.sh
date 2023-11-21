@@ -445,7 +445,7 @@ create_storage() {
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
 
-    # Generate the operator's key
+    # Generate the owner/operator's key
     poetry run autonomy generate-key -n1 ethereum $password_argument
     mv "$keys_json" "../$operator_keys_file"
     operator_address=$(get_address "../$operator_keys_file")
