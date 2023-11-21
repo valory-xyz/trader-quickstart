@@ -21,14 +21,18 @@
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
 import datetime
+import re
 import time
 from argparse import ArgumentParser
 from collections import defaultdict
 from enum import Enum
+from pathlib import Path
 from string import Template
-from typing import Any
+from typing import Any, Dict, List
 
 import requests
+
+from scripts.mech import MechRequest, get_mech_requests
 
 
 QUERY_BATCH_SIZE = 1000
@@ -148,6 +152,8 @@ class MarketAttribute(Enum):
     NUM_REDEEMED = "Num_redeemed"
     INVESTMENT = "Investment"
     FEES = "Fees"
+    MECH_CALLS = "Mech_calls"
+    MECH_FEES = "Mech_fees"
     EARNINGS = "Earnings"
     NET_EARNINGS = "Net_earnings"
     REDEMPTIONS = "Redemptions"
@@ -174,47 +180,38 @@ STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
 STATS_TABLE_ROWS = list(MarketAttribute)
 
 
-def _read_file(file_path):
-    with open(file_path, 'r') as file:
-        return file.readline().strip()
-
-
-def _get_balance(address, rpc_url):
+def _get_balance(address: str, rpc_url: str) -> int:
     """Get the native xDAI balance of an address in wei."""
-    headers = {
-        'Content-Type': 'application/json'
-    }
+    headers = {"Content-Type": "application/json"}
     data = {
-        'jsonrpc': '2.0',
-        'method': 'eth_getBalance',
-        'params': [address, 'latest'],
-        'id': 1
+        "jsonrpc": "2.0",
+        "method": "eth_getBalance",
+        "params": [address, "latest"],
+        "id": 1,
     }
     response = requests.post(rpc_url, headers=headers, json=data)
-    return response.json().get('result')
+    return int(response.json().get("result"), 16)
 
 
-def _get_token_balance(gnosis_address, token_contract_address, rpc_url):
+def _get_token_balance(
+    gnosis_address: str, token_contract_address: str, rpc_url: str
+) -> int:
     """Get the token balance of an address in wei."""
-    function_selector = '70a08231'  # function selector for balanceOf(address)
-    padded_address = gnosis_address.replace('0x', '').rjust(64, '0') # remove '0x' and pad the address to 32 bytes
+    function_selector = "70a08231"  # function selector for balanceOf(address)
+    padded_address = gnosis_address.replace("0x", "").rjust(
+        64, "0"
+    )  # remove '0x' and pad the address to 32 bytes
     data = function_selector + padded_address
 
     payload = {
         "jsonrpc": "2.0",
         "method": "eth_call",
-        "params": [
-            {
-                "to": token_contract_address,
-                "data": data
-            },
-            "latest"
-        ],
-        "id": 1
+        "params": [{"to": token_contract_address, "data": data}, "latest"],
+        "id": 1,
     }
     response = requests.post(rpc_url, json=payload)
-    result = response.json().get('result', '0x0')
-    balance_wei = int(result, 16) # convert hex to int
+    result = response.json().get("result", "0x0")
+    balance_wei = int(result, 16)  # convert hex to int
     return balance_wei
 
 
@@ -364,9 +361,11 @@ def wei_to_xdai(wei: int) -> str:
     """Converts and formats wei to xDAI."""
     return "{:.2f} xDAI".format(wei_to_unit(wei))
 
+
 def wei_to_wxdai(wei: int) -> str:
     """Converts and formats wei to WxDAI."""
     return "{:.2f} WxDAI".format(wei_to_unit(wei))
+
 
 def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
     user_positions = user_json["data"]["user"]["userPositions"]
@@ -399,10 +398,24 @@ def _compute_roi(investment: int, net_earnings: int) -> float:
     return roi
 
 
-def _compute_totals(table: dict[Any, dict[Any, Any]]) -> None:
+def _compute_totals(
+    table: dict[Any, dict[Any, Any]], mech_statistics: dict[str, Any]
+) -> None:
     for row in table.keys():
         total = sum(table[row][c] for c in table[row])
         table[row]["TOTAL"] = total
+
+    # Total mech fees and calls need to be recomputed, because there could be mech calls
+    # for markets that were not traded
+    total_mech_calls = 0
+    total_mech_fees = 0
+
+    for _, v in mech_statistics.items():
+        total_mech_calls += v["count"]
+        total_mech_fees += v["fees"]
+
+    table[MarketAttribute.MECH_CALLS]["TOTAL"] = total_mech_calls
+    table[MarketAttribute.MECH_FEES]["TOTAL"] = total_mech_fees
 
     for col in STATS_TABLE_COLS:
         # Omen deducts the fee from collateral_amount (INVESTMENT) to compute outcomes_tokens_traded (EARNINGS).
@@ -410,6 +423,7 @@ def _compute_totals(table: dict[Any, dict[Any, Any]]) -> None:
         table[MarketAttribute.NET_EARNINGS][col] = (
             table[MarketAttribute.EARNINGS][col]
             - table[MarketAttribute.INVESTMENT][col]
+            - table[MarketAttribute.MECH_FEES][col]
         )
         # ROI is recomputed here for all columns, including TOTAL.
         table[MarketAttribute.ROI][col] = _compute_roi(
@@ -460,6 +474,16 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "\n"
     )
     table_str += (
+        f"{MarketAttribute.MECH_CALLS:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.MECH_CALLS][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
         f"{MarketAttribute.INVESTMENT:<{column_width}}"
         + "".join(
             [
@@ -474,6 +498,16 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{wei_to_xdai(table[MarketAttribute.FEES][c]):>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.MECH_FEES:<{column_width}}"
+        + "".join(
+            [
+                f"{wei_to_xdai(table[MarketAttribute.MECH_FEES][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -524,7 +558,10 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
 
 
 def parse_user(  # pylint: disable=too-many-locals,too-many-statements
-    creator: str, creator_trades_json: dict[str, Any]
+    rpc: str,
+    creator: str,
+    creator_trades_json: dict[str, Any],
+    mech_statistics: dict[str, Any],
 ) -> tuple[str, dict[Any, Any]]:
     """Parse the trades from the response."""
 
@@ -576,6 +613,11 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 market_status
             ] += collateral_amount
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
+            statistics_table[MarketAttribute.MECH_CALLS][
+                market_status
+            ] += mech_statistics[fpmmTrade["title"]]["count"]
+            mech_fees = mech_statistics[fpmmTrade["title"]]["fees"]
+            statistics_table[MarketAttribute.MECH_FEES][market_status] += mech_fees
 
             output += f" Market status: {market_status}\n"
             output += f"        Bought: {wei_to_xdai(collateral_amount)} for {wei_to_xdai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
@@ -642,26 +684,46 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     output += "\n"
 
     # Read rpc and get safe address balance
-    rpc_url_path = f"../.trader_runner/rpc.txt"
-    rpc_url = _read_file(rpc_url_path)
     safe_address = user_args.creator
-    safe_address_balance = _get_balance(safe_address, rpc_url)
+    safe_address_balance = _get_balance(safe_address, rpc)
 
     output += f"Safe address:    {safe_address}\n"
-    output += f"Address balance: {wei_to_xdai(int(safe_address_balance, 16))}\n"
+    output += f"Address balance: {wei_to_xdai(safe_address_balance)}\n"
 
     wxdai_contract_address = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-    wxdai_balance = _get_token_balance(safe_address, wxdai_contract_address, rpc_url)
+    wxdai_balance = _get_token_balance(safe_address, wxdai_contract_address, rpc)
     output += f"Token balance:   {wei_to_wxdai(wxdai_balance)}\n\n"
 
-    _compute_totals(statistics_table)
+    _compute_totals(statistics_table, mech_statistics)
     output += _format_table(statistics_table)
 
     return output, statistics_table
 
 
+def _get_mech_statistics(mech_requests: List[MechRequest]) -> Dict[str, Dict[str, int]]:
+    mech_statistics: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+
+    for mech_request in mech_requests:
+        prompt_match = re.search(r"\"(.*)\"", mech_request.prompt)
+        if prompt_match:
+            prompt = prompt_match.group(1)
+        else:
+            prompt = mech_request.prompt
+
+        mech_statistics[prompt]["count"] += 1
+        mech_statistics[prompt]["fees"] += mech_request.fee
+
+    return mech_statistics
+
+
 if __name__ == "__main__":
     user_args = _parse_args()
+
+    with open(Path(".trader_runner", "rpc.txt"), "r", encoding="utf-8") as rpc_file:
+        rpc = rpc_file.read()
+    mech_requests = get_mech_requests(rpc, user_args.creator)
+    mech_statistics = _get_mech_statistics(mech_requests)
+
     trades_json = _query_omen_xdai_subgraph(
         user_args.creator,
         user_args.from_date.timestamp(),
@@ -669,5 +731,5 @@ if __name__ == "__main__":
         user_args.fpmm_created_from_date.timestamp(),
         user_args.fpmm_created_to_date.timestamp(),
     )
-    parsed_output, _ = parse_user(user_args.creator, trades_json)
+    parsed_output, _ = parse_user(rpc, user_args.creator, trades_json, mech_statistics)
     print(parsed_output)
