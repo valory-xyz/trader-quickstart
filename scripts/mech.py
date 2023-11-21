@@ -23,6 +23,9 @@ MECH_CONTRACT_ADDRESSES = [
 IRRELEVANT_TOOLS = ["openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization"]
 
 EARLIEST_BLOCK = 28911547
+
+
+EARLIEST_BLOCK = 30663133  # New mech contract created.
 # optionally set the latest block to stop searching for the delivered events
 #LATEST_BLOCK: Optional[int] = 28991547
 # LATEST_BLOCK: Optional[int] = None
