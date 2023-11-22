@@ -48,7 +48,7 @@ EXCLUDED_BLOCKS_THRESHOLD = 2 * BLOCKS_CHUNK_SIZE
 NUM_EXCLUDED_BLOCKS = 10
 
 # Pair of Mech contract address and the earliest block to search events
-# (either where the block where the contract was created, or where theç
+# (either where the block where the contract was created, or where the
 # first event was recorded on-chain)
 MECH_CONTRACT_ADDRESSES = [
     # Old Mech contract
