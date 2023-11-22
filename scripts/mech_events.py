@@ -47,14 +47,12 @@ BLOCKS_CHUNK_SIZE = 5000
 EXCLUDED_BLOCKS_THRESHOLD = 2 * BLOCKS_CHUNK_SIZE
 NUM_EXCLUDED_BLOCKS = 10
 
-# Pair of Mech contract address and the earliest block to search events
-# (either where the block where the contract was created, or where the
-# first event was recorded on-chain)
+# Pair of (Mech contract address, Mech contract deployed on block number).
 MECH_CONTRACT_ADDRESSES = [
     # Old Mech contract
     (
         to_checksum_address("0xff82123dfb52ab75c417195c5fdb87630145ae81"),
-        28911547,
+        27939217,
     ),
     # New Mech contract
     (
@@ -132,13 +130,6 @@ class MechRequest(MechBaseEvent):
 
         self.request_id = self.event_id
         self.fee = 10000000000000000
-
-
-@dataclass
-class MechDeliver(MechBaseEvent):
-    """A mech's on-chain response representation."""
-
-    event_name: str = "Deliver"
 
 
 def _read_mech_events_data_from_file() -> Dict[str, Any]:
@@ -243,9 +234,9 @@ def _update_mech_events_db(
 def _get_mech_events(rpc: str, sender: str, event_name: str) -> Dict[str, Any]:
     """Updates the local database of Mech events and returns the Mech events."""
 
-    for (mech_contract_address, earliest_block) in MECH_CONTRACT_ADDRESSES:
+    for (mech_contract_address, mech_contract_deployed_block) in MECH_CONTRACT_ADDRESSES:
         _update_mech_events_db(
-            rpc, mech_contract_address, event_name, earliest_block, sender
+            rpc, mech_contract_address, event_name, mech_contract_deployed_block, sender
         )
 
     mech_events_data = _read_mech_events_data_from_file()
