@@ -139,6 +139,7 @@ def _read_mech_events_data_from_file() -> Dict[str, Any]:
             mech_events_data = json.load(file)
     except FileNotFoundError:
         mech_events_data = {}
+        mech_events_data['db_version'] = 1
     return mech_events_data
 
 
