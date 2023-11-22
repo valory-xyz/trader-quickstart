@@ -32,9 +32,9 @@ from typing import Any, Dict, List
 
 import requests
 
-from scripts.mech import MechRequest, get_mech_requests
+from scripts.mech_events import MechRequest, get_mech_requests
 
-
+IRRELEVANT_TOOLS = ["openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization"]
 QUERY_BATCH_SIZE = 1000
 DUST_THRESHOLD = 10000000000000
 INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
@@ -700,18 +700,25 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     return output, statistics_table
 
 
-def _get_mech_statistics(mech_requests: List[MechRequest]) -> Dict[str, Dict[str, int]]:
+def _get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
     mech_statistics: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
-    for mech_request in mech_requests:
-        prompt_match = re.search(r"\"(.*)\"", mech_request.prompt)
+    for mech_request in mech_requests.values():
+        if mech_request['ipfs_contents']['tool'] in IRRELEVANT_TOOLS:
+            continue
+        
+        prompt = mech_request['ipfs_contents']['prompt']
+        prompt = prompt.replace('\n', ' ')
+        prompt = prompt.strip()
+        prompt = re.sub(r'\s+', ' ', prompt)
+        prompt_match = re.search(r"\"(.*)\"", prompt)
         if prompt_match:
-            prompt = prompt_match.group(1)
+            question = prompt_match.group(1)
         else:
-            prompt = mech_request.prompt
+            question = prompt
 
-        mech_statistics[prompt]["count"] += 1
-        mech_statistics[prompt]["fees"] += mech_request.fee
+        mech_statistics[question]["count"] += 1
+        mech_statistics[question]["fees"] += mech_request['fee']
 
     return mech_statistics
 
