@@ -1,3 +1,4 @@
 .trader_runner*
 trader
 *.DS_Store
+__pycache__
