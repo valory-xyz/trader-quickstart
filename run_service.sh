@@ -347,7 +347,7 @@ prompt_use_staking() {
     while true; do
         echo "Use staking?"
         echo "------------"
-        echo "Current staking program for Trader service on Gnosis is 'Everest'."
+        echo "The current staking program for Trader service on Gnosis is 'Everest'."
         read -p "Do you want to stake this service? (yes/no): " use_staking
 
         case "$use_staking" in
