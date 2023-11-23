@@ -347,7 +347,8 @@ prompt_use_staking() {
     while true; do
         echo "Use staking?"
         echo "------------"
-        read -p "Do you want to use this service in a staking program? (yes/no): " use_staking
+        echo "Current staking program for Trader service on Gnosis is 'Everest'."
+        read -p "Do you want to stake this service? (yes/no): " use_staking
 
         case "$use_staking" in
             [Yy]|[Yy][Ee][Ss])
@@ -761,23 +762,22 @@ operator_address=$(get_address "../$operator_keys_file")
 
 if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo ""
-    echo "WARNING: Your on-chain service is out-of-date"
-    echo "---------------------------------------------"
-    echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
+    echo "WARNING: Your on-chain service configuration is out-of-date"
+    echo "-----------------------------------------------------------"
+    echo "Your currently minted on-chain service (id $service_id) mismatches the local trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
     echo "  - On-chain service hash (id $service_id): $remote_service_hash"
     echo ""
     echo "This is most likely caused due to an update of the trader service code."
     echo "The script will proceed now to update the on-chain service."
-    echo "The operator and agent addresses need to have enough funds so that the process is not interrupted."
+    echo "The operator and agent addresses need to have enough funds to complete the process."
     echo ""
 
     response="y"
     if [ "${USE_STAKING}" = true ]; then
-      echo "WARNING: Your on-chain service is staked"
-      echo "----------------------------------------"
-      echo "Updating your on-chain service requires that it is unstaked."
-      echo "Continuing will automatically unstake your service if it is staked, which may affect your staking rewards."
+      echo "Your service is in a staking program. Updating your on-chain service requires that it is first unstaked."
+      echo "Unstaking your service will retrieve the accrued staking rewards."
+      echo ""
       echo "Do you want to continue updating your service? (yes/no)"
       read -r response
       echo ""
@@ -904,9 +904,9 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     if [ "${USE_STAKING}" = true ]; then
         minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
         echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address:"
-        echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for bonding (service owner)"
+        echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for security deposit (service owner)"
         echo "        +"
-        echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for staking (operator)."
+        echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."
         echo ""
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "owner/operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
