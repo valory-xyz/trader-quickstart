@@ -93,14 +93,14 @@ if __name__ == "__main__":
                 formatted_next_ts = datetime.utcfromtimestamp(next_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
 
                 print(
-                    "WARNING: The liveness period has not been reached\n"
-                    "-------------------------------------------------\n"
+                    "WARNING: Staking checkpoint call not available yet\n"
+                    "--------------------------------------------------\n"
                     f"The liveness period ({liveness_period/3600} hours) has not passed since the last checkpoint call.\n"
                     f"  - {formatted_last_ts} - Last checkpoint call.\n"
                     f"  - {formatted_next_ts} - Next checkpoint call availability.\n"
                     "\n"
-                    "If you proceed with unstaking, you will lose any rewards accrued after the last checkpoint call.\n"
-                    "Consider waiting until the liveness period has passed."
+                    "If you proceed with unstaking, your agent's work done between the last checkpoint call until now will not be accounted for rewards.\n"
+                    "(Note: To maximize agent work eligible for rewards, the recommended practice is to unstake shortly after a checkpoint has been called and stake again immediately after.)\n"
                 )
 
                 user_input = input("Do you want to continue unstaking? (yes/no)\n").lower()
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             print("No rewards available. The service cannot be staked.")
             sys.exit(0)
 
-        print(f"Rewards available: {available_rewards}. Staking the service...")
+        print(f"Rewards available: {available_rewards/10**18:.2f} OLAS. Staking the service...")
         stake_txs = get_stake_txs(
             ledger_api,
             args.service_id,

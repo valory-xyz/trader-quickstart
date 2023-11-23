@@ -426,9 +426,9 @@ def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
     return False
 
 
-def _compute_roi(investment: int, net_earnings: int) -> float:
-    if investment != 0:
-        roi = net_earnings / investment
+def _compute_roi(initial_value: int, final_value: int) -> float:
+    if initial_value != 0:
+        roi = (final_value - initial_value) / initial_value
     else:
         roi = 0.0
 
@@ -456,16 +456,21 @@ def _compute_totals(
 
     for col in STATS_TABLE_COLS:
         # Omen deducts the fee from collateral_amount (INVESTMENT) to compute outcomes_tokens_traded (EARNINGS).
-        # Therefore, we do not need to deduct the fees again here to compute NET_EARNINGS.
+        table[MarketAttribute.INVESTMENT][col] = (
+            table[MarketAttribute.INVESTMENT][col] - table[MarketAttribute.FEES][col]
+        )
         table[MarketAttribute.NET_EARNINGS][col] = (
             table[MarketAttribute.EARNINGS][col]
             - table[MarketAttribute.INVESTMENT][col]
+            - table[MarketAttribute.FEES][col]
             - table[MarketAttribute.MECH_FEES][col]
         )
         # ROI is recomputed here for all columns, including TOTAL.
         table[MarketAttribute.ROI][col] = _compute_roi(
-            table[MarketAttribute.INVESTMENT][col],
-            table[MarketAttribute.NET_EARNINGS][col],
+            table[MarketAttribute.INVESTMENT][col]
+            + table[MarketAttribute.FEES][col]
+            + table[MarketAttribute.MECH_FEES][col],
+            table[MarketAttribute.EARNINGS][col],
         )
 
 
