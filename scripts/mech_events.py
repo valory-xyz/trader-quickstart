@@ -21,6 +21,7 @@
 """Utilities to retrieve on-chain Mech events."""
 
 import json
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,8 +36,9 @@ from web3.types import BlockParams
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+MECH_EVENTS_JSON_PATH = Path(STORE_PATH, "mech_events.json")
 AGENT_MECH_JSON_PATH = Path(SCRIPT_PATH, "..", "contracts", "AgentMech.json")
-MECH_EVENTS_JSON_PATH = Path(SCRIPT_PATH, "..", ".trader_runner", "mech_events.json")
 HTTP = "http://"
 HTTPS = HTTP[:4] + "s" + HTTP[4:]
 CID_PREFIX = "f01701220"
@@ -46,6 +48,8 @@ BLOCK_DATA_NUMBER = "number"
 BLOCKS_CHUNK_SIZE = 5000
 EXCLUDED_BLOCKS_THRESHOLD = 2 * BLOCKS_CHUNK_SIZE
 NUM_EXCLUDED_BLOCKS = 10
+MECH_EVENTS_DB_VERSION = 1
+DEFAULT_MECH_FEE = 10000000000000000
 
 # Pair of (Mech contract address, Mech contract deployed on block number).
 MECH_CONTRACT_ADDRESSES = [
@@ -129,7 +133,8 @@ class MechRequest(MechBaseEvent):
         )
 
         self.request_id = self.event_id
-        self.fee = 10000000000000000
+        # TODO This should be updated to extract the fee from the transaction.
+        self.fee = DEFAULT_MECH_FEE
 
 
 def _read_mech_events_data_from_file() -> Dict[str, Any]:
@@ -137,9 +142,17 @@ def _read_mech_events_data_from_file() -> Dict[str, Any]:
     try:
         with open(MECH_EVENTS_JSON_PATH, "r", encoding="utf-8") as file:
             mech_events_data = json.load(file)
+
+        # Check if it is an old DB version
+        if mech_events_data.get("db_version", 0) < MECH_EVENTS_DB_VERSION:
+            current_time = time.strftime("%Y-%m-%d_%H-%M-%S")
+            old_db_filename = f"mech_events.{current_time}.old.json"
+            os.rename(MECH_EVENTS_JSON_PATH, Path(STORE_PATH, old_db_filename))
+            mech_events_data = {}
+            mech_events_data["db_version"] = MECH_EVENTS_DB_VERSION
     except FileNotFoundError:
         mech_events_data = {}
-        mech_events_data['db_version'] = 1
+        mech_events_data["db_version"] = MECH_EVENTS_DB_VERSION
     return mech_events_data
 
 
@@ -226,7 +239,7 @@ def _update_mech_events_db(
         pass
     except Exception:  # pylint: disable=broad-except
         print(
-            "WARNING: An error occurred while updating the local Mech database. Please try re-run the script again."
+            "WARNING: An error occurred while updating the local Mech events database. Please try re-run the script again."
         )
 
     print("")
@@ -235,7 +248,10 @@ def _update_mech_events_db(
 def _get_mech_events(rpc: str, sender: str, event_name: str) -> Dict[str, Any]:
     """Updates the local database of Mech events and returns the Mech events."""
 
-    for (mech_contract_address, mech_contract_deployed_block) in MECH_CONTRACT_ADDRESSES:
+    for (
+        mech_contract_address,
+        mech_contract_deployed_block,
+    ) in MECH_CONTRACT_ADDRESSES:
         _update_mech_events_db(
             rpc, mech_contract_address, event_name, mech_contract_deployed_block, sender
         )

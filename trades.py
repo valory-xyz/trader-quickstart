@@ -23,24 +23,39 @@
 import datetime
 import re
 import time
-from argparse import ArgumentParser
+from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 from string import Template
-from typing import Any, Dict, List
+from typing import Any, Dict, Optional
 
 import requests
 
-from scripts.mech_events import MechRequest, get_mech_requests
+from scripts.mech_events import get_mech_requests
 
-IRRELEVANT_TOOLS = ["openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization"]
+
+IRRELEVANT_TOOLS = [
+    "openai-text-davinci-002",
+    "openai-text-davinci-003",
+    "openai-gpt-3.5-turbo",
+    "openai-gpt-4",
+    "stabilityai-stable-diffusion-v1-5",
+    "stabilityai-stable-diffusion-xl-beta-v2-2-2",
+    "stabilityai-stable-diffusion-512-v2-1",
+    "stabilityai-stable-diffusion-768-v2-1",
+    "deepmind-optimization-strong",
+    "deepmind-optimization",
+]
 QUERY_BATCH_SIZE = 1000
 DUST_THRESHOLD = 10000000000000
 INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 FPMM_CREATOR = "0x89c5cc945dd550bcffb72fe42bff002429f46fec"
 DEFAULT_FROM_DATE = "1970-01-01T00:00:00"
 DEFAULT_TO_DATE = "2038-01-19T03:14:07"
+SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
+RPC_PATH = Path(STORE_PATH, "rpc.txt")
 
 
 headers = {
@@ -215,10 +230,32 @@ def _get_token_balance(
     return balance_wei
 
 
+class EthereumAddressAction(Action):
+    """Argparse class to validate an Ethereum addresses."""
+
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: Any,
+        option_string: Optional[str] = None,
+    ) -> None:
+        """Validates an Ethereum addresses."""
+
+        address = values
+        if not re.match(r"^0x[a-fA-F0-9]{40}$", address):
+            raise ArgumentError(self, f"Invalid Ethereum address: {address}")
+        setattr(namespace, self.dest, address)
+
+
 def _parse_args() -> Any:
-    """Parse the creator positional argument."""
+    """Parse the script arguments."""
     parser = ArgumentParser(description="Get trades on Omen for a Safe address.")
-    parser.add_argument("creator")
+    parser.add_argument(
+        "creator",
+        action=EthereumAddressAction,
+        help="Ethereum address of the service Safe",
+    )
     parser.add_argument(
         "--from-date",
         type=datetime.datetime.fromisoformat,
@@ -704,13 +741,13 @@ def _get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, i
     mech_statistics: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     for mech_request in mech_requests.values():
-        if mech_request['ipfs_contents']['tool'] in IRRELEVANT_TOOLS:
+        if mech_request["ipfs_contents"]["tool"] in IRRELEVANT_TOOLS:
             continue
-        
-        prompt = mech_request['ipfs_contents']['prompt']
-        prompt = prompt.replace('\n', ' ')
+
+        prompt = mech_request["ipfs_contents"]["prompt"]
+        prompt = prompt.replace("\n", " ")
         prompt = prompt.strip()
-        prompt = re.sub(r'\s+', ' ', prompt)
+        prompt = re.sub(r"\s+", " ", prompt)
         prompt_match = re.search(r"\"(.*)\"", prompt)
         if prompt_match:
             question = prompt_match.group(1)
@@ -718,7 +755,7 @@ def _get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, i
             question = prompt
 
         mech_statistics[question]["count"] += 1
-        mech_statistics[question]["fees"] += mech_request['fee']
+        mech_statistics[question]["fees"] += mech_request["fee"]
 
     return mech_statistics
 
@@ -726,8 +763,9 @@ def _get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, i
 if __name__ == "__main__":
     user_args = _parse_args()
 
-    with open(Path(".trader_runner", "rpc.txt"), "r", encoding="utf-8") as rpc_file:
+    with open(RPC_PATH, "r", encoding="utf-8") as rpc_file:
         rpc = rpc_file.read()
+
     mech_requests = get_mech_requests(rpc, user_args.creator)
     mech_statistics = _get_mech_statistics(mech_requests)
 
