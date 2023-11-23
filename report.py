@@ -66,6 +66,12 @@ OPERATOR_BALANCE_THRESHOLD = 50000000000000000
 
 OUTPUT_WIDTH = 80
 
+class TerminalColors:
+    GREEN = "\033[92m"
+    RED = "\033[91m"
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+
 
 def _print_section_header(header: str) -> None:
     print("\n" + header)
@@ -83,10 +89,10 @@ def _print_status(key: str, value: str, message: str = None) -> None:
 
 def _warning_message(current_value: int, threshold: int = 0, message: str = "") -> str:
     default_message = (
-        f"\033[93m- Balance too low. Threshold is {wei_to_unit(threshold):.2f}.\033[0m"
+        f"{TerminalColors.YELLOW}- Balance too low. Threshold is {wei_to_unit(threshold):.2f}.{TerminalColors.RESET}"
     )
     if current_value < threshold:
-        return f"\033[93m- {message}\033[0m" if message else default_message
+        return f"{TerminalColors.YELLOW}- {message}{TerminalColors.RESET}" if message else default_message
     return ""
 
 
@@ -104,9 +110,9 @@ def _get_agent_status() -> str:
     )
 
     if trader_abci_container and trader_tm_container:
-        return "Running"
+        return f"{TerminalColors.GREEN}Running{TerminalColors.RESET}"
     else:
-        return "Not Running"
+        return f"{TerminalColors.RED}Not Running{TerminalColors.RESET}"
 
 
 def _parse_args() -> Any:
