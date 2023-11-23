@@ -99,8 +99,8 @@ if __name__ == "__main__":
                     f"  - {formatted_last_ts} - Last checkpoint call.\n"
                     f"  - {formatted_next_ts} - Next checkpoint call availability.\n"
                     "\n"
-                    "If you proceed with unstaking, your agent's work done between the last checkpoint call until now will not be accounted for rewards. "
-                    "(Note: To maximize agent work eligible for rewards, the recommended practice is to unstake shortly after a checkpoint has been called and restake immediately after.)"
+                    "If you proceed with unstaking, your agent's work done between the last checkpoint call until now will not be accounted for rewards.\n"
+                    "(Note: To maximize agent work eligible for rewards, the recommended practice is to unstake shortly after a checkpoint has been called and stake again immediately after.)\n"
                 )
 
                 user_input = input("Do you want to continue unstaking? (yes/no)\n").lower()
