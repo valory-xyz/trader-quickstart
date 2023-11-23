@@ -53,9 +53,12 @@ INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 FPMM_CREATOR = "0x89c5cc945dd550bcffb72fe42bff002429f46fec"
 DEFAULT_FROM_DATE = "1970-01-01T00:00:00"
 DEFAULT_TO_DATE = "2038-01-19T03:14:07"
+DEFAULT_FROM_TIMESTAMP = 0
+DEFAULT_TO_TIMESTAMP = 2147483647
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
+WXDAI_CONTRACT_ADDRESS = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
 
 headers = {
@@ -195,7 +198,7 @@ STATS_TABLE_COLS = list(MarketState) + ["TOTAL"]
 STATS_TABLE_ROWS = list(MarketAttribute)
 
 
-def _get_balance(address: str, rpc_url: str) -> int:
+def get_balance(address: str, rpc_url: str) -> int:
     """Get the native xDAI balance of an address in wei."""
     headers = {"Content-Type": "application/json"}
     data = {
@@ -208,7 +211,7 @@ def _get_balance(address: str, rpc_url: str) -> int:
     return int(response.json().get("result"), 16)
 
 
-def _get_token_balance(
+def get_token_balance(
     gnosis_address: str, token_contract_address: str, rpc_url: str
 ) -> int:
     """Get the token balance of an address in wei."""
@@ -306,10 +309,10 @@ def _to_content(q: str) -> dict[str, Any]:
 
 def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     creator: str,
-    from_timestamp: float,
-    to_timestamp: float,
-    fpmm_from_timestamp: float,
-    fpmm_to_timestamp: float,
+    from_timestamp: float = DEFAULT_FROM_TIMESTAMP,
+    to_timestamp: float = DEFAULT_TO_TIMESTAMP,
+    fpmm_from_timestamp: float = DEFAULT_FROM_TIMESTAMP,
+    fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP
 ) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
@@ -402,6 +405,11 @@ def wei_to_xdai(wei: int) -> str:
 def wei_to_wxdai(wei: int) -> str:
     """Converts and formats wei to WxDAI."""
     return "{:.2f} WxDAI".format(wei_to_unit(wei))
+
+
+def wei_to_olas(wei: int) -> str:
+    """Converts and formats wei to WxDAI."""
+    return "{:.2f} OLAS".format(wei_to_unit(wei))
 
 
 def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
@@ -726,14 +734,12 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     output += "\n"
 
     # Read rpc and get safe address balance
-    safe_address = user_args.creator
-    safe_address_balance = _get_balance(safe_address, rpc)
+    safe_address_balance = get_balance(creator, rpc)
 
-    output += f"Safe address:    {safe_address}\n"
+    output += f"Safe address:    {creator}\n"
     output += f"Address balance: {wei_to_xdai(safe_address_balance)}\n"
 
-    wxdai_contract_address = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-    wxdai_balance = _get_token_balance(safe_address, wxdai_contract_address, rpc)
+    wxdai_balance = get_token_balance(creator, WXDAI_CONTRACT_ADDRESS, rpc)
     output += f"Token balance:   {wei_to_wxdai(wxdai_balance)}\n\n"
 
     _compute_totals(statistics_table, mech_statistics)

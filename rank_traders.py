@@ -305,6 +305,9 @@ if __name__ == "__main__":
     print("Starting script")
     user_args = _parse_args()
 
+    with open(trades.RPC_PATH, "r", encoding="utf-8") as rpc_file:
+        rpc = rpc_file.read()
+
     print("Querying Thegraph...")
     all_trades_json = _query_omen_xdai_subgraph(
         user_args.from_date.timestamp(),
@@ -323,7 +326,7 @@ if __name__ == "__main__":
     for i, (creator_id, trades_json_id) in enumerate(
         creator_to_trades.items(), start=1
     ):
-        _, statistics_table_id = trades.parse_user(creator_id, trades_json_id)
+        _, statistics_table_id = trades.parse_user(rpc, creator_id, trades_json_id, {})
         creator_to_statistics[creator_id] = statistics_table_id
         _print_progress_bar(i, total_traders)
 
