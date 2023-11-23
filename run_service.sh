@@ -674,6 +674,7 @@ if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
     poetry run autonomy packages sync
+    poetry add tqdm
 else
     echo "$directory is not a git repo!"
     exit 1
