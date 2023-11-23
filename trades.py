@@ -468,7 +468,7 @@ def _compute_totals(
         # ROI is recomputed here for all columns, including TOTAL.
         table[MarketAttribute.ROI][col] = _compute_roi(
             table[MarketAttribute.INVESTMENT][col]
-            + table[MarketAttribute.MECH_FEES][col]
+            + table[MarketAttribute.FEES][col]
             + table[MarketAttribute.MECH_FEES][col],
             table[MarketAttribute.EARNINGS][col],
         )
