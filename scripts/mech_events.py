@@ -236,11 +236,20 @@ def _update_mech_events_db(
                 json.dump(mech_events_data, file, indent=2)
 
     except KeyboardInterrupt:
-        pass
+        print(
+            "\n"
+            f"WARNING: The update of the local Mech events database was cancelled (contract {mech_contract_address}). "
+            "Therefore, the Mech calls and costs might not be reflected accurately. "
+            "You may attempt to rerun this script to retry synchronizing the database."
+        )
+        input("Press Enter to continue...")
     except Exception:  # pylint: disable=broad-except
         print(
-            "WARNING: An error occurred while updating the local Mech events database. Please try re-run the script again."
+            f"WARNING: An error occurred while updating the local Mech events database (contract {mech_contract_address}). "
+            "Therefore, the Mech calls and costs might not be reflected accurately. "
+            "You may attempt to rerun this script to retry synchronizing the database."
         )
+        input("Press Enter to continue...")
 
     print("")
 
