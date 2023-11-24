@@ -48,7 +48,7 @@ BLOCK_DATA_NUMBER = "number"
 BLOCKS_CHUNK_SIZE = 5000
 EXCLUDED_BLOCKS_THRESHOLD = 2 * BLOCKS_CHUNK_SIZE
 NUM_EXCLUDED_BLOCKS = 10
-MECH_EVENTS_DB_VERSION = 1
+MECH_EVENTS_DB_VERSION = 2
 DEFAULT_MECH_FEE = 10000000000000000
 
 # Pair of (Mech contract address, Mech contract deployed on block number).
@@ -75,6 +75,7 @@ class MechBaseEvent:
     sender: str
     transaction_hash: str
     block_number: int
+    utc_timestamp: int
     ipfs_link: str
     ipfs_contents: Dict[str, Any]
 
@@ -85,6 +86,7 @@ class MechBaseEvent:
         sender: str,
         transaction_hash: str,
         block_number: int,
+        utc_timestamp: int,
     ):  # pylint: disable=too-many-arguments
         """Initializes the MechBaseEvent"""
         self.event_id = event_id
@@ -92,6 +94,7 @@ class MechBaseEvent:
         self.sender = sender
         self.transaction_hash = transaction_hash
         self.block_number = block_number
+        self.utc_timestamp = utc_timestamp
         self.ipfs_link = ""
         self.ipfs_contents = {}
         self._populate_ipfs_contents(data)
@@ -116,20 +119,20 @@ class MechRequest(MechBaseEvent):
     fee: int
     event_name: str = "Request"
 
-    def __init__(self, event: AttributeDict):
+    def __init__(self, event: AttributeDict, utc_timestamp: int):
         """Initializes the MechRequest"""
 
         if self.event_name != event["event"]:
             raise ValueError("Invalid event to initialize MechRequest")
 
         args = event["args"]
-
         super().__init__(
             event_id=args["requestId"],
             data=args["data"].hex(),
             sender=args["sender"],
             transaction_hash=event["transactionHash"].hex(),
             block_number=event["blockNumber"],
+            utc_timestamp=utc_timestamp,
         )
 
         self.request_id = self.event_id
@@ -154,6 +157,22 @@ def _read_mech_events_data_from_file() -> Dict[str, Any]:
         mech_events_data = {}
         mech_events_data["db_version"] = MECH_EVENTS_DB_VERSION
     return mech_events_data
+
+
+MINIMUM_WRITE_FILE_DELAY = 20
+last_write_time = 0.0
+
+
+def _write_mech_events_data(
+    mech_events_data: Dict[str, Any], force_write=False
+) -> None:
+    global last_write_time
+    now = time.time()
+
+    if force_write or (now - last_write_time) >= MINIMUM_WRITE_FILE_DELAY:
+        with open(MECH_EVENTS_JSON_PATH, "w", encoding="utf-8") as file:
+            json.dump(mech_events_data, file, indent=2)
+        last_write_time = now
 
 
 # pylint: disable=too-many-locals
@@ -226,14 +245,15 @@ def _update_mech_events_db(
 
             mech_events = event_data.setdefault("mech_events", {})
             for event in filtered_events:
-                # To complete with further events
+                block_number = event["blockNumber"]
+                utc_timestamp = w3.eth.get_block(block_number).timestamp
+
                 if event_name == MechRequest.event_name:
-                    mech_event = MechRequest(event)
+                    mech_event = MechRequest(event, utc_timestamp)
                     mech_events[mech_event.event_id] = mech_event.__dict__
 
             # Store the (updated) Mech events database
-            with open(MECH_EVENTS_JSON_PATH, "w", encoding="utf-8") as file:
-                json.dump(mech_events_data, file, indent=2)
+            _write_mech_events_data(mech_events_data)
 
     except KeyboardInterrupt:
         print(
@@ -251,6 +271,7 @@ def _update_mech_events_db(
         )
         input("Press Enter to continue...")
 
+    _write_mech_events_data(mech_events_data, True)
     print("")
 
 
