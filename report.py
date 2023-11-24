@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 import json
 from argparse import ArgumentParser
 from pathlib import Path
+import time
 from typing import Any
 
 import docker
@@ -61,10 +62,13 @@ SERVICE_STAKING_TOKEN_JSON_PATH = Path(
 STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
 
 SAFE_BALANCE_THRESHOLD = 500000000000000000
-AGENT_BALANCE_THRESHOLD = 50000000000000000
-OPERATOR_BALANCE_THRESHOLD = 50000000000000000
+AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
+OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
+MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
+TRADES_LOOKBACK_DAYS = 3
 
 OUTPUT_WIDTH = 80
+
 
 class ColorCode:
     GREEN = "\033[92m"
@@ -77,10 +81,27 @@ def _color_string(text: str, color_code: str) -> str:
     return f"{color_code}{text}{ColorCode.RESET}"
 
 
-def _color_boolean(is_true: bool, true_string: str="True", false_string: str="False") -> str:
+def _color_bool(
+    is_true: bool, true_string: str = "True", false_string: str = "False"
+) -> str:
     if is_true:
         return _color_string(true_string, ColorCode.GREEN)
     return _color_string(false_string, ColorCode.RED)
+
+
+def _color_percent(p: float, multiplier: float = 100, symbol: str = "%") -> str:
+    if p >= 0:
+        return f"{p*multiplier:.2f} {symbol}"
+    return _color_string(f"{p*multiplier:.2f} {symbol}", ColorCode.RED)
+
+
+def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str:
+    filtered_trades = [trade for trade in trades_json.get("data", {}).get("fpmmTrades", []) if float(trade["creationTimestamp"]) >= utc_ts]
+    unique_markets = set(trade["fpmm"]["id"] for trade in filtered_trades)
+    trades_count = len(filtered_trades)
+    markets_count = len(unique_markets)
+    return f"{trades_count} trades on {markets_count} markets"
+
 
 def _print_section_header(header: str) -> None:
     print("\n\n" + header)
@@ -97,11 +118,16 @@ def _print_status(key: str, value: str, message: str = "") -> None:
 
 
 def _warning_message(current_value: int, threshold: int = 0, message: str = "") -> str:
-    default_message = (
-        _color_string(f"- Balance too low. Threshold is {wei_to_unit(threshold):.2f}.", ColorCode.YELLOW)
+    default_message = _color_string(
+        f"- Too low. Threshold is {wei_to_unit(threshold):.2f}.",
+        ColorCode.YELLOW,
     )
     if current_value < threshold:
-        return _color_string(f"- {message}", ColorCode.YELLOW) if message else default_message
+        return (
+            _color_string(f"- {message}", ColorCode.YELLOW)
+            if message
+            else default_message
+        )
     return ""
 
 
@@ -119,18 +145,8 @@ def _get_agent_status() -> str:
     )
 
     is_running = trader_abci_container and trader_tm_container
-    return _color_boolean(is_running, "Running", "Stopped")
+    return _color_bool(is_running, "Running", "Stopped")
 
-def _format_time_difference(utc_ts_1: float, utc_ts_2: float) -> str:
-    seconds = abs(utc_ts_2 - utc_ts_1)
-    days, seconds = divmod(seconds, 86400)
-    hours, seconds = divmod(seconds, 3600)
-    minutes, _ = divmod(seconds, 60)
-
-    if days >= 1:
-        return f"{int(days)}d {int(hours):02}:{int(minutes):02}h"
-    else:
-        return f"{int(hours):02}:{int(minutes):02}h"
 
 def _parse_args() -> Any:
     """Parse the script arguments."""
@@ -158,7 +174,8 @@ if __name__ == "__main__":
         rpc = file.read().strip()
 
     # Prediction market trading
-    mech_requests = trades.get_mech_requests(rpc, safe_address)
+    # mech_requests = trades.get_mech_requests(rpc, safe_address)
+    mech_requests = {}
     mech_statistics = trades._get_mech_statistics(mech_requests)
     trades_json = trades._query_omen_xdai_subgraph(safe_address)
     _, statistics_table = trades.parse_user(
@@ -182,53 +199,33 @@ if __name__ == "__main__":
         abi = contract_data.get("abi", [])
         contract_instance = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=abi)
         is_staked = contract_instance.functions.isServiceStaked(service_id).call()
-        _print_status("Is service staked?", _color_boolean(is_staked, "Yes", "No"))
+        _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
 
         if is_staked:
-            current_utc_ts = datetime.utcnow().timestamp()
+            _print_status("Staked (security deposit)", f"{wei_to_olas(0)}")
+            _print_status("Staked (slashable bond)", f"{wei_to_olas(0)}")
 
             service_info = contract_instance.functions.mapServiceInfo(service_id).call()
-            ts_start = service_info[2]
             rewards = service_info[3]
-            staked_utc_datetime = datetime.utcfromtimestamp(ts_start).replace(
-                tzinfo=timezone.utc
-            )
-            staked_utc_string = staked_utc_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
-            staked_interval_string = _format_time_difference(ts_start, current_utc_ts)
-            _print_status("Staked at", f"{staked_utc_string} ({staked_interval_string} ago)")
             _print_status("Accrued rewards", f"{wei_to_olas(rewards)}")
 
-            next_reward_checkpoint_ts = (
-                contract_instance.functions.getNextRewardCheckpointTimestamp().call()
-            )
-            next_reward_utc_datetime = datetime.utcfromtimestamp(
-                next_reward_checkpoint_ts
-            ).replace(tzinfo=timezone.utc)
-            next_reward_utc_string = next_reward_utc_datetime.strftime(
-                "%Y-%m-%d %H:%M:%S UTC"
-            )
-            remaining_time_string = _format_time_difference(current_utc_ts, next_reward_checkpoint_ts)
-            _print_status("Next rewards checkpoint", f"{next_reward_utc_string} ({remaining_time_string} remaining)")
-
-            # TODO
-            # Staked OLAS 25 too low – threshold is 50
-            # Number of txns this epoch	4 too low – threshold is 10
-            # Accrued OLAS rewards 1
+            mech_requests_current_epoch = 0
+            _print_status("Num. Mech txs current epoch", f"{mech_requests_current_epoch} {_warning_message(mech_requests_current_epoch, MECH_REQUESTS_PER_EPOCH_THRESHOLD)}")
 
     except Exception:
         print("An error occurred while interacting with the staking contract.")
 
     _print_subsection_header(f"Prediction market trading")
     _print_status(
-        "ROI closed markets",
-        f"{statistics_table[MarketAttribute.ROI][MarketState.CLOSED]*100.0:.2f} %",
-    )
-    _print_status(
-        "ROI total", f"{statistics_table[MarketAttribute.ROI]['TOTAL']*100.0:.2f} %"
+        "ROI on closed markets",
+        _color_percent(statistics_table[MarketAttribute.ROI][MarketState.CLOSED]),
     )
 
-    # TODO
-    # 3d participation/market 100%
+    since_ts = time.time() - 60*60*24 * TRADES_LOOKBACK_DAYS
+    _print_status(
+        f"Trades on last {TRADES_LOOKBACK_DAYS} days",
+        _trades_since_message(trades_json, since_ts),
+    )
 
     # Service
     _print_section_header("Service")
@@ -237,14 +234,13 @@ if __name__ == "__main__":
     # Agent
     agent_status = _get_agent_status()
     agent_xdai = get_balance(agent_address, rpc)
-    agent_wxdai = get_token_balance(agent_address, trades.WXDAI_CONTRACT_ADDRESS, rpc)
-    _print_subsection_header(
-        f"Agent {_warning_message(agent_xdai + agent_wxdai, SAFE_BALANCE_THRESHOLD)}"
-    )
+    _print_subsection_header(f"Agent")
     _print_status("Status", agent_status)
     _print_status("Address", agent_address)
-    _print_status("xDAI Balance", wei_to_xdai(agent_xdai))
-    _print_status("WxDAI Balance", wei_to_xdai(agent_wxdai))
+    _print_status(
+        "xDAI Balance",
+        f"{wei_to_xdai(agent_xdai)} {_warning_message(agent_xdai, AGENT_XDAI_BALANCE_THRESHOLD)}",
+    )
 
     # Safe
     safe_xdai = get_balance(safe_address, rpc)
@@ -258,13 +254,10 @@ if __name__ == "__main__":
 
     # Owner/Operator
     operator_xdai = get_balance(operator_address, rpc)
-    operator_wxdai = get_token_balance(
-        operator_address, trades.WXDAI_CONTRACT_ADDRESS, rpc
-    )
-    _print_subsection_header(
-        f"Owner/Operator {_warning_message(operator_xdai + operator_wxdai, SAFE_BALANCE_THRESHOLD)}"
-    )
+    _print_subsection_header(f"Owner/Operator")
     _print_status("Address", operator_address)
-    _print_status("xDAI Balance", wei_to_xdai(operator_xdai))
-    _print_status("WxDAI Balance", wei_to_xdai(operator_wxdai))
+    _print_status(
+        "xDAI Balance",
+        f"{wei_to_xdai(operator_xdai)} {_warning_message(operator_xdai, OPERATOR_XDAI_BALANCE_THRESHOLD)}",
+    )
     print("")
