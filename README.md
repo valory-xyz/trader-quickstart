@@ -87,11 +87,18 @@ Agent runners are recommended to create a [backup](https://github.com/valory-xyz
     ```
 
     Or restrict the search to specific dates by defining the "from" and "to" dates:
+
     ```bash
     cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00; cd ..
     ```
 
-2. Use this command to investigate your agent's logs:
+2. Use the `report` command to display a summary of the service status:
+
+   ```bash
+   cd trader; poetry run python ../report.py; cd ..
+   ```
+
+3. Use this command to investigate your agent's logs:
 
     ```bash
     cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --reset-db; cd ..
