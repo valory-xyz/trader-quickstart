@@ -87,6 +87,8 @@ OUTPUT_WIDTH = 80
 
 
 class ColorCode:
+    """Terminal color codes"""
+
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
@@ -123,6 +125,16 @@ def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     return f"{trades_count} trades on {markets_count} markets"
 
 
+def _get_mech_requests_count(
+    mech_requests: dict[str, Any], timestamp: float = 0
+) -> int:
+    return sum(
+        1
+        for mech_request in mech_requests.values()
+        if mech_request.get("utc_timestamp", 0) > timestamp
+    )
+
+
 def _print_section_header(header: str) -> None:
     print("\n\n" + header)
     print("=" * OUTPUT_WIDTH)
@@ -139,7 +151,7 @@ def _print_status(key: str, value: str, message: str = "") -> None:
 
 def _warning_message(current_value: int, threshold: int = 0, message: str = "") -> str:
     default_message = _color_string(
-        f"- Too low. Threshold is {wei_to_unit(threshold):.2f}.",
+        f"- Balance too low. Threshold is {wei_to_unit(threshold):.2f}.",
         ColorCode.YELLOW,
     )
     if current_value < threshold:
@@ -174,6 +186,7 @@ def _parse_args() -> Any:
     args = parser.parse_args()
     return args
 
+
 if __name__ == "__main__":
     user_args = _parse_args()
 
@@ -196,7 +209,7 @@ if __name__ == "__main__":
 
     # Prediction market trading
     mech_requests = trades.get_mech_requests(rpc, safe_address)
-    mech_statistics = trades._get_mech_statistics(mech_requests)
+    mech_statistics = trades.get_mech_statistics(mech_requests)
     trades_json = trades._query_omen_xdai_subgraph(safe_address)
     _, statistics_table = trades.parse_user(
         rpc, safe_address, trades_json, mech_statistics
@@ -253,6 +266,8 @@ if __name__ == "__main__":
             min_staking_deposit = (
                 service_staking_token_contract.functions.minStakingDeposit().call()
             )
+
+            # In the setting 1 agent instance as of now: minOwnerBond = minStakingDeposit
             min_security_deposit = min_staking_deposit
             _print_status(
                 "Staked (security deposit)",
@@ -276,13 +291,22 @@ if __name__ == "__main__":
                 (liveness_ratio * 60 * 60 * 24) / 10**18
             )
 
-            mech_requests_current_epoch = 3
+            next_checkpoint_ts = (
+                service_staking_token_contract.functions.getNextRewardCheckpointTimestamp().call()
+            )
+            liveness_period = (
+                service_staking_token_contract.functions.livenessPeriod().call()
+            )
+            last_checkpoint_ts = next_checkpoint_ts - liveness_period
+            mech_requests_current_epoch = _get_mech_requests_count(
+                mech_requests, last_checkpoint_ts
+            )
             _print_status(
                 "Num. Mech txs current epoch",
                 f"{mech_requests_current_epoch} {_warning_message(mech_requests_current_epoch, mech_requests_24h_threshold, f'- Too low. Threshold is {mech_requests_24h_threshold}.')}",
             )
 
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         traceback.print_exc()
         print("An error occurred while interacting with the staking contract.")
 

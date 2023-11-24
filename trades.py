@@ -312,7 +312,7 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     from_timestamp: float = DEFAULT_FROM_TIMESTAMP,
     to_timestamp: float = DEFAULT_TO_TIMESTAMP,
     fpmm_from_timestamp: float = DEFAULT_FROM_TIMESTAMP,
-    fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP
+    fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP,
 ) -> dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
@@ -748,7 +748,9 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     return output, statistics_table
 
 
-def _get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
+def get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, int]]:
+    """Outputs a table with Mech statistics"""
+
     mech_statistics: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     for mech_request in mech_requests.values():
@@ -778,7 +780,7 @@ if __name__ == "__main__":
         rpc = rpc_file.read()
 
     mech_requests = get_mech_requests(rpc, user_args.creator)
-    mech_statistics = _get_mech_statistics(mech_requests)
+    mech_statistics = get_mech_statistics(mech_requests)
 
     trades_json = _query_omen_xdai_subgraph(
         user_args.creator,
