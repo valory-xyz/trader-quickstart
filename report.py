@@ -49,6 +49,7 @@ AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
 OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
+STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
 SERVICE_STAKING_TOKEN_JSON_PATH = Path(
     SCRIPT_PATH,
     "trader",
@@ -59,7 +60,21 @@ SERVICE_STAKING_TOKEN_JSON_PATH = Path(
     "build",
     "ServiceStakingToken.json",
 )
-STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+SERVICE_REGISTRY_L2_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "service_registry",
+    "build",
+    "ServiceRegistryL2.json",
+)
+SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "contracts",
+    "ServiceRegistryTokenUtility.json",
+)
 
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
@@ -194,22 +209,29 @@ if __name__ == "__main__":
     try:
         w3 = Web3(HTTPProvider(rpc))
         with open(SERVICE_STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
-            contract_data = json.load(file)
+            service_staking_token_data = json.load(file)
 
-        abi = contract_data.get("abi", [])
-        contract_instance = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=abi)
-        is_staked = contract_instance.functions.isServiceStaked(service_id).call()
+        service_staking_token_abi = service_staking_token_data.get("abi", [])
+        service_staking_token_contract = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi)
+        is_staked = service_staking_token_contract.functions.isServiceStaked(service_id).call()
         _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
 
         if is_staked:
-            _print_status("Staked (security deposit)", f"{wei_to_olas(0)}")
-            _print_status("Staked (slashable bond)", f"{wei_to_olas(0)}")
+            with open(SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH, "r", encoding="utf-8") as file:
+                service_registry_token_utility_data = json.load(file)
 
-            service_info = contract_instance.functions.mapServiceInfo(service_id).call()
+            service_registry_token_utility_abi = service_registry_token_utility_data.get("abi", [])
+            service_registry_token_utility_contract = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi)
+
+
+            _print_status("Staked (security deposit)", f"{wei_to_olas(25000000000000000000)}")
+            _print_status("Staked (slashable bond)", f"{wei_to_olas(25000000000000000000)}")
+
+            service_info = service_staking_token_contract.functions.mapServiceInfo(service_id).call()
             rewards = service_info[3]
             _print_status("Accrued rewards", f"{wei_to_olas(rewards)}")
 
-            mech_requests_current_epoch = 0
+            mech_requests_current_epoch = 3
             _print_status("Num. Mech txs current epoch", f"{mech_requests_current_epoch} {_warning_message(mech_requests_current_epoch, MECH_REQUESTS_PER_EPOCH_THRESHOLD)}")
 
     except Exception:
