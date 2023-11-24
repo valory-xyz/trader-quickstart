@@ -20,11 +20,12 @@
 
 """Obtains a report of the current service."""
 
-from datetime import datetime, timezone
 import json
+import math
+import time
+import traceback
 from argparse import ArgumentParser
 from pathlib import Path
-import time
 from typing import Any
 
 import docker
@@ -49,7 +50,7 @@ AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
 OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
-STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+SERVICE_STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
 SERVICE_STAKING_TOKEN_JSON_PATH = Path(
     SCRIPT_PATH,
     "trader",
@@ -111,7 +112,11 @@ def _color_percent(p: float, multiplier: float = 100, symbol: str = "%") -> str:
 
 
 def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str:
-    filtered_trades = [trade for trade in trades_json.get("data", {}).get("fpmmTrades", []) if float(trade["creationTimestamp"]) >= utc_ts]
+    filtered_trades = [
+        trade
+        for trade in trades_json.get("data", {}).get("fpmmTrades", [])
+        if float(trade["creationTimestamp"]) >= utc_ts
+    ]
     unique_markets = set(trade["fpmm"]["id"] for trade in filtered_trades)
     trades_count = len(filtered_trades)
     markets_count = len(unique_markets)
@@ -139,7 +144,7 @@ def _warning_message(current_value: int, threshold: int = 0, message: str = "") 
     )
     if current_value < threshold:
         return (
-            _color_string(f"- {message}", ColorCode.YELLOW)
+            _color_string(f"{message}", ColorCode.YELLOW)
             if message
             else default_message
         )
@@ -166,7 +171,8 @@ def _get_agent_status() -> str:
 def _parse_args() -> Any:
     """Parse the script arguments."""
     parser = ArgumentParser(description="Get a report for a trader service.")
-
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
     user_args = _parse_args()
@@ -189,8 +195,7 @@ if __name__ == "__main__":
         rpc = file.read().strip()
 
     # Prediction market trading
-    # mech_requests = trades.get_mech_requests(rpc, safe_address)
-    mech_requests = {}
+    mech_requests = trades.get_mech_requests(rpc, safe_address)
     mech_statistics = trades._get_mech_statistics(mech_requests)
     trades_json = trades._query_omen_xdai_subgraph(safe_address)
     _, statistics_table = trades.parse_user(
@@ -212,38 +217,82 @@ if __name__ == "__main__":
             service_staking_token_data = json.load(file)
 
         service_staking_token_abi = service_staking_token_data.get("abi", [])
-        service_staking_token_contract = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi)
-        is_staked = service_staking_token_contract.functions.isServiceStaked(service_id).call()
+        service_staking_token_contract = w3.eth.contract(
+            address=SERVICE_STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi
+        )
+        is_staked = service_staking_token_contract.functions.isServiceStaked(
+            service_id
+        ).call()
         _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
 
         if is_staked:
-            with open(SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH, "r", encoding="utf-8") as file:
+            with open(
+                SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH, "r", encoding="utf-8"
+            ) as file:
                 service_registry_token_utility_data = json.load(file)
 
-            service_registry_token_utility_abi = service_registry_token_utility_data.get("abi", [])
-            service_registry_token_utility_contract = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi)
+            service_registry_token_utility_contract_address = (
+                service_staking_token_contract.functions.serviceRegistryTokenUtility().call()
+            )
+            service_registry_token_utility_abi = (
+                service_registry_token_utility_data.get("abi", [])
+            )
+            service_registry_token_utility_contract = w3.eth.contract(
+                address=service_registry_token_utility_contract_address,
+                abi=service_registry_token_utility_abi,
+            )
 
+            security_deposit = (
+                service_registry_token_utility_contract.functions.getOperatorBalance(
+                    operator_address, service_id
+                ).call()
+            )
+            agent_bond = service_registry_token_utility_contract.functions.getAgentBond(
+                service_id, 12
+            ).call()
+            min_staking_deposit = (
+                service_staking_token_contract.functions.minStakingDeposit().call()
+            )
+            min_security_deposit = min_staking_deposit
+            _print_status(
+                "Staked (security deposit)",
+                f"{wei_to_olas(security_deposit)} {_warning_message(security_deposit, min_security_deposit)}",
+            )
+            _print_status(
+                "Staked (agent bond)",
+                f"{wei_to_olas(agent_bond)} {_warning_message(agent_bond, min_staking_deposit)}",
+            )
 
-            _print_status("Staked (security deposit)", f"{wei_to_olas(25000000000000000000)}")
-            _print_status("Staked (slashable bond)", f"{wei_to_olas(25000000000000000000)}")
-
-            service_info = service_staking_token_contract.functions.mapServiceInfo(service_id).call()
+            service_info = service_staking_token_contract.functions.mapServiceInfo(
+                service_id
+            ).call()
             rewards = service_info[3]
             _print_status("Accrued rewards", f"{wei_to_olas(rewards)}")
 
+            liveness_ratio = (
+                service_staking_token_contract.functions.livenessRatio().call()
+            )
+            mech_requests_24h_threshold = math.ceil(
+                (liveness_ratio * 60 * 60 * 24) / 10**18
+            )
+
             mech_requests_current_epoch = 3
-            _print_status("Num. Mech txs current epoch", f"{mech_requests_current_epoch} {_warning_message(mech_requests_current_epoch, MECH_REQUESTS_PER_EPOCH_THRESHOLD)}")
+            _print_status(
+                "Num. Mech txs current epoch",
+                f"{mech_requests_current_epoch} {_warning_message(mech_requests_current_epoch, mech_requests_24h_threshold, f'- Too low. Threshold is {mech_requests_24h_threshold}.')}",
+            )
 
     except Exception:
+        traceback.print_exc()
         print("An error occurred while interacting with the staking contract.")
 
-    _print_subsection_header(f"Prediction market trading")
+    _print_subsection_header("Prediction market trading")
     _print_status(
         "ROI on closed markets",
         _color_percent(statistics_table[MarketAttribute.ROI][MarketState.CLOSED]),
     )
 
-    since_ts = time.time() - 60*60*24 * TRADES_LOOKBACK_DAYS
+    since_ts = time.time() - 60 * 60 * 24 * TRADES_LOOKBACK_DAYS
     _print_status(
         f"Trades on last {TRADES_LOOKBACK_DAYS} days",
         _trades_since_message(trades_json, since_ts),
@@ -256,7 +305,7 @@ if __name__ == "__main__":
     # Agent
     agent_status = _get_agent_status()
     agent_xdai = get_balance(agent_address, rpc)
-    _print_subsection_header(f"Agent")
+    _print_subsection_header("Agent")
     _print_status("Status", agent_status)
     _print_status("Address", agent_address)
     _print_status(
@@ -276,7 +325,7 @@ if __name__ == "__main__":
 
     # Owner/Operator
     operator_xdai = get_balance(operator_address, rpc)
-    _print_subsection_header(f"Owner/Operator")
+    _print_subsection_header("Owner/Operator")
     _print_status("Address", operator_address)
     _print_status(
         "xDAI Balance",
