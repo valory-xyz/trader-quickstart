@@ -20,7 +20,7 @@
 
 """Obtains a report of the current service."""
 
-import datetime
+from datetime import datetime, timezone
 import json
 from argparse import ArgumentParser
 from pathlib import Path
@@ -66,33 +66,42 @@ OPERATOR_BALANCE_THRESHOLD = 50000000000000000
 
 OUTPUT_WIDTH = 80
 
-class TerminalColors:
+class ColorCode:
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
     RESET = "\033[0m"
 
 
+def _color_string(text: str, color_code: str) -> str:
+    return f"{color_code}{text}{ColorCode.RESET}"
+
+
+def _color_boolean(is_true: bool, true_string: str="True", false_string: str="False") -> str:
+    if is_true:
+        return _color_string(true_string, ColorCode.GREEN)
+    return _color_string(false_string, ColorCode.RED)
+
 def _print_section_header(header: str) -> None:
-    print("\n" + header)
-    print("—" * OUTPUT_WIDTH)
+    print("\n\n" + header)
+    print("=" * OUTPUT_WIDTH)
 
 
 def _print_subsection_header(header: str) -> None:
     print("\n" + header)
-    print("=" * OUTPUT_WIDTH)
+    print("-" * OUTPUT_WIDTH)
 
 
-def _print_status(key: str, value: str, message: str = None) -> None:
+def _print_status(key: str, value: str, message: str = "") -> None:
     print(f"{key:<30}{value:<10} {message or ''}")
 
 
 def _warning_message(current_value: int, threshold: int = 0, message: str = "") -> str:
     default_message = (
-        f"{TerminalColors.YELLOW}- Balance too low. Threshold is {wei_to_unit(threshold):.2f}.{TerminalColors.RESET}"
+        _color_string(f"- Balance too low. Threshold is {wei_to_unit(threshold):.2f}.", ColorCode.YELLOW)
     )
     if current_value < threshold:
-        return f"{TerminalColors.YELLOW}- {message}{TerminalColors.RESET}" if message else default_message
+        return _color_string(f"- {message}", ColorCode.YELLOW) if message else default_message
     return ""
 
 
@@ -109,11 +118,19 @@ def _get_agent_status() -> str:
         else None
     )
 
-    if trader_abci_container and trader_tm_container:
-        return f"{TerminalColors.GREEN}Running{TerminalColors.RESET}"
-    else:
-        return f"{TerminalColors.RED}Not Running{TerminalColors.RESET}"
+    is_running = trader_abci_container and trader_tm_container
+    return _color_boolean(is_running, "Running", "Stopped")
 
+def _format_time_difference(utc_ts_1: float, utc_ts_2: float) -> str:
+    seconds = abs(utc_ts_2 - utc_ts_1)
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, _ = divmod(seconds, 60)
+
+    if days >= 1:
+        return f"{int(days)}d {int(hours):02}:{int(minutes):02}h"
+    else:
+        return f"{int(hours):02}:{int(minutes):02}h"
 
 def _parse_args() -> Any:
     """Parse the script arguments."""
@@ -152,13 +169,11 @@ if __name__ == "__main__":
     print("==============")
     print("Service report")
     print("==============")
-    print("")
 
     # Performance
     _print_section_header("Performance")
     _print_subsection_header("Staking")
 
-    is_staked = False
     try:
         w3 = Web3(HTTPProvider(rpc))
         with open(SERVICE_STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
@@ -167,29 +182,33 @@ if __name__ == "__main__":
         abi = contract_data.get("abi", [])
         contract_instance = w3.eth.contract(address=STAKING_CONTRACT_ADDRESS, abi=abi)
         is_staked = contract_instance.functions.isServiceStaked(service_id).call()
-        _print_status("Is service staked?", f"{is_staked}")
+        _print_status("Is service staked?", _color_boolean(is_staked, "Yes", "No"))
 
         if is_staked:
+            current_utc_ts = datetime.utcnow().timestamp()
+
             service_info = contract_instance.functions.mapServiceInfo(service_id).call()
             ts_start = service_info[2]
             rewards = service_info[3]
-            staked_utc_datetime = datetime.datetime.utcfromtimestamp(ts_start).replace(
-                tzinfo=datetime.timezone.utc
+            staked_utc_datetime = datetime.utcfromtimestamp(ts_start).replace(
+                tzinfo=timezone.utc
             )
             staked_utc_string = staked_utc_datetime.strftime("%Y-%m-%d %H:%M:%S UTC")
-            _print_status("Staked at", f"{staked_utc_string}")
+            staked_interval_string = _format_time_difference(ts_start, current_utc_ts)
+            _print_status("Staked at", f"{staked_utc_string} ({staked_interval_string} ago)")
             _print_status("Accrued rewards", f"{wei_to_olas(rewards)}")
 
             next_reward_checkpoint_ts = (
                 contract_instance.functions.getNextRewardCheckpointTimestamp().call()
             )
-            next_reward_utc_datetime = datetime.datetime.utcfromtimestamp(
+            next_reward_utc_datetime = datetime.utcfromtimestamp(
                 next_reward_checkpoint_ts
-            ).replace(tzinfo=datetime.timezone.utc)
+            ).replace(tzinfo=timezone.utc)
             next_reward_utc_string = next_reward_utc_datetime.strftime(
                 "%Y-%m-%d %H:%M:%S UTC"
             )
-            _print_status("Next rewards checkpoint", f"{next_reward_utc_string}")
+            remaining_time_string = _format_time_difference(current_utc_ts, next_reward_checkpoint_ts)
+            _print_status("Next rewards checkpoint", f"{next_reward_utc_string} ({remaining_time_string} remaining)")
 
             # TODO
             # Staked OLAS 25 too low – threshold is 50
@@ -213,7 +232,7 @@ if __name__ == "__main__":
 
     # Service
     _print_section_header("Service")
-    _print_status("ID", service_id)
+    _print_status("ID", str(service_id))
 
     # Agent
     agent_status = _get_agent_status()
