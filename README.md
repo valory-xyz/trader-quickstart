@@ -276,3 +276,18 @@ You can gain access to the assets of your service as follows:
 4. Repeat the same process with the agent EOA account (private key located in `.trader_runner/agent_pkey.json`).
 
 Now, you have full access through the hot wallet to the EOAs addresses associated to your service and you can transfer their assets to any other address. You can also manage the assets of the service Safe through the DApp https://app.safe.global/, using the address located in the file `.trader_runner/service_safe_address.txt`.
+
+## RPC-related Error Messages
+
+When updating the service, you may need to re-run the script several if in the process if you obtain any of the following error messages:
+
+```Error: Service terminatation failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
+
+Error: Service unbonding failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
+
+Error: Component mint failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
+
+Error: Service activation failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
+
+Error: Service deployment failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)`
+```
