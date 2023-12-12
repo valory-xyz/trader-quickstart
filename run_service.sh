@@ -519,7 +519,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ "$USE_STAKING" = true ]; then
+        if [ "$USE_STAKING" = true ]; thenhttps://github.com/valory-xyz/trader
             # Existing staking services use AGENT_ID=12
             AGENT_ID=12
         else
@@ -545,7 +545,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.10.1"
+service_version="v0.10.2"
 
 echo ""
 echo "---------------"
