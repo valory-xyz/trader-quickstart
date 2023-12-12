@@ -20,6 +20,8 @@
 """This package contains utils for working with the staking contract."""
 
 import typing
+from datetime import datetime
+import time
 
 from aea.contracts.base import Contract
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
@@ -31,6 +33,28 @@ from packages.valory.contracts.erc20.contract import (
 from packages.valory.contracts.service_staking_token.contract import (
     ServiceStakingTokenContract,
 )
+from autonomy.chain.tx import (
+    TxSettler,
+    should_retry,
+    should_reprice,
+    DEFAULT_ON_CHAIN_INTERACT_TIMEOUT as CLIENT_DEFAULT_ON_CHAIN_INTERACT_TIMEOUT,
+    DEFAULT_ON_CHAIN_INTERACT_RETRIES as CLIENT_DEFAULT_ON_CHAIN_INTERACT_RETRIES,
+    DEFAULT_ON_CHAIN_INTERACT_SLEEP as CLIENT_DEFAULT_ON_CHAIN_INTERACT_SLEEP,
+)
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from autonomy.chain.exceptions import (
+    ChainInteractionError,
+    ChainTimeoutError,
+    RPCError,
+    TxBuildError,
+)
+from autonomy.chain.config import ChainType
+
+
+DEFAULT_ON_CHAIN_INTERACT_TIMEOUT = CLIENT_DEFAULT_ON_CHAIN_INTERACT_TIMEOUT * 2
+DEFAULT_ON_CHAIN_INTERACT_RETRIES = CLIENT_DEFAULT_ON_CHAIN_INTERACT_RETRIES * 2
+DEFAULT_ON_CHAIN_INTERACT_SLEEP = CLIENT_DEFAULT_ON_CHAIN_INTERACT_SLEEP * 2
+
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 ZERO_ETH = 0
@@ -42,7 +66,6 @@ GAS_PARAMS = {
     "maxPriorityFeePerGas": 3_000_000_000,
     "gas": 500_000,
 }
-
 
 def load_contract(ctype: ContractType) -> ContractType:
     """Load contract."""
@@ -200,13 +223,30 @@ def get_service_info(
     return info
 
 
+def get_price_with_retries(
+    ledger_api: EthereumApi, staking_contract_address: str, retries: int = 5
+) -> int:
+    """Get the price with retries."""
+    for i in range(retries):
+        try:
+            price = staking_contract.try_get_gas_pricing(ledger_api, staking_contract_address)
+            return price
+        except Exception as e:
+            print(e)
+            continue
+    raise ValueError("Failed to get price after retries")
+
+
 def send_tx(
     ledger_api: EthereumApi,
     crypto: EthereumCrypto,
     raw_tx: typing.Dict[str, typing.Any],
+    timeout: float = DEFAULT_ON_CHAIN_INTERACT_TIMEOUT,
+    max_retries: int = DEFAULT_ON_CHAIN_INTERACT_RETRIES,
+    sleep: float = DEFAULT_ON_CHAIN_INTERACT_SLEEP,
 ) -> str:
     """Send transaction."""
-    raw_tx = {
+    tx_dict = {
         **raw_tx,
         **GAS_PARAMS,
         "from": crypto.address,
@@ -215,13 +255,44 @@ def send_tx(
     }
     gas_params = ledger_api.try_get_gas_pricing()
     if gas_params is not None:
-        raw_tx.update(gas_params)
+        tx_dict.update(gas_params)
 
-    signed_tx = crypto.sign_transaction(raw_tx)
-    tx_digest = typing.cast(
-        str, ledger_api.send_signed_transaction(signed_tx, raise_on_try=True)
-    )
-    return tx_digest
+    tx_settler = TxSettler(ledger_api, crypto, ChainType.CUSTOM)
+    retries = 0
+    tx_digest = None
+    already_known = False
+    deadline = datetime.now().timestamp() + timeout
+    while retries < max_retries and deadline >= datetime.now().timestamp():
+        retries += 1
+        try:
+            if not already_known:
+                tx_signed = crypto.sign_transaction(transaction=tx_dict)
+                tx_digest = ledger_api.send_signed_transaction(
+                    tx_signed=tx_signed,
+                    raise_on_try=True,
+                )
+            tx_receipt = ledger_api.api.eth.get_transaction_receipt(
+                typing.cast(str, tx_digest)
+            )
+            if tx_receipt is not None:
+                return tx_receipt
+        except RequestsConnectionError as e:
+            raise RPCError("Cannot connect to the given RPC") from e
+        except Exception as e:  # pylint: disable=broad-except
+            error = str(e)
+            if tx_settler._already_known(error):
+                already_known = True
+                continue  # pragma: nocover
+            if not should_retry(error):
+                raise ChainInteractionError(error) from e
+            if should_reprice(error):
+                print("Repricing the transaction...")
+                tx_dict = tx_settler._repice(typing.cast(typing.Dict, tx_dict))
+                continue
+            print(f"Error occurred when interacting with chain: {e}; ")
+            print(f"will retry in {sleep}...")
+            time.sleep(sleep)
+    raise ChainTimeoutError("Timed out when waiting for transaction to go through")
 
 
 def send_tx_and_wait_for_receipt(
@@ -230,8 +301,7 @@ def send_tx_and_wait_for_receipt(
     raw_tx: typing.Dict[str, typing.Any],
 ) -> typing.Dict[str, typing.Any]:
     """Send transaction and wait for receipt."""
-    tx_digest = HexStr(send_tx(ledger_api, crypto, raw_tx))
-    receipt = ledger_api.api.eth.wait_for_transaction_receipt(tx_digest)
+    receipt = HexStr(send_tx(ledger_api, crypto, raw_tx))
     if receipt["status"] != 1:
         raise ValueError("Transaction failed. Receipt:", receipt)
     return receipt
