@@ -1001,17 +1001,6 @@ export ON_CHAIN_SERVICE_ID=$service_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
-export BET_AMOUNT_PER_THRESHOLD_000=0
-export BET_AMOUNT_PER_THRESHOLD_010=0
-export BET_AMOUNT_PER_THRESHOLD_020=0
-export BET_AMOUNT_PER_THRESHOLD_030=0
-export BET_AMOUNT_PER_THRESHOLD_040=0
-export BET_AMOUNT_PER_THRESHOLD_050=0
-export BET_AMOUNT_PER_THRESHOLD_060=0
-export BET_AMOUNT_PER_THRESHOLD_070=0
-export BET_AMOUNT_PER_THRESHOLD_080=30000000000000000
-export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
-export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
 export BET_THRESHOLD=5000000000000000
 export TRADING_STRATEGY=kelly_criterion
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
