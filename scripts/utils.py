@@ -213,6 +213,10 @@ def send_tx(
         "nonce": ledger_api.api.eth.get_transaction_count(crypto.address),
         "chainId": ledger_api.api.eth.chain_id,
     }
+    gas_params = ledger_api.try_get_gas_pricing()
+    if gas_params is not None:
+        raw_tx.update(gas_params)
+
     signed_tx = crypto.sign_transaction(raw_tx)
     tx_digest = typing.cast(
         str, ledger_api.send_signed_transaction(signed_tx, raise_on_try=True)
