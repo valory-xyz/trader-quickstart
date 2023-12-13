@@ -519,7 +519,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ "$USE_STAKING" = true ]; thenhttps://github.com/valory-xyz/trader
+        if [ "$USE_STAKING" = true ]; then
             # Existing staking services use AGENT_ID=12
             AGENT_ID=12
         else
