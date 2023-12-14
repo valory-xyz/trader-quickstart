@@ -545,7 +545,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.10.1"
+service_version="v0.10.3"
 
 echo ""
 echo "---------------"
@@ -581,17 +581,15 @@ fi
 # Check dependencies
 if command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
+    python3 scripts/check_python.py
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
+    python scripts/check_python.py
 else
     echo >&2 "Python is not installed!";
     exit 1
 fi
 
-if [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.10."* ]] && [[ "$($PYTHON_CMD --version 2>&1)" != "Python 3.11."* ]]; then
-    echo >&2 "Python version >=3.10.0, <3.12.0 is required but found $($PYTHON_CMD --version 2>&1)";
-    exit 1
-fi
 
 command -v git >/dev/null 2>&1 ||
 { echo >&2 "Git is not installed!";
