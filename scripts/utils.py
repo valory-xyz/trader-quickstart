@@ -234,6 +234,19 @@ def get_price_with_retries(
     raise ValueError("Failed to get price after retries")
 
 
+def get_available_staking_slots(
+    ledger_api: EthereumApi, staking_contract_address: str
+) -> int:
+    """Get available staking slots"""
+    max_num_services = staking_contract.max_num_services(
+        ledger_api, staking_contract_address).pop("data")
+
+    service_ids = staking_contract.get_service_ids(
+        ledger_api, staking_contract_address).pop("data")
+
+    return max_num_services - len(service_ids)
+
+
 def send_tx(
     ledger_api: EthereumApi,
     crypto: EthereumCrypto,
