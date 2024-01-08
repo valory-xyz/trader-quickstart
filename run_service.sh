@@ -2,7 +2,7 @@
 
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2023 Valory AG
+#   Copyright 2023-2024 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -317,8 +317,8 @@ ask_password_if_needed() {
 
 # Validates the provided password
 validate_password() {
-    local is_password_valid_1=$(poetry run $PYTHON_CMD ../scripts/is_keys_json_password_valid.py ../$keys_json_path $password_argument)
-    local is_password_valid_2=$(poetry run $PYTHON_CMD ../scripts/is_keys_json_password_valid.py ../$operator_keys_file $password_argument)
+    local is_password_valid_1=$(poetry run python ../scripts/is_keys_json_password_valid.py ../$keys_json_path $password_argument)
+    local is_password_valid_2=$(poetry run python ../scripts/is_keys_json_password_valid.py ../$operator_keys_file $password_argument)
 
     if [ "$is_password_valid_1" != "True" ] || [ "$is_password_valid_2" != "True" ]; then
         echo "Could not decrypt key files. Please verify if your key files are password-protected, and if the provided password is correct (passwords are case-sensitive)."
