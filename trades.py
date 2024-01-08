@@ -417,14 +417,11 @@ def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
     outcomes_tokens_traded = int(fpmmTrade["outcomeTokensTraded"])
     condition_id = fpmmTrade["fpmm"]["condition"]["id"]
 
-    print(condition_id)
-
     for position in user_positions:
         position_condition_ids = position["position"]["conditionIds"]
         balance = int(position["balance"])
 
         if condition_id in position_condition_ids and balance == outcomes_tokens_traded:
-            print("False 1")
             return False
 
     for position in user_positions:
@@ -432,10 +429,8 @@ def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
         balance = int(position["balance"])
 
         if condition_id in position_condition_ids and balance == 0:
-            print("True 1")
             return True
 
-    print("False 2")
     return False
 
 
@@ -670,8 +665,8 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
             statistics_table[MarketAttribute.MECH_CALLS][
                 market_status
-            ] += mech_statistics.get(fpmmTrade["title"], {}).get("count", 0)
-            mech_fees = mech_statistics.get(fpmmTrade["title"], {}).get("fees", 0)
+            ] += mech_statistics[fpmmTrade["title"]]["count"]
+            mech_fees = mech_statistics[fpmmTrade["title"]]["fees"]
             statistics_table[MarketAttribute.MECH_FEES][market_status] += mech_fees
 
             output += f" Market status: {market_status}\n"
