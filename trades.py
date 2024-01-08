@@ -399,17 +399,17 @@ def wei_to_unit(wei: int) -> float:
 
 def wei_to_xdai(wei: int) -> str:
     """Converts and formats wei to xDAI."""
-    return "{:.4f} xDAI".format(wei_to_unit(wei))
+    return "{:.2f} xDAI".format(wei_to_unit(wei))
 
 
 def wei_to_wxdai(wei: int) -> str:
     """Converts and formats wei to WxDAI."""
-    return "{:.4f} WxDAI".format(wei_to_unit(wei))
+    return "{:.2f} WxDAI".format(wei_to_unit(wei))
 
 
 def wei_to_olas(wei: int) -> str:
     """Converts and formats wei to WxDAI."""
-    return "{:.4f} OLAS".format(wei_to_unit(wei))
+    return "{:.2f} OLAS".format(wei_to_unit(wei))
 
 
 def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
@@ -632,13 +632,11 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
 
     for fpmmTrade in creator_trades_json["data"]["fpmmTrades"]:
         try:
-
             collateral_amount = int(fpmmTrade["collateralAmount"])
             outcome_index = int(fpmmTrade["outcomeIndex"])
             fee_amount = int(fpmmTrade["feeAmount"])
             outcomes_tokens_traded = int(fpmmTrade["outcomeTokensTraded"])
             creation_timestamp = float(fpmmTrade["creationTimestamp"])
-            print(creation_timestamp)
 
             fpmm = fpmmTrade["fpmm"]
             answer_finalized_timestamp = fpmm["answerFinalizedTimestamp"]
@@ -672,8 +670,8 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
             statistics_table[MarketAttribute.MECH_CALLS][
                 market_status
-            ] += mech_statistics[fpmmTrade["title"]]["count"]
-            mech_fees = mech_statistics[fpmmTrade["title"]]["fees"]
+            ] += mech_statistics.get(fpmmTrade["title"], {}).get("count", 0)
+            mech_fees = mech_statistics.get(fpmmTrade["title"], {}).get("fees", 0)
             statistics_table[MarketAttribute.MECH_FEES][market_status] += mech_fees
 
             output += f" Market status: {market_status}\n"
@@ -706,10 +704,6 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = collateral_amount
                     output += "  Final answer: Market has been declared invalid.\n"
                     output += f"      Earnings: {wei_to_xdai(earnings)}\n"
-                    print("!!!!")
-                    redeemed = _is_redeemed(user_json, fpmmTrade)
-                    output += f"      Redeemed: {redeemed}\n"
-
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
