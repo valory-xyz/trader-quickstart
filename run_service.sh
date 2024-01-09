@@ -371,7 +371,7 @@ prompt_use_staking() {
 verify_staking_slots() {
     staking_slots=$(poetry run python "../scripts/get_available_staking_slots.py" "$CUSTOM_STAKING_ADDRESS" "$rpc")
     
-    if [ "$staking_slots" -le 1 ]; then
+    if [ "$staking_slots" -le 0 ]; then
         echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken."
         echo "The script will finish."
         exit 1
