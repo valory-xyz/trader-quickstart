@@ -286,7 +286,6 @@ If you wish to terminate your on-chain service (and receive back the staking/bon
 ./terminate_on_chain_service.sh
 ```
 
-
 ## RPC-related Error Messages
 
 When updating the service, you may need to re-run the script several if in the process if you obtain any of the following error messages:
