@@ -156,6 +156,7 @@ fi
 
 service_safe_address=$(cat "../$service_safe_address_path")
 current_safe_owners=$(poetry run python "../scripts/get_safe_owners.py" "$service_safe_address" "../$agent_pkey_path" "$rpc" $password_argument | awk '{gsub(/"/, "\047", $0); print $0}')
+agent_address=$(get_address "../$keys_json_path")
 
 # transfer the ownership of the Safe from the agent to the service owner
 # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
