@@ -137,7 +137,7 @@ echo "If your service is staked, you will receive the staking funds to the owner
 echo "$operator_address"
 echo 
 echo "Please, ensure that your service is stopped (./stop_service.sh) before proceeding."
-echo "Do you want to continue?"
+echo "Do you want to continue? (yes/no)"
 read -r response
 echo ""
 
