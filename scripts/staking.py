@@ -75,7 +75,7 @@ if __name__ == "__main__":
         if args.unstake:
             if not is_service_staked(ledger_api, args.service_id, args.staking_contract_address):
                 # the service is not staked, so we don't need to do anything
-                print(f"Service {args.service_id} is not staked. Exiting...")
+                print(f"Service {args.service_id} is not staked.")
                 sys.exit(0)
 
             next_ts = get_next_checkpoint_ts(
