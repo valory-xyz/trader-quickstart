@@ -279,7 +279,7 @@ Now, you have full access through the hot wallet to the EOAs addresses associate
 
 ## Terminate your on-chain service
 
-If you wish to terminate your on-chain service (and receive back the staking/bonding funds to your owner/operator address in case your service is staked), ensure that your local service is stopped, and execute:
+If you wish to terminate your on-chain service (and receive back the staking/bonding funds to your owner/operator address in case your service is staked) execute:
 
 ```bash
 ./stop_service.sh
