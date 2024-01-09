@@ -14,7 +14,7 @@ Ensure your machine satisfies the requirements:
 ## Resource Requirements
 
 - You need xDAI on Gnosis Chain in one of your wallets.
-- You need an RPC for your agent instance. We recommend [QuickNode](https://www.quicknode.com/chains/xdai).
+- You need an RPC for your agent instance. We recommend [Nodies RPC](https://www.nodies.app/).
 
 ## Run the Service
 
@@ -289,5 +289,7 @@ Error: Component mint failed with following error; ChainTimeoutError(Timed out w
 
 Error: Service activation failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
 
-Error: Service deployment failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)`
+Error: Service deployment failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
+
+Error: Service terminatation failed with following error; ChainInteractionError({'code': -32010, 'message': 'AlreadyKnown'})
 ```
