@@ -277,6 +277,15 @@ You can gain access to the assets of your service as follows:
 
 Now, you have full access through the hot wallet to the EOAs addresses associated to your service and you can transfer their assets to any other address. You can also manage the assets of the service Safe through the DApp https://app.safe.global/, using the address located in the file `.trader_runner/service_safe_address.txt`.
 
+## Terminate your on-chain service
+
+If you wish to terminate your on-chain service (and receive back the staking/bonding funds to your owner/operator address in case your service is staked) execute:
+
+```bash
+./stop_service.sh
+./terminate_on_chain_service.sh
+```
+
 ## RPC-related Error Messages
 
 When updating the service, you may need to re-run the script several if in the process if you obtain any of the following error messages:
@@ -293,3 +302,4 @@ Error: Service deployment failed with following error; ChainTimeoutError(Timed o
 
 Error: Service terminatation failed with following error; ChainInteractionError({'code': -32010, 'message': 'AlreadyKnown'})
 ```
+

@@ -2,7 +2,7 @@
 
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2023 Valory AG
+#   Copyright 2023-2024 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -317,8 +317,8 @@ ask_password_if_needed() {
 
 # Validates the provided password
 validate_password() {
-    local is_password_valid_1=$(poetry run $PYTHON_CMD ../scripts/is_keys_json_password_valid.py ../$keys_json_path $password_argument)
-    local is_password_valid_2=$(poetry run $PYTHON_CMD ../scripts/is_keys_json_password_valid.py ../$operator_keys_file $password_argument)
+    local is_password_valid_1=$(poetry run python ../scripts/is_keys_json_password_valid.py ../$keys_json_path $password_argument)
+    local is_password_valid_2=$(poetry run python ../scripts/is_keys_json_password_valid.py ../$operator_keys_file $password_argument)
 
     if [ "$is_password_valid_1" != "True" ] || [ "$is_password_valid_2" != "True" ]; then
         echo "Could not decrypt key files. Please verify if your key files are password-protected, and if the provided password is correct (passwords are case-sensitive)."
@@ -1012,7 +1012,7 @@ export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
 export BET_THRESHOLD=5000000000000000
 export TRADING_STRATEGY=kelly_criterion
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
-export IRRELEVANT_TOOLS='["prediction-online-summarized-info", "prediction-online-sum-url-content", "prediction-online", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization", "claude-prediction-offline", "prediction-offline", "prediction-offline-sme"]'
+export IRRELEVANT_TOOLS='["openai-gpt-3.5-turbo-instruct", "prediction-online-summarized-info", "prediction-online-sum-url-content", "prediction-online", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization", "claude-prediction-offline", "prediction-offline", "prediction-offline-sme"]'
 
 service_dir="trader_service"
 build_dir="abci_build"
