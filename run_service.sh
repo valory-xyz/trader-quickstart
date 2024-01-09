@@ -524,7 +524,9 @@ try_read_storage() {
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ -z "$USE_STAKING" ]; then
+            cd trader
             prompt_use_staking
+            cd ..
             dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
         fi
 
