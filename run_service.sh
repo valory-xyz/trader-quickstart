@@ -372,7 +372,7 @@ verify_staking_slots() {
     staking_slots=$(poetry run python "../scripts/get_available_staking_slots.py" "$CUSTOM_STAKING_ADDRESS" "$rpc")
     
     if [ "$staking_slots" -le 0 ]; then
-        echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken."
+        echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken. Your service cannot be staked."
         echo "The script will finish."
         exit 1
     fi
@@ -912,7 +912,10 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" $password_argument "$service_id""
     if [ "${USE_STAKING}" = true ]; then
         minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
-        echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address:"
+        echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address."
+
+        verify_staking_slots
+
         echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for security deposit (service owner)"
         echo "        +"
         echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."
