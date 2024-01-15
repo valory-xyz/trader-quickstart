@@ -665,17 +665,27 @@ if [ "$rcp_new_filter_supported" = false ]; then
 fi
 
 echo "RPC checks passed."
+
+echo ""
+echo "------------------------------"
+echo "Setting up '$directory' repository"
+echo "------------------------------"
 echo ""
 
-# clone repo
-if [ -d $directory ]
-then
-    echo "Detected an existing $directory directory. Using this one..."
-    echo "Please stop and manually delete the $directory repo if you updated the service's version ($service_version)!"
-    echo "You can run the following command, or continue with the pre-existing version of the service:"
-    echo "rm -r $directory"
-else
-    echo "Cloning the $directory repo from $org_name GitHub..."
+if [ -d "$directory" ]; then
+    current_version=$(git --git-dir="$directory/.git" describe --tags)
+
+    if [ "$current_version" != "$service_version" ]; then
+        echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
+        echo "Removing '$directory' directory..."
+        echo ""
+        sudo rm -rf "$directory"
+    fi
+fi
+
+if [ ! -d "$directory" ]; then
+    echo "Cloning '$directory' repo from '$org_name' GitHub..."
+    echo ""
     git clone --depth 1 --branch $service_version $service_repo
 fi
 
