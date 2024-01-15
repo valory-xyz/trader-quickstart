@@ -754,6 +754,13 @@ def get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, in
     mech_statistics: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     for mech_request in mech_requests.values():
+        if (
+            "ipfs_contents" not in mech_request
+            or "tool" not in mech_request["ipfs_contents"]
+            or "prompt" not in mech_request["ipfs_contents"]
+        ):
+            continue
+
         if mech_request["ipfs_contents"]["tool"] in IRRELEVANT_TOOLS:
             continue
 
