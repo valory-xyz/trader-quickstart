@@ -352,7 +352,6 @@ prompt_use_staking() {
         case "$use_staking" in
             [Yy]|[Yy][Ee][Ss])
                 USE_STAKING="true"
-                verify_staking_slots
                 break
                 ;;
             [Nn]|[Nn][Oo])
@@ -369,12 +368,14 @@ prompt_use_staking() {
 
 # Verify if there are enough slots for staking this service
 verify_staking_slots() {
-    staking_slots=$(poetry run python "../scripts/get_available_staking_slots.py" "$CUSTOM_STAKING_ADDRESS" "$rpc")
-    
-    if [ "$staking_slots" -le 0 ]; then
-        echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken. Your service cannot be staked."
-        echo "The script will finish."
-        exit 1
+    if [ "${USE_STAKING}" = true ]; then
+        staking_slots=$(poetry run python "../scripts/get_available_staking_slots.py" "$CUSTOM_STAKING_ADDRESS" "$rpc")
+        
+        if [ "$staking_slots" -le 0 ]; then
+            echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken. Your service cannot be staked."
+            echo "The script will finish."
+            exit 1
+        fi
     fi
 }
 
@@ -432,6 +433,7 @@ create_storage() {
 
     # Prompt use staking
     prompt_use_staking
+    verify_staking_slots
 
     mkdir "../$store"
 
@@ -524,9 +526,7 @@ try_read_storage() {
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ -z "$USE_STAKING" ]; then
-            cd trader
             prompt_use_staking
-            cd ..
             dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
         fi
 
@@ -744,6 +744,8 @@ then
 
     echo "[Service owner] Minting your service on the Gnosis chain..."
 
+    verify_staking_slots
+
     # create service
     nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
     cmd="poetry run autonomy mint \
@@ -878,6 +880,9 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       # update service
       if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
           echo "[Service owner] Updating on-chain service $service_id..."
+
+          verify_staking_slots
+
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
           export cmd=""
           if [ "${USE_STAKING}" = true ]; then
@@ -926,13 +931,13 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     if [ "${USE_STAKING}" = true ]; then
         minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
         echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address."
-
-        verify_staking_slots
-
         echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for security deposit (service owner)"
         echo "        +"
         echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."
         echo ""
+
+        verify_staking_slots
+
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "owner/operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
