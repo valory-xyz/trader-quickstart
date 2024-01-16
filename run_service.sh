@@ -991,6 +991,7 @@ fi
 # the following will stake the service in case it is not staked, and there are available rewards
 # if the service is already staked, and there are no available rewards, it will unstake the service
 if [ "${USE_STAKING}" = true ]; then
+  verify_staking_slots
   perform_staking_ops
 fi
 
