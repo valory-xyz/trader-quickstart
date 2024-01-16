@@ -29,7 +29,7 @@ from typing import Any
 
 import requests
 import trades
-from trades import MarketAttribute, MarketState, wei_to_dai
+from trades import MarketAttribute, MarketState, wei_to_xdai
 
 
 QUERY_BATCH_SIZE = 1000
@@ -268,11 +268,11 @@ def _print_user_summary(
             str(statistics_table[MarketAttribute.NUM_TRADES][state]).rjust(8),
             str(statistics_table[MarketAttribute.WINNER_TRADES][state]).rjust(8),
             str(statistics_table[MarketAttribute.NUM_REDEEMED][state]).rjust(8),
-            wei_to_dai(statistics_table[MarketAttribute.INVESTMENT][state]).rjust(13),
-            wei_to_dai(statistics_table[MarketAttribute.FEES][state]).rjust(13),
-            wei_to_dai(statistics_table[MarketAttribute.EARNINGS][state]).rjust(13),
-            wei_to_dai(statistics_table[MarketAttribute.NET_EARNINGS][state]).rjust(13),
-            wei_to_dai(statistics_table[MarketAttribute.REDEMPTIONS][state]).rjust(13),
+            wei_to_xdai(statistics_table[MarketAttribute.INVESTMENT][state]).rjust(13),
+            wei_to_xdai(statistics_table[MarketAttribute.FEES][state]).rjust(13),
+            wei_to_xdai(statistics_table[MarketAttribute.EARNINGS][state]).rjust(13),
+            wei_to_xdai(statistics_table[MarketAttribute.NET_EARNINGS][state]).rjust(13),
+            wei_to_xdai(statistics_table[MarketAttribute.REDEMPTIONS][state]).rjust(13),
             f"{statistics_table[MarketAttribute.ROI][state] * 100.0:7.2f}%".rjust(9),
             "\n",
         ]

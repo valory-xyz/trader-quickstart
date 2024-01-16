@@ -160,7 +160,7 @@ agent_address=$(get_address "../$keys_json_path")
 
 # transfer the ownership of the Safe from the agent to the service owner
 # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
-if [[ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" && "$current_safe_owners" == "['$agent_address']" ]]; then
+if [[ "$current_safe_owners" == "['$agent_address']" ]]; then
     echo "[Agent instance] Swapping Safe owner..."
     poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc" $password_argument
 fi
