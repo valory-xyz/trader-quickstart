@@ -919,6 +919,8 @@ fi
 echo ""
 echo "Ensuring on-chain service $service_id is in DEPLOYED state..."
 
+verify_staking_slots
+
 if [ "$(get_on_chain_service_state "$service_id")" != "DEPLOYED" ]; then
     suggested_amount=25000000000000000
     ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
@@ -935,8 +937,6 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
         echo "        +"
         echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."
         echo ""
-
-        verify_staking_slots
 
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "owner/operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
@@ -991,7 +991,6 @@ fi
 # the following will stake the service in case it is not staked, and there are available rewards
 # if the service is already staked, and there are no available rewards, it will unstake the service
 if [ "${USE_STAKING}" = true ]; then
-  verify_staking_slots
   perform_staking_ops
 fi
 
