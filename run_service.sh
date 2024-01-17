@@ -352,7 +352,6 @@ prompt_use_staking() {
         case "$use_staking" in
             [Yy]|[Yy][Ee][Ss])
                 USE_STAKING="true"
-                verify_staking_slots
                 break
                 ;;
             [Nn]|[Nn][Oo])
@@ -369,12 +368,14 @@ prompt_use_staking() {
 
 # Verify if there are enough slots for staking this service
 verify_staking_slots() {
-    staking_slots=$(poetry run python "../scripts/get_available_staking_slots.py" "$CUSTOM_STAKING_ADDRESS" "$rpc")
-    
-    if [ "$staking_slots" -le 0 ]; then
-        echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken."
-        echo "The script will finish."
-        exit 1
+    if [ "${USE_STAKING}" = true ]; then
+        staking_slots=$(poetry run python "../scripts/get_available_staking_slots.py" "$CUSTOM_STAKING_ADDRESS" "$rpc")
+        
+        if [ "$staking_slots" -le 0 ]; then
+            echo "All staking slots for contract $CUSTOM_STAKING_ADDRESS are taken. Your service cannot be staked."
+            echo "The script will finish."
+            exit 1
+        fi
     fi
 }
 
@@ -432,6 +433,7 @@ create_storage() {
 
     # Prompt use staking
     prompt_use_staking
+    verify_staking_slots
 
     mkdir "../$store"
 
@@ -524,9 +526,7 @@ try_read_storage() {
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ -z "$USE_STAKING" ]; then
-            cd trader
             prompt_use_staking
-            cd ..
             dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
         fi
 
@@ -557,7 +557,19 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.11.5"
+service_version="v0.11.6"
+
+# Define constants
+export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
+export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
+export CUSTOM_STAKING_ADDRESS="0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
+export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
+export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
+export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
+export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
+export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
+export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
 echo ""
 echo "---------------"
@@ -665,17 +677,27 @@ if [ "$rcp_new_filter_supported" = false ]; then
 fi
 
 echo "RPC checks passed."
+
+echo ""
+echo "------------------------------"
+echo "Setting up '$directory' repository"
+echo "------------------------------"
 echo ""
 
-# clone repo
-if [ -d $directory ]
-then
-    echo "Detected an existing $directory directory. Using this one..."
-    echo "Please stop and manually delete the $directory repo if you updated the service's version ($service_version)!"
-    echo "You can run the following command, or continue with the pre-existing version of the service:"
-    echo "rm -r $directory"
-else
-    echo "Cloning the $directory repo from $org_name GitHub..."
+if [ -d "$directory" ]; then
+    current_version=$(git --git-dir="$directory/.git" describe --tags)
+
+    if [ "$current_version" != "$service_version" ]; then
+        echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
+        echo "Removing '$directory' directory..."
+        echo ""
+        sudo rm -rf "$directory"
+    fi
+fi
+
+if [ ! -d "$directory" ]; then
+    echo "Cloning '$directory' repo from '$org_name' GitHub..."
+    echo ""
     git clone --depth 1 --branch $service_version $service_repo
 fi
 
@@ -697,19 +719,10 @@ olas_balance_required_to_stake=25000000000000000000
 xdai_balance_required_to_bond=10000000000000000
 suggested_top_up_default=50000000000000000
 
-# setup the minting tool
+# Setup the minting tool
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
-export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
-export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
-export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
-export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
-export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
-export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
-export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
-export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
-export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+
 
 if [ "$first_run" = "true" ]
 then
@@ -730,6 +743,8 @@ then
     ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
 
     echo "[Service owner] Minting your service on the Gnosis chain..."
+
+    verify_staking_slots
 
     # create service
     nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
@@ -865,6 +880,9 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       # update service
       if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
           echo "[Service owner] Updating on-chain service $service_id..."
+
+          verify_staking_slots
+
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
           export cmd=""
           if [ "${USE_STAKING}" = true ]; then
@@ -901,6 +919,8 @@ fi
 echo ""
 echo "Ensuring on-chain service $service_id is in DEPLOYED state..."
 
+verify_staking_slots
+
 if [ "$(get_on_chain_service_state "$service_id")" != "DEPLOYED" ]; then
     suggested_amount=25000000000000000
     ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
@@ -912,7 +932,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" $password_argument "$service_id""
     if [ "${USE_STAKING}" = true ]; then
         minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
-        echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address:"
+        echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address."
         echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for security deposit (service owner)"
         echo "        +"
         echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."

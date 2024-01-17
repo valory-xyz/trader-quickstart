@@ -665,8 +665,8 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
             statistics_table[MarketAttribute.MECH_CALLS][
                 market_status
-            ] += mech_statistics[fpmmTrade["title"]]["count"]
-            mech_fees = mech_statistics[fpmmTrade["title"]]["fees"]
+            ] += mech_statistics.get(fpmmTrade["title"], {}).get("count", 0)
+            mech_fees = mech_statistics.get(fpmmTrade["title"], {}).get("fees", 0)
             statistics_table[MarketAttribute.MECH_FEES][market_status] += mech_fees
 
             output += f" Market status: {market_status}\n"
@@ -754,6 +754,13 @@ def get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, in
     mech_statistics: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     for mech_request in mech_requests.values():
+        if (
+            "ipfs_contents" not in mech_request
+            or "tool" not in mech_request["ipfs_contents"]
+            or "prompt" not in mech_request["ipfs_contents"]
+        ):
+            continue
+
         if mech_request["ipfs_contents"]["tool"] in IRRELEVANT_TOOLS:
             continue
 
