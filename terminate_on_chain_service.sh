@@ -58,7 +58,7 @@ get_private_key() {
 # Function to retrieve on-chain service state (requires env variables set to use --use-custom-chain)
 get_on_chain_service_state() {
     local service_id="$1"
-    local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
+    local service_info=$(poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain info "$service_id")
     local state="$(echo "$service_info" | awk '/Service State/ {sub(/\|[ \t]*Service State[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
     echo "$state"
 }
@@ -114,6 +114,9 @@ service_id=$(cat $service_id_path)
 unstake=true
 gnosis_chain_id=100
 
+# Define constants for on-chain interaction
+export RPC_RETRIES=40
+export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
@@ -168,23 +171,23 @@ fi
 # terminate current service
 if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
     echo "[Service owner] Terminating on-chain service $service_id..."
-    output=$(
-        poetry run autonomy service \
-            --use-custom-chain \
-            terminate "$service_id" \
-            --key "../$operator_pkey_path" $password_argument
-    )
+    poetry run autonomy service \
+        --retries $RPC_RETRIES \
+        --timeout $RPC_TIMEOUT_SECONDS \
+        --use-custom-chain \
+        terminate "$service_id" \
+        --key "../$operator_pkey_path" $password_argument
 fi
 
 # unbond current service
 if [ "$(get_on_chain_service_state "$service_id")" == "TERMINATED_BONDED" ]; then
     echo "[Operator] Unbonding on-chain service $service_id..."
-    output=$(
-        poetry run autonomy service \
-            --use-custom-chain \
-            unbond "$service_id" \
-            --key "../$operator_pkey_path" $password_argument
-    )
+    poetry run autonomy service \
+        --retries $RPC_RETRIES \
+        --timeout $RPC_TIMEOUT_SECONDS \
+        --use-custom-chain \
+        unbond "$service_id" \
+        --key "../$operator_pkey_path" $password_argument
 fi
 
 if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
