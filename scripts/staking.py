@@ -21,18 +21,26 @@
 """This script performs staking related operations."""
 
 import argparse
-import dotenv
 import sys
 import time
 import traceback
+from datetime import datetime
 from pathlib import Path
 
-from datetime import datetime
+import dotenv
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
+from utils import (
+    get_available_rewards,
+    get_available_staking_slots,
+    get_liveness_period,
+    get_next_checkpoint_ts,
+    get_service_info,
+    get_stake_txs,
+    get_unstake_txs,
+    is_service_staked,
+    send_tx_and_wait_for_receipt,
+)
 
-
-from utils import is_service_staked, get_liveness_period, get_next_checkpoint_ts, get_service_info, get_unstake_txs, send_tx_and_wait_for_receipt, \
-    get_available_rewards, get_stake_txs
 
 if __name__ == "__main__":
     try:
@@ -71,16 +79,18 @@ if __name__ == "__main__":
         parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
         ledger_api = EthereumApi(address=args.rpc)
-        owner_crypto = EthereumCrypto(private_key_path=args.owner_private_key_path, password=args.password)
+        owner_crypto = EthereumCrypto(
+            private_key_path=args.owner_private_key_path, password=args.password
+        )
         if args.unstake:
-            if not is_service_staked(ledger_api, args.service_id, args.staking_contract_address):
+            if not is_service_staked(
+                ledger_api, args.service_id, args.staking_contract_address
+            ):
                 # the service is not staked, so we don't need to do anything
                 print(f"Service {args.service_id} is not staked.")
                 sys.exit(0)
 
-            next_ts = get_next_checkpoint_ts(
-                ledger_api, args.staking_contract_address
-            )
+            next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
 
             liveness_period = get_liveness_period(
                 ledger_api, args.staking_contract_address
@@ -89,8 +99,12 @@ if __name__ == "__main__":
             now = time.time()
 
             if now < next_ts:
-                formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
-                formatted_next_ts = datetime.utcfromtimestamp(next_ts).strftime('%Y-%m-%d %H:%M:%S UTC')
+                formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime(
+                    "%Y-%m-%d %H:%M:%S UTC"
+                )
+                formatted_next_ts = datetime.utcfromtimestamp(next_ts).strftime(
+                    "%Y-%m-%d %H:%M:%S UTC"
+                )
 
                 print(
                     "WARNING: Staking checkpoint call not available yet\n"
@@ -103,7 +117,9 @@ if __name__ == "__main__":
                     "(Note: To maximize agent work eligible for rewards, the recommended practice is to unstake shortly after a checkpoint has been called and stake again immediately after.)\n"
                 )
 
-                user_input = input("Do you want to continue unstaking? (yes/no)\n").lower()
+                user_input = input(
+                    "Do you want to continue unstaking? (yes/no)\n"
+                ).lower()
                 print()
 
                 if user_input not in ["yes", "y"]:
@@ -119,12 +135,16 @@ if __name__ == "__main__":
             print("Successfully unstaked.")
             sys.exit(0)
 
-        if is_service_staked(ledger_api, args.service_id, args.staking_contract_address):
+        if is_service_staked(
+            ledger_api, args.service_id, args.staking_contract_address
+        ):
             print(
                 f"Service {args.service_id} is already staked. "
                 f"Checking if the staking contract has any rewards..."
             )
-            available_rewards = get_available_rewards(ledger_api, args.staking_contract_address)
+            available_rewards = get_available_rewards(
+                ledger_api, args.staking_contract_address
+            )
             if available_rewards == 0:
                 print("No rewards available. Unstaking...")
                 unstake_txs = get_unstake_txs(
@@ -138,30 +158,42 @@ if __name__ == "__main__":
 
             print("There are rewards available. The service should remain staked.")
             sys.exit(0)
+        elif get_available_staking_slots(ledger_api, args.staking_contract_address) > 0:
+            print(
+                f"Service {args.service_id} is not staked. Checking for available rewards..."
+            )
+            available_rewards = get_available_rewards(
+                ledger_api, args.staking_contract_address
+            )
+            if available_rewards == 0:
+                # no rewards available, do nothing
+                print("No rewards available. The service cannot be staked.")
+                sys.exit(0)
 
-        print(
-            f"Service {args.service_id} is not staked. Checking for available rewards..."
-        )
-        available_rewards = get_available_rewards(ledger_api, args.staking_contract_address)
-        if available_rewards == 0:
-            # no rewards available, do nothing
-            print("No rewards available. The service cannot be staked.")
-            sys.exit(0)
+            print(
+                f"Rewards available: {available_rewards/10**18:.2f} OLAS. Staking the service..."
+            )
+            stake_txs = get_stake_txs(
+                ledger_api,
+                args.service_id,
+                args.service_registry_address,
+                args.staking_contract_address,
+            )
+            for tx in stake_txs:
+                send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
-        print(f"Rewards available: {available_rewards/10**18:.2f} OLAS. Staking the service...")
-        stake_txs = get_stake_txs(
-            ledger_api,
-            args.service_id,
-            args.service_registry_address,
-            args.staking_contract_address,
-        )
-        for tx in stake_txs:
-            send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-
-        print(f"Service {args.service_id} staked successfully.")
+            print(f"Service {args.service_id} staked successfully.")
+        else:
+            print(
+                f"All staking slots for contract {args.staking_contract_address} are taken. Your service cannot be staked."
+            )
+            print("The script will finish.")
+            sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         print(f"An error occurred while executing {Path(__file__).name}: {str(e)}")
         traceback.print_exc()
         dotenv.unset_key("../.trader_runner/.env", "USE_STAKING")
-        print("\nPlease confirm whether your service is participating in a staking program, and then retry running the script.")
+        print(
+            "\nPlease confirm whether your service is participating in a staking program, and then retry running the script."
+        )
         sys.exit(1)
