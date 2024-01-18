@@ -559,7 +559,9 @@ service_repo=https://github.com/$org_name/$directory.git
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
 service_version="v0.11.6"
 
-# Define constants
+# Define constants for on-chain interaction
+export RPC_RETRIES=10
+export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
 export CUSTOM_STAKING_ADDRESS="0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
@@ -749,7 +751,8 @@ then
     # create service
     nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
     cmd="poetry run autonomy mint \
-      --skip-hash-check \
+      --retries $RPC_RETRIES \
+      --timeout $RPC_TIMEOUT_SECONDS \
       --use-custom-chain \
       service packages/valory/services/$directory/ \
       --key \"../$operator_pkey_path\" $password_argument\
@@ -850,6 +853,8 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
           echo "[Service owner] Terminating on-chain service $service_id..."
           output=$(
               poetry run autonomy service \
+                  --retries $RPC_RETRIES \
+                  --timeout $RPC_TIMEOUT_SECONDS \
                   --use-custom-chain \
                   terminate "$service_id" \
                   --key "../$operator_pkey_path" $password_argument
@@ -866,6 +871,8 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
           echo "[Operator] Unbonding on-chain service $service_id..."
           output=$(
               poetry run autonomy service \
+                  --retries $RPC_RETRIES \
+                  --timeout $RPC_TIMEOUT_SECONDS \
                   --use-custom-chain \
                   unbond "$service_id" \
                   --key "../$operator_pkey_path" $password_argument
@@ -891,7 +898,8 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
           else
               cost_of_bonding=$xdai_balance_required_to_bond
               cmd="poetry run autonomy mint \
-                  --skip-hash-check \
+                  --retries $RPC_RETRIES \
+                  --timeout $RPC_TIMEOUT_SECONDS \
                   --use-custom-chain \
                   service packages/valory/services/trader/ \
                   --key \"../$operator_pkey_path\" $password_argument \
@@ -927,7 +935,7 @@ fi
 # activate service
 if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
-    export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" $password_argument "$service_id""
+    export cmd="poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain activate --key "../$operator_pkey_path" $password_argument "$service_id""
     if [ "${USE_STAKING}" = true ]; then
         minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
         echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address."
@@ -952,7 +960,7 @@ fi
 # register agent instance
 if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; then
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
-    export cmd="poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" $password_argument "$service_id" -a $AGENT_ID -i "$agent_address""
+    export cmd="poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain register --key "../$operator_pkey_path" $password_argument "$service_id" -a $AGENT_ID -i "$agent_address""
 
     if [ "${USE_STAKING}" = true ]; then
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
@@ -971,7 +979,7 @@ service_state="$(get_on_chain_service_state "$service_id")"
 multisig_address="$(get_multisig_address "$service_id")"
 if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) && [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument)
+    output=$(poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument)
     if [[ $? -ne 0 ]]; then
         echo "Deploying service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -979,7 +987,7 @@ if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) &
     fi
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig)
+    output=$(poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig)
     if [[ $? -ne 0 ]]; then
         echo "Deploying service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
