@@ -560,7 +560,7 @@ service_repo=https://github.com/$org_name/$directory.git
 service_version="v0.11.6"
 
 # Define constants for on-chain interaction
-export RPC_RETRIES=10
+export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
@@ -842,46 +842,30 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
       if [[ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" && "$current_safe_owners" == "['$agent_address']" ]]; then
           echo "[Agent instance] Swapping Safe owner..."
           poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc" $password_argument
-          if [[ $? -ne 0 ]]; then
-              echo "Swapping Safe owner failed."
-              exit 1
-          fi
       fi
 
       # terminate current service
       if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
           echo "[Service owner] Terminating on-chain service $service_id..."
-          output=$(
+
               poetry run autonomy service \
                   --retries $RPC_RETRIES \
                   --timeout $RPC_TIMEOUT_SECONDS \
                   --use-custom-chain \
                   terminate "$service_id" \
                   --key "../$operator_pkey_path" $password_argument
-          )
-          if [[ $? -ne 0 ]]; then
-              echo "Terminating service failed.\n$output"
-              echo "Please, delete or rename the ./trader folder and try re-run this script again."
-              exit 1
-          fi
+
       fi
 
       # unbond current service
       if [ "$(get_on_chain_service_state "$service_id")" == "TERMINATED_BONDED" ]; then
           echo "[Operator] Unbonding on-chain service $service_id..."
-          output=$(
-              poetry run autonomy service \
-                  --retries $RPC_RETRIES \
-                  --timeout $RPC_TIMEOUT_SECONDS \
-                  --use-custom-chain \
-                  unbond "$service_id" \
-                  --key "../$operator_pkey_path" $password_argument
-          )
-          if [[ $? -ne 0 ]]; then
-              echo "Unbonding service failed.\n$output"
-              echo "Please, delete or rename the ./trader folder and try re-run this script again."
-              exit 1
-          fi
+          poetry run autonomy service \
+            --retries $RPC_RETRIES \
+            --timeout $RPC_TIMEOUT_SECONDS \
+            --use-custom-chain \
+            unbond "$service_id" \
+            --key "../$operator_pkey_path" $password_argument
       fi
 
       # update service
@@ -910,12 +894,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   --threshold $n_agents \
                   --update \"$service_id\""
           fi
-          output=$(eval "$cmd")
-          if [[ $? -ne 0 ]]; then
-              echo "Updating service failed.\n$output"
-              echo "Please, delete or rename the ./trader folder and try re-run this script again."
-              exit 1
-          fi
+          eval "$cmd"
       fi
 
       echo ""
@@ -949,12 +928,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
 
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
-    output=$(eval "$cmd")
-    if [[ $? -ne 0 ]]; then
-        echo "Activating service failed.\n$output"
-        echo "Please, delete or rename the ./trader folder and try re-run this script again."
-        exit 1
-    fi
+    eval "$cmd"
 fi
 
 # register agent instance
@@ -966,12 +940,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; t
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
 
-    output=$(eval "$cmd")
-    if [[ $? -ne 0 ]]; then
-        echo "Registering agent instance failed.\n$output"
-        echo "Please, delete or rename the ./trader folder and try re-run this script again."
-        exit 1
-    fi
+    eval "$cmd"
 fi
 
 # deploy on-chain service
@@ -979,20 +948,10 @@ service_state="$(get_on_chain_service_state "$service_id")"
 multisig_address="$(get_multisig_address "$service_id")"
 if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) && [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument)
-    if [[ $? -ne 0 ]]; then
-        echo "Deploying service failed.\n$output"
-        echo "Please, delete or rename the ./trader folder and try re-run this script again."
-        exit 1
-    fi
+    poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
-    output=$(poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig)
-    if [[ $? -ne 0 ]]; then
-        echo "Deploying service failed.\n$output"
-        echo "Please, delete or rename the ./trader folder and try re-run this script again."
-        exit 1
-    fi
+    poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig
 fi
 
 # perform staking operations
