@@ -557,7 +557,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.11.6"
+service_version="v0.11.7"
 
 # Define constants for on-chain interaction
 export RPC_RETRIES=40
