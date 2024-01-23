@@ -574,7 +574,7 @@ export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
 # Override the above variables for tests
-source alpine_testnet.env
+source alpine_test.env
 
 echo ""
 echo "---------------"
