@@ -44,7 +44,7 @@ from utils import (
 )
 
 
-def format_duration(duration_seconds:int) -> str:
+def format_duration(duration_seconds: int) -> str:
     days, remainder = divmod(duration_seconds, 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, _ = divmod(remainder, 60)
@@ -104,7 +104,9 @@ if __name__ == "__main__":
             if is_service_evicted(
                 ledger_api, args.service_id, args.staking_contract_address
             ):
-                print("WARNING: Your service has been evicted from the staking program due to inactivity.")
+                print(
+                    "WARNING: Your service has been evicted from the staking program due to inactivity."
+                )
                 input("Press Enter to continue...")
 
             next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
@@ -126,8 +128,12 @@ if __name__ == "__main__":
             )
 
             if (now - ts_start) < minimum_staking_duration and available_rewards > 0:
-                print(f"WARNING: Your service has been staked for {format_duration(int(now - ts_start))}.")
-                print(f"Your cannot unstake your service until it has been staked for at least {format_duration(minimum_staking_duration)}.")
+                print(
+                    f"WARNING: Your service has been staked for {format_duration(int(now - ts_start))}."
+                )
+                print(
+                    f"Your cannot unstake your service until it has been staked for at least {format_duration(minimum_staking_duration)}."
+                )
                 print("Terminating script.")
                 sys.exit(1)
 
@@ -171,6 +177,21 @@ if __name__ == "__main__":
         if is_service_staked(
             ledger_api, args.service_id, args.staking_contract_address
         ):
+            if is_service_evicted(
+                ledger_api, args.service_id, args.staking_contract_address
+            ):
+                print(
+                    "Your service has been evicted from the staking program due to inactivity. Unstaking..."
+                )
+                unstake_txs = get_unstake_txs(
+                    ledger_api, args.service_id, args.staking_contract_address
+                )
+                for tx in unstake_txs:
+                    send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
+
+                print("Unstaked successfully.")
+                sys.exit(0)
+
             print(
                 f"Service {args.service_id} is already staked. "
                 f"Checking if the staking contract has any rewards..."
