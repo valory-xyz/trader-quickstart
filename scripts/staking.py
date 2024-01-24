@@ -33,11 +33,13 @@ from utils import (
     get_available_rewards,
     get_available_staking_slots,
     get_liveness_period,
+    get_min_staking_duration,
     get_next_checkpoint_ts,
     get_service_info,
     get_stake_txs,
     get_unstake_txs,
     is_service_staked,
+    is_service_evicted,
     send_tx_and_wait_for_receipt,
 )
 
@@ -82,6 +84,7 @@ if __name__ == "__main__":
         owner_crypto = EthereumCrypto(
             private_key_path=args.owner_private_key_path, password=args.password
         )
+
         if args.unstake:
             if not is_service_staked(
                 ledger_api, args.service_id, args.staking_contract_address
@@ -90,13 +93,34 @@ if __name__ == "__main__":
                 print(f"Service {args.service_id} is not staked.")
                 sys.exit(0)
 
+            if is_service_evicted(
+                ledger_api, args.service_id, args.staking_contract_address
+            ):
+                print("WARNING: Your service has been evicted from the staking program due to inactivity.")
+                input("Press Enter to continue...")
+
             next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
+            ts_start = get_service_info(
+                ledger_api, args.service_id, args.staking_contract_address
+            )[3]
 
             liveness_period = get_liveness_period(
                 ledger_api, args.staking_contract_address
             )
             last_ts = next_ts - liveness_period
             now = time.time()
+
+            minimum_staking_duration = get_min_staking_duration(
+                ledger_api, args.staking_contract_address
+            )
+            available_rewards = get_available_rewards(
+                ledger_api, args.staking_contract_address
+            )
+
+            if (now - ts_start) < minimum_staking_duration and available_rewards > 0:
+                print("WARNING: Your cannot unstake your service until it has been staked for at least {minimumStakingPeriod}.")
+                print("Terminating script.")
+                sys.exit(1)
 
             if now < next_ts:
                 formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime(

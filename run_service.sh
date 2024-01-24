@@ -570,9 +570,17 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.11.7"
+service_version="refactor/staking"
 
 # Define constants for on-chain interaction
+gnosis_chain_id=100
+n_agents=1
+olas_balance_required_to_bond=25000000000000000000
+olas_balance_required_to_stake=25000000000000000000
+xdai_balance_required_to_bond=10000000000000000
+suggested_top_up_default=50000000000000000
+suggested_safe_top_up_default=500000000000000000
+
 export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
@@ -587,7 +595,7 @@ export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
 # Override the above variables for tests
-source alpine_test.env
+source alpine_gnosis_test.env
 
 echo ""
 echo "---------------"
@@ -702,16 +710,16 @@ echo "Setting up '$directory' repository"
 echo "------------------------------"
 echo ""
 
-if [ -d "$directory" ]; then
-    current_version=$(git --git-dir="$directory/.git" describe --tags)
+# if [ -d "$directory" ]; then
+#     current_version=$(git --git-dir="$directory/.git" describe --tags --always)
 
-    if [ "$current_version" != "$service_version" ]; then
-        echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
-        echo "Removing '$directory' directory..."
-        echo ""
-        sudo rm -rf "$directory"
-    fi
-fi
+#     if [ "$current_version" != "$service_version" ]; then
+#         echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
+#         echo "Removing '$directory' directory..."
+#         echo ""
+#         sudo rm -rf "$directory"
+#     fi
+# fi
 
 if [ ! -d "$directory" ]; then
     echo "Cloning '$directory' repo from '$org_name' GitHub..."
@@ -730,17 +738,9 @@ else
     exit 1
 fi
 
-gnosis_chain_id=100
-n_agents=1
-olas_balance_required_to_bond=25000000000000000000
-olas_balance_required_to_stake=25000000000000000000
-xdai_balance_required_to_bond=10000000000000000
-suggested_top_up_default=50000000000000000
-
 # Setup the minting tool
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
-
 
 if [ "$first_run" = "true" ]
 then
@@ -753,6 +753,8 @@ echo ""
 echo "-----------------------------------------"
 echo "Checking Autonolas Protocol service state"
 echo "-----------------------------------------"
+
+fix_agent_id $USE_STAKING $AGENT_ID $CUSTOM_STAKING_ADDRESS "../$env_file_path"
 
 if [ -z ${service_id+x} ];
 then
@@ -1027,7 +1029,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
-suggested_amount=500000000000000000
+suggested_amount=$suggested_safe_top_up_default
 ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
