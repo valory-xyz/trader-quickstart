@@ -44,6 +44,14 @@ from utils import (
 )
 
 
+def format_duration(duration_seconds:int) -> str:
+    days, remainder = divmod(duration_seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, _ = divmod(remainder, 60)
+    formatted_duration = f"{days}D {hours}h {minutes}m"
+    return formatted_duration
+
+
 if __name__ == "__main__":
     try:
         print(f"Starting {Path(__file__).name} script...\n")
@@ -118,7 +126,8 @@ if __name__ == "__main__":
             )
 
             if (now - ts_start) < minimum_staking_duration and available_rewards > 0:
-                print("WARNING: Your cannot unstake your service until it has been staked for at least {minimumStakingPeriod}.")
+                print(f"WARNING: Your service has been staked for {format_duration(int(now - ts_start))}.")
+                print(f"Your cannot unstake your service until it has been staked for at least {format_duration(minimum_staking_duration)}.")
                 print("Terminating script.")
                 sys.exit(1)
 
