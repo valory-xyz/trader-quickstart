@@ -524,9 +524,6 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        # We set by default AGENT_ID=14, and check if we are in the Everest
-        # staking program before on-chain actions to correct AGENT_ID=12 if 
-        # necessary.
         if [ -z "$AGENT_ID" ]; then
             AGENT_ID=14
             dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
@@ -756,6 +753,9 @@ echo "-----------------------------------------"
 echo "Checking Autonolas Protocol service state"
 echo "-----------------------------------------"
 
+# We set by default AGENT_ID=14, and check if we are in the Everest
+# staking program before on-chain actions to correct AGENT_ID=12 if 
+# necessary.
 fix_agent_id $USE_STAKING $AGENT_ID $CUSTOM_STAKING_ADDRESS "../$env_file_path"
 
 if [ -z ${service_id+x} ];
