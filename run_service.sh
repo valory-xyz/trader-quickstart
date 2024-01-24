@@ -574,8 +574,8 @@ service_version="refactor/staking"
 # Define constants for on-chain interaction
 gnosis_chain_id=100
 n_agents=1
-olas_balance_required_to_bond=25000000000000000000
-olas_balance_required_to_stake=25000000000000000000
+olas_balance_required_to_bond=10000000000000000000
+olas_balance_required_to_stake=10000000000000000000
 xdai_balance_required_to_bond=10000000000000000
 suggested_top_up_default=50000000000000000
 suggested_safe_top_up_default=500000000000000000
