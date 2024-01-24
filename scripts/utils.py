@@ -181,7 +181,7 @@ def is_service_staked(
     ).pop("data")
 
     # TODO Use is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
-    is_staked = (service_staking_state == 1 or service_staking_state == 2)
+    is_staked = service_staking_state == 1 or service_staking_state == 2
     return is_staked
 
 
