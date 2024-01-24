@@ -444,15 +444,8 @@ create_storage() {
 
     dotenv_set_key "../$env_file_path" "USE_STAKING" "$USE_STAKING"
 
-    if [ "$USE_STAKING" = true ]; then
-        # New staking services use AGENT_ID=12 until end of Everest staking program
-        AGENT_ID=12
-    else
-        # New non-staking services use AGENT_ID=14
-        AGENT_ID=14
-    fi
+    AGENT_ID=14
     dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
-
 
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
@@ -531,19 +524,39 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ "$USE_STAKING" = true ]; then
-            # Existing staking services use AGENT_ID=12
-            AGENT_ID=12
-        else
-            # Existing non-staking services use AGENT_ID=14
+        # We set by default AGENT_ID=14, and check if we are in the Everest
+        # staking program before on-chain actions to correct AGENT_ID=12 if 
+        # necessary.
+        if [ -z "$AGENT_ID" ]; then
             AGENT_ID=14
+            dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
         fi
-        dotenv_set_key "$env_file_path" "AGENT_ID" "$AGENT_ID"
+
         ask_password_if_needed
     else
         first_run=true
     fi
 }
+
+
+# This is a fix to avoid issue of wrong agent registered in Everest
+fix_agent_id() {
+    local use_staking=$1
+    local current_agent_id=$2
+    local staking_address=$3
+    local env_file_path=$4
+    local agent_id=14
+
+    if [ "$use_staking" == "true" ] && [ "$staking_address" == "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C" ]; then
+        agent_id=12
+        echo "Corrected agent ID for Everest staking program."
+    fi
+
+    if [ "$current_agent_id" != "$agent_id" ]; then
+        dotenv_set_key "$env_file_path" "AGENT_ID" "$agent_id"
+    fi
+}
+
 
 # ------------------
 # Script starts here
