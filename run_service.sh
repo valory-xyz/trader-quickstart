@@ -570,6 +570,8 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
+
+# TODO This needs to be updated with the correct version tag
 service_version="refactor/staking"
 
 # Define constants for on-chain interaction
@@ -594,7 +596,7 @@ export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
-# Override the above variables for tests
+# TODO This needs to be updated with the correct contract addresses when they are deployed
 source alpine_gnosis_test.env
 
 echo ""
@@ -710,16 +712,16 @@ echo "Setting up '$directory' repository"
 echo "------------------------------"
 echo ""
 
-# if [ -d "$directory" ]; then
-#     current_version=$(git --git-dir="$directory/.git" describe --tags --always)
+if [ -d "$directory" ]; then
+    current_version=$(git --git-dir="$directory/.git" describe --tags --always)
 
-#     if [ "$current_version" != "$service_version" ]; then
-#         echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
-#         echo "Removing '$directory' directory..."
-#         echo ""
-#         sudo rm -rf "$directory"
-#     fi
-# fi
+    if [ "$current_version" != "$service_version" ]; then
+        echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
+        echo "Removing '$directory' directory..."
+        echo ""
+        sudo rm -rf "$directory"
+    fi
+fi
 
 if [ ! -d "$directory" ]; then
     echo "Cloning '$directory' repo from '$org_name' GitHub..."
