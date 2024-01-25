@@ -47,6 +47,8 @@ from autonomy.chain.exceptions import (
 )
 from autonomy.chain.config import ChainType
 
+from packages.valory.skills.staking_abci.rounds import StakingState
+
 
 DEFAULT_ON_CHAIN_INTERACT_TIMEOUT = 120.0
 DEFAULT_ON_CHAIN_INTERACT_RETRIES = 10
@@ -174,10 +176,23 @@ def is_service_staked(
     ledger_api: EthereumApi, service_id: int, staking_contract_address: str
 ) -> bool:
     """Check if service is staked."""
-    is_staked = staking_contract.is_service_staked(
+    service_staking_state = staking_contract.get_service_staking_state(
         ledger_api, staking_contract_address, service_id
     ).pop("data")
+    is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
     return is_staked
+
+
+def is_service_evicted(
+    ledger_api: EthereumApi, service_id: int, staking_contract_address: str
+) -> bool:
+    """Check if service is staked."""
+    service_staking_state = staking_contract.get_service_staking_state(
+        ledger_api, staking_contract_address, service_id
+    ).pop("data")
+
+    is_evicted = service_staking_state == StakingState.EVICTED
+    return is_evicted
 
 
 def get_next_checkpoint_ts(
@@ -210,10 +225,20 @@ def get_liveness_period(
     return liveness_period
 
 
+def get_min_staking_duration(
+    ledger_api: EthereumApi, staking_contract_address: str
+) -> int:
+    """Get the liveness period."""
+    min_staking_duration = staking_contract.get_min_staking_duration(
+        ledger_api, staking_contract_address
+    ).pop("data")
+    return min_staking_duration
+
+
 def get_service_info(
     ledger_api: EthereumApi, service_id: int, staking_contract_address: str
 ) -> typing.List:
-    """Check if service is staked."""
+    """Get the service info."""
     info = staking_contract.get_service_info(
         ledger_api, staking_contract_address, service_id
     ).pop("data")
@@ -245,6 +270,16 @@ def get_available_staking_slots(
         ledger_api, staking_contract_address).pop("data")
 
     return max_num_services - len(service_ids)
+
+
+def get_service_ids(
+    ledger_api: EthereumApi, staking_contract_address: str
+) -> typing.List[int]:
+    """Get service Ids"""
+    service_ids = staking_contract.get_service_ids(
+        ledger_api, staking_contract_address).pop("data")
+
+    return service_ids
 
 
 def send_tx(
