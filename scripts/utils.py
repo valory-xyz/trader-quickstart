@@ -179,9 +179,7 @@ def is_service_staked(
     service_staking_state = staking_contract.get_service_staking_state(
         ledger_api, staking_contract_address, service_id
     ).pop("data")
-
-    # TODO Use is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
-    is_staked = service_staking_state == 1 or service_staking_state == 2
+    is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
     return is_staked
 
 
@@ -272,6 +270,16 @@ def get_available_staking_slots(
         ledger_api, staking_contract_address).pop("data")
 
     return max_num_services - len(service_ids)
+
+
+def get_service_ids(
+    ledger_api: EthereumApi, staking_contract_address: str
+) -> typing.List[int]:
+    """Get service Ids"""
+    service_ids = staking_contract.get_service_ids(
+        ledger_api, staking_contract_address).pop("data")
+
+    return service_ids
 
 
 def send_tx(

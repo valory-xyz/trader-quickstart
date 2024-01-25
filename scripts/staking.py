@@ -35,6 +35,7 @@ from utils import (
     get_liveness_period,
     get_min_staking_duration,
     get_next_checkpoint_ts,
+    get_service_ids,
     get_service_info,
     get_stake_txs,
     get_unstake_txs,
@@ -43,6 +44,8 @@ from utils import (
     send_tx_and_wait_for_receipt,
 )
 
+EVEREST_STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+
 
 def format_duration(duration_seconds: int) -> str:
     days, remainder = divmod(duration_seconds, 86400)
@@ -50,6 +53,35 @@ def format_duration(duration_seconds: int) -> str:
     minutes, _ = divmod(remainder, 60)
     formatted_duration = f"{days}D {hours}h {minutes}m"
     return formatted_duration
+
+
+def unstake_everest(
+    ledger_api: EthereumApi, service_id: int, owner_crypto: EthereumCrypto
+) -> None:
+    print("Checking if service is staked on Everest...")
+    staking_contract_address = EVEREST_STAKING_CONTRACT_ADDRESS
+
+    if service_id not in get_service_ids(ledger_api, staking_contract_address):
+        print(f"Service {service_id} is not staked on Everest.")
+        return
+
+    print(
+        f"Service {service_id} is staked on Everest. To continue in a new staking program, first, it must be unstaked from Everest."
+    )
+    user_input = input(
+        "Do you want to continue unstaking from Everest? (yes/no)\n"
+    ).lower()
+    print()
+
+    if user_input not in ["yes", "y"]:
+        print("Terminating script.")
+        sys.exit(1)
+
+    print(f"Unstaking service {service_id} from Everest...")
+    unstake_txs = get_unstake_txs(ledger_api, service_id, staking_contract_address)
+    for tx in unstake_txs:
+        send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
+    print("Successfully unstaked from Everest.")
 
 
 if __name__ == "__main__":
@@ -92,6 +124,8 @@ if __name__ == "__main__":
         owner_crypto = EthereumCrypto(
             private_key_path=args.owner_private_key_path, password=args.password
         )
+
+        unstake_everest(ledger_api, args.service_id, owner_crypto)
 
         if args.unstake:
             if not is_service_staked(
