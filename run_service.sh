@@ -572,8 +572,6 @@ export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
-# TODO The next line is for the Alpine test contract. Remove/comment before merging to main.
-# source "./scripts/alpine_gnosis_test.env"
 
 echo ""
 echo "---------------"
