@@ -444,15 +444,8 @@ create_storage() {
 
     dotenv_set_key "../$env_file_path" "USE_STAKING" "$USE_STAKING"
 
-    if [ "$USE_STAKING" = true ]; then
-        # New staking services use AGENT_ID=12 until end of Everest staking program
-        AGENT_ID=12
-    else
-        # New non-staking services use AGENT_ID=14
-        AGENT_ID=14
-    fi
+    AGENT_ID=14
     dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
-
 
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
@@ -531,19 +524,17 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ "$USE_STAKING" = true ]; then
-            # Existing staking services use AGENT_ID=12
-            AGENT_ID=12
-        else
-            # Existing non-staking services use AGENT_ID=14
+        if [ -z "$AGENT_ID" ]; then
             AGENT_ID=14
+            dotenv_set_key "$env_file_path" "AGENT_ID" "$AGENT_ID"
         fi
-        dotenv_set_key "$env_file_path" "AGENT_ID" "$AGENT_ID"
+
         ask_password_if_needed
     else
         first_run=true
     fi
 }
+
 
 # ------------------
 # Script starts here
@@ -557,14 +548,22 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.11.7"
+service_version="v0.12.0"
 
 # Define constants for on-chain interaction
+gnosis_chain_id=100
+n_agents=1
+olas_balance_required_to_bond=10000000000000000000
+olas_balance_required_to_stake=10000000000000000000
+xdai_balance_required_to_bond=10000000000000000
+suggested_top_up_default=50000000000000000
+suggested_safe_top_up_default=500000000000000000
+
 export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+export CUSTOM_STAKING_ADDRESS="0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
 export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
 export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
@@ -572,6 +571,7 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+
 
 echo ""
 echo "---------------"
@@ -687,7 +687,7 @@ echo "------------------------------"
 echo ""
 
 if [ -d "$directory" ]; then
-    current_version=$(git --git-dir="$directory/.git" describe --tags)
+    current_version=$(git --git-dir="$directory/.git" describe --tags --always)
 
     if [ "$current_version" != "$service_version" ]; then
         echo "Current version of $directory ($current_version) does not match expected version ($service_version)."
@@ -714,17 +714,9 @@ else
     exit 1
 fi
 
-gnosis_chain_id=100
-n_agents=1
-olas_balance_required_to_bond=25000000000000000000
-olas_balance_required_to_stake=25000000000000000000
-xdai_balance_required_to_bond=10000000000000000
-suggested_top_up_default=50000000000000000
-
 # Setup the minting tool
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
-
 
 if [ "$first_run" = "true" ]
 then
@@ -737,6 +729,12 @@ echo ""
 echo "-----------------------------------------"
 echo "Checking Autonolas Protocol service state"
 echo "-----------------------------------------"
+
+# We set by default AGENT_ID=14. In Everest the AGENT_ID was 12.
+# This script does not allow to stake on Everest anymore, therefore
+# all stores must be correctly updated with AGENT_ID=14.
+AGENT_ID=14
+dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
 
 if [ -z ${service_id+x} ];
 then
@@ -1011,7 +1009,7 @@ directory="$service_dir/$build_dir"
 suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
-suggested_amount=500000000000000000
+suggested_amount=$suggested_safe_top_up_default
 ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
