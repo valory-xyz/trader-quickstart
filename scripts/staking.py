@@ -86,7 +86,8 @@ def unstake_everest(
 
 if __name__ == "__main__":
     try:
-        print(f"Starting {Path(__file__).name} script...\n")
+        staking_program = "Alpine"
+        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
 
         parser = argparse.ArgumentParser(
             description="Stake or unstake the service based on the state."
@@ -139,7 +140,7 @@ if __name__ == "__main__":
                 ledger_api, args.service_id, args.staking_contract_address
             ):
                 print(
-                    "WARNING: Your service has been evicted from the staking program due to inactivity."
+                    f"WARNING: Your service has been evicted from the {staking_program} staking program due to inactivity."
                 )
                 input("Press Enter to continue...")
 
@@ -163,10 +164,10 @@ if __name__ == "__main__":
 
             if (now - ts_start) < minimum_staking_duration and available_rewards > 0:
                 print(
-                    f"WARNING: Your service has been staked for {format_duration(int(now - ts_start))}."
+                    f"WARNING: Your service has been staked on {staking_program} for {format_duration(int(now - ts_start))}."
                 )
                 print(
-                    f"Your cannot unstake your service until it has been staked for at least {format_duration(minimum_staking_duration)}."
+                    f"Your cannot unstake your service from {staking_program} until it has been staked for at least {format_duration(minimum_staking_duration)}."
                 )
                 print("Terminating script.")
                 sys.exit(1)
@@ -191,7 +192,7 @@ if __name__ == "__main__":
                 )
 
                 user_input = input(
-                    "Do you want to continue unstaking? (yes/no)\n"
+                    f"Do you want to continue unstaking from {staking_program}? (yes/no)\n"
                 ).lower()
                 print()
 
@@ -199,13 +200,13 @@ if __name__ == "__main__":
                     print("Terminating script.")
                     sys.exit(1)
 
-            print(f"Unstaking service {args.service_id}...")
+            print(f"Unstaking service {args.service_id} from {staking_program}...")
             unstake_txs = get_unstake_txs(
                 ledger_api, args.service_id, args.staking_contract_address
             )
             for tx in unstake_txs:
                 send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-            print("Successfully unstaked.")
+            print(f"Successfully unstaked from {staking_program}.")
             sys.exit(0)
 
         if is_service_staked(
@@ -215,7 +216,7 @@ if __name__ == "__main__":
                 ledger_api, args.service_id, args.staking_contract_address
             ):
                 print(
-                    "Your service has been evicted from the staking program due to inactivity. Unstaking..."
+                    f"Your service has been evicted from the {staking_program} staking program due to inactivity. Unstaking..."
                 )
                 unstake_txs = get_unstake_txs(
                     ledger_api, args.service_id, args.staking_contract_address
@@ -223,11 +224,11 @@ if __name__ == "__main__":
                 for tx in unstake_txs:
                     send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
-                print("Unstaked successfully.")
+                print(f"Successfully unstaked from {staking_program}.")
                 sys.exit(0)
 
             print(
-                f"Service {args.service_id} is already staked. "
+                f"Service {args.service_id} is already staked on {staking_program}."
                 f"Checking if the staking contract has any rewards..."
             )
             available_rewards = get_available_rewards(
@@ -241,14 +242,14 @@ if __name__ == "__main__":
                 for tx in unstake_txs:
                     send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
-                print("Unstaked successfully.")
+                print(f"Successfully unstaked from {staking_program}.")
                 sys.exit(0)
 
             print("There are rewards available. The service should remain staked.")
             sys.exit(0)
         elif get_available_staking_slots(ledger_api, args.staking_contract_address) > 0:
             print(
-                f"Service {args.service_id} is not staked. Checking for available rewards..."
+                f"Service {args.service_id} is not staked on {staking_program}. Checking for available rewards..."
             )
             available_rewards = get_available_rewards(
                 ledger_api, args.staking_contract_address
@@ -270,7 +271,7 @@ if __name__ == "__main__":
             for tx in stake_txs:
                 send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
-            print(f"Service {args.service_id} staked successfully.")
+            print(f"Service {args.service_id} staked successfully on {staking_program}.")
         else:
             print(
                 f"All staking slots for contract {args.staking_contract_address} are taken. Your service cannot be staked."
