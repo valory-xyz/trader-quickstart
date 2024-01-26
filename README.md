@@ -7,6 +7,7 @@ A quickstart for the trader agent for AI prediction markets on Gnosis at https:/
 - Windows 10/11: WSL2 / Git BASH
 - Mac ARM / Intel
 - Linux
+- Raspberry Pi 4
 
 ## System Requirements
 
