@@ -2,6 +2,12 @@
 
 A quickstart for the trader agent for AI prediction markets on Gnosis at https://github.com/valory-xyz/trader
 
+## Compatible Systems
+
+- Windows 10/11: WSL2 / Git BASH
+- Mac ARM / Intel
+- Linux
+
 ## System Requirements
 
 Ensure your machine satisfies the requirements:
@@ -173,7 +179,7 @@ In Docker Desktop make sure that in `Settings -> Advanced` the following boxes a
 
 ![Docker Desktop settings](images/docker.png)
 
-## Advice for Windows users
+## Advice for Windows users using Git BASH
 
 We provide some hints to have your Windows system ready to run the agent. The instructions below have been tested in Windows 11.
 
@@ -294,7 +300,7 @@ If you wish to terminate your on-chain service (and receive back the staking/bon
 
 ## RPC-related Error Messages
 
-When updating the service, you may need to re-run the script several if in the process if you obtain any of the following error messages:
+When updating the service, you may need to re-run the script if you obtain any of the following error messages:
 
 ```Error: Service terminatation failed with following error; ChainTimeoutError(Timed out when waiting for transaction to go through)
 
