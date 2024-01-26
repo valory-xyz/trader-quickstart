@@ -25,6 +25,7 @@ import math
 import time
 import traceback
 from argparse import ArgumentParser
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -50,7 +51,7 @@ AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
 OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
-SERVICE_STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+SERVICE_STAKING_CONTRACT_ADDRESS = "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
 SERVICE_STAKING_TOKEN_JSON_PATH = Path(
     SCRIPT_PATH,
     "trader",
@@ -82,6 +83,7 @@ AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
 MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
+AGENT_ID = 14
 
 OUTPUT_WIDTH = 80
 
@@ -93,6 +95,14 @@ class ColorCode:
     RED = "\033[91m"
     YELLOW = "\033[93m"
     RESET = "\033[0m"
+
+
+class StakingState(Enum):
+    """Staking state enumeration for the staking."""
+
+    UNSTAKED = 0
+    STAKED = 1
+    EVICTED = 2
 
 
 def _color_string(text: str, color_code: str) -> str:
@@ -233,10 +243,22 @@ if __name__ == "__main__":
         service_staking_token_contract = w3.eth.contract(
             address=SERVICE_STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi
         )
-        is_staked = service_staking_token_contract.functions.isServiceStaked(
-            service_id
-        ).call()
+        service_staking_state = StakingState(
+            service_staking_token_contract.functions.getServiceStakingState(
+                service_id
+            ).call()
+        )
+
+        is_staked = (
+            service_staking_state == StakingState.STAKED
+            or service_staking_state == StakingState.EVICTED
+        )
         _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
+        if service_staking_state == StakingState.STAKED:
+            _print_status("Staking state", service_staking_state.name)
+        elif service_staking_state == StakingState.EVICTED:
+            _print_status("Staking state", _color_string(service_staking_state.name, ColorCode.RED))
+
 
         if is_staked:
             with open(
@@ -261,7 +283,7 @@ if __name__ == "__main__":
                 ).call()
             )
             agent_bond = service_registry_token_utility_contract.functions.getAgentBond(
-                service_id, 12
+                service_id, AGENT_ID
             ).call()
             min_staking_deposit = (
                 service_staking_token_contract.functions.minStakingDeposit().call()
@@ -330,7 +352,7 @@ if __name__ == "__main__":
     agent_status = _get_agent_status()
     agent_xdai = get_balance(agent_address, rpc)
     _print_subsection_header("Agent")
-    _print_status("Status", agent_status)
+    _print_status("Status (on this machine)", agent_status)
     _print_status("Address", agent_address)
     _print_status(
         "xDAI Balance",
