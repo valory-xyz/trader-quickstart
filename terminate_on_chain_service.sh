@@ -169,7 +169,8 @@ if [[ "$current_safe_owners" == "['$agent_address']" ]]; then
 fi
 
 # terminate current service
-if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
+state="$(get_on_chain_service_state "$service_id")"
+if [ "$state" == "ACTIVE_REGISTRATION" ] || [ "$state" == "FINISHED_REGISTRATION" ] || [ "$state" == "DEPLOYED" ]; then
     echo "[Service owner] Terminating on-chain service $service_id..."
     poetry run autonomy service \
         --retries $RPC_RETRIES \
