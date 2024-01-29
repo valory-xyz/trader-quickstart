@@ -72,7 +72,7 @@ Services can become staked by invoking the `stake()` contract method, where serv
 
 - Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
 - In the [Alpine staking program](https://www.valory.xyz/post/alpine) services are evicted after accumulating 2 consecutive checkpoints without meeting the activity threshold.  
-- Currently the minimum staking time is approximately 3 days. In particular a service cannot be unstaked during the minum staking time period.
+- Currently, the minimum staking time is approximately 3 days. In particular, a service cannot be unstaked during the minimum staking period.
 
 ### Service is Running
 
