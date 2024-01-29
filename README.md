@@ -47,7 +47,7 @@ Do you want to use staking in this service? (yes/no): n
 > Using this code could potentially lead to loss of funds, compromised data, or asset risk.
 > Exercise caution and use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
 
-Before you proceed, ensure you have at least 50 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/s-e-everest).
+Before you proceed, ensure you have at least 20 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/alpine).
 
 Clone this repository locally and execute:
 
@@ -71,7 +71,8 @@ Services can become staked by invoking the `stake()` contract method, where serv
  __Notes__:
 
 - Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
-- Currently the script only supports staking with newly registered trader services (staking an already registered trader service is not supported by the script). We are working on adding the missing support.
+- In the [Alpine staking program](https://www.valory.xyz/post/alpine) services are evicted after accumulating 2 consecutive checkpoints without meeting the activity threshold.  
+- Currently, the minimum staking time is approximately 3 days. In particular, a service cannot be unstaked during the minimum staking period.
 
 ### Service is Running
 
