@@ -548,7 +548,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.12.0"
+service_version="v0.12.1"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
