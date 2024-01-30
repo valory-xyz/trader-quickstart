@@ -952,19 +952,20 @@ elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig
 fi
 
+# check state
+service_state="$(get_on_chain_service_state "$service_id")"
+if [ "$service_state" != "DEPLOYED" ]; then
+    echo "ERROR: Something went wrong while deploying your on-chain service. The service's state is $service_state."
+    echo "Please, try re-running the script and if the error persists, check the output of the script and the on-chain registry https://registry.olas.network/gnosis/services/$service_id."
+    echo "Terminating script."
+    exit 1
+fi
+
 # perform staking operations
 # the following will stake the service in case it is not staked, and there are available rewards
 # if the service is already staked, and there are no available rewards, it will unstake the service
 if [ "${USE_STAKING}" = true ]; then
   perform_staking_ops
-fi
-
-# check state
-service_state="$(get_on_chain_service_state "$service_id")"
-if [ "$service_state" != "DEPLOYED" ]; then
-    echo "Something went wrong while deploying on-chain service. The service's state is $service_state."
-    echo "Please check the output of the script and the on-chain registry for more information."
-    exit 1
 fi
 
 echo ""
