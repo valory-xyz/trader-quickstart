@@ -548,7 +548,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.12.0"
+service_version="v0.12.3"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -572,6 +572,7 @@ export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
+sleep_duration=5
 
 echo ""
 echo "---------------"
@@ -767,6 +768,7 @@ then
       cmd+=" -c $cost_of_bonding"
     fi
     service_id=$(eval $cmd)
+    sleep $sleep_duration
     # parse only the id from the response
     service_id="${service_id##*: }"
     # validate id
@@ -852,7 +854,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   --use-custom-chain \
                   terminate "$service_id" \
                   --key "../$operator_pkey_path" $password_argument
-
+              sleep $sleep_duration
       fi
 
       # unbond current service
@@ -864,6 +866,8 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             --use-custom-chain \
             unbond "$service_id" \
             --key "../$operator_pkey_path" $password_argument
+
+          sleep $sleep_duration
       fi
 
       # update service
@@ -893,6 +897,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   --update \"$service_id\""
           fi
           eval "$cmd"
+          sleep $sleep_duration
       fi
 
       echo ""
@@ -927,6 +932,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
     eval "$cmd"
+    sleep $sleep_duration
 fi
 
 # register agent instance
@@ -939,6 +945,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; t
     fi
 
     eval "$cmd"
+    sleep $sleep_duration
 fi
 
 # deploy on-chain service
@@ -947,9 +954,20 @@ multisig_address="$(get_multisig_address "$service_id")"
 if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) && [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument
+    sleep $sleep_duration
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig
+    sleep $sleep_duration
+fi
+
+# check state
+service_state="$(get_on_chain_service_state "$service_id")"
+if [ "$service_state" != "DEPLOYED" ]; then
+    echo "ERROR: Something went wrong while deploying your on-chain service. The service's state is $service_state."
+    echo "Please, try re-running the script and if the error persists, check the output of the script and the on-chain registry https://registry.olas.network/gnosis/services/$service_id."
+    echo "Terminating script."
+    exit 1
 fi
 
 # perform staking operations
@@ -957,14 +975,6 @@ fi
 # if the service is already staked, and there are no available rewards, it will unstake the service
 if [ "${USE_STAKING}" = true ]; then
   perform_staking_ops
-fi
-
-# check state
-service_state="$(get_on_chain_service_state "$service_id")"
-if [ "$service_state" != "DEPLOYED" ]; then
-    echo "Something went wrong while deploying on-chain service. The service's state is $service_state."
-    echo "Please check the output of the script and the on-chain registry for more information."
-    exit 1
 fi
 
 echo ""
