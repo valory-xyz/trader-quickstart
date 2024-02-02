@@ -572,6 +572,14 @@ export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
+# check if USE_NEVERMINED is set to true
+if [ "$USE_NEVERMINED" == "true" ];
+then
+    echo "A Nevermined subscription will be used to pay for the mech requests."
+    export MECH_AGENT_ADDRESS="0x1Ce2Bc116fF7E668b1c57572B8981Ac0947034D1"
+    export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
+fi
+
 sleep_duration=5
 
 echo ""
