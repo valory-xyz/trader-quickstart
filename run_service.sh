@@ -535,6 +535,7 @@ set -e  # Exit script on first error
 
 # Initialize repo and version variables
 org_name="valory-xyz"
+open_autonomy_author="valory"
 directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
@@ -694,6 +695,8 @@ if [ ! -d "$directory" ]; then
     echo ""
     git clone --depth 1 --branch $service_version $service_repo
 fi
+
+poetry run autonomy init --reset --author $open_autonomy_author --remote --ipfs --ipfs-node "/dns/registry.autonolas.tech/tcp/443/https"
 
 cd $directory
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]
@@ -1011,7 +1014,7 @@ suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
 suggested_amount=$suggested_safe_top_up_default
-ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
+#ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
 then
