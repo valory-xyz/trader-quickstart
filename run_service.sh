@@ -696,9 +696,9 @@ if [ ! -d "$directory" ]; then
     git clone --depth 1 --branch $service_version $service_repo
 fi
 
+cd $directory
 poetry run autonomy init --reset --author $open_autonomy_author --remote --ipfs --ipfs-node "/dns/registry.autonolas.tech/tcp/443/https"
 
-cd $directory
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
