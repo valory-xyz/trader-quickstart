@@ -148,11 +148,7 @@ get_address() {
         return 1
     fi
 
-    local address_start_position=17
-    local address=$(sed -n 3p "$keys_json_path")
-    address=$(echo "$address" |
-        awk '{ print substr( $0, '$address_start_position', length($0) - '$address_start_position' - 1 ) }')
-
+    address=$($PYTHON_CMD -c 'import json; print(json.load(open("'"$keys_json_path"'"))[0]["address"])')
     echo -n "$address"
 }
 
@@ -165,12 +161,7 @@ get_private_key() {
         return 1
     fi
 
-    local private_key_start_position=21
-    local private_key=$(sed -n 4p "$keys_json_path")
-    private_key=$(echo -n "$private_key" |
-        awk '{ printf substr( $0, '$private_key_start_position', length($0) - '$private_key_start_position' ) }')
-
-    private_key=$(echo -n "$private_key" | awk '{gsub(/\\"/, "\"", $0); print $0}')
+    private_key=$($PYTHON_CMD -c 'import json; print(json.load(open("'"$keys_json_path"'"))[0]["private_key"])')
     private_key="${private_key#0x}"
 
     echo -n "$private_key"
@@ -544,11 +535,12 @@ set -e  # Exit script on first error
 
 # Initialize repo and version variables
 org_name="valory-xyz"
+open_autonomy_author="valory"
 directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.12.3"
+service_version="v0.12.4"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -571,6 +563,14 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+
+# check if USE_NEVERMINED is set to true
+if [ "$USE_NEVERMINED" == "true" ];
+then
+    echo "A Nevermined subscription will be used to pay for the mech requests."
+    export MECH_AGENT_ADDRESS="0x1Ce2Bc116fF7E668b1c57572B8981Ac0947034D1"
+    export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
+fi
 
 sleep_duration=5
 
@@ -705,6 +705,8 @@ if [ ! -d "$directory" ]; then
 fi
 
 cd $directory
+poetry run autonomy init --reset --author $open_autonomy_author --remote --ipfs --ipfs-node "/dns/registry.autonolas.tech/tcp/443/https"
+
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
