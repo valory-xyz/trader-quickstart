@@ -148,11 +148,7 @@ get_address() {
         return 1
     fi
 
-    local address_start_position=17
-    local address=$(sed -n 3p "$keys_json_path")
-    address=$(echo "$address" |
-        awk '{ print substr( $0, '$address_start_position', length($0) - '$address_start_position' - 1 ) }')
-
+    address=$($PYTHON_CMD -c 'import json; print(json.load(open("'"$keys_json_path"'"))[0]["address"])')
     echo -n "$address"
 }
 
@@ -165,12 +161,7 @@ get_private_key() {
         return 1
     fi
 
-    local private_key_start_position=21
-    local private_key=$(sed -n 4p "$keys_json_path")
-    private_key=$(echo -n "$private_key" |
-        awk '{ printf substr( $0, '$private_key_start_position', length($0) - '$private_key_start_position' ) }')
-
-    private_key=$(echo -n "$private_key" | awk '{gsub(/\\"/, "\"", $0); print $0}')
+    private_key=$($PYTHON_CMD -c 'import json; print(json.load(open("'"$keys_json_path"'"))[0]["private_key"])')
     private_key="${private_key#0x}"
 
     echo -n "$private_key"
