@@ -572,7 +572,7 @@ then
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 fi
 
-sleep_duration=5
+sleep_duration=8
 
 echo ""
 echo "---------------"
@@ -964,7 +964,7 @@ elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
 fi
 
 # Sleep slightly more due to possible RPC out-of-sync at this point.
-sleep $((2 * sleep_duration))
+sleep $sleep_duration
 
 # check state
 service_state="$(get_on_chain_service_state "$service_id")"
