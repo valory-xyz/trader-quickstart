@@ -85,7 +85,7 @@ if __name__ == "__main__":
         current_owner_crypto = EthereumCrypto(
             private_key_path=args.current_owner_private_key_path, password=args.password
         )
-        owner_cryptos: list[EthereumCrypto] = [current_owner_crypto]
+        owner_cryptos = [current_owner_crypto]  # type: ignore
 
         owners = [
             ledger_api.api.to_checksum_address(owner_crypto.address)
