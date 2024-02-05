@@ -572,7 +572,7 @@ then
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 fi
 
-sleep_duration=5
+sleep_duration=7
 
 echo ""
 echo "---------------"
