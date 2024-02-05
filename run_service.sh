@@ -705,8 +705,6 @@ if [ ! -d "$directory" ]; then
 fi
 
 cd $directory
-poetry run autonomy init --reset --author $open_autonomy_author --remote --ipfs --ipfs-node "/dns/registry.autonolas.tech/tcp/443/https"
-
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
@@ -716,6 +714,8 @@ else
     echo "$directory is not a git repo!"
     exit 1
 fi
+
+poetry run autonomy init --reset --author $open_autonomy_author --remote --ipfs --ipfs-node "/dns/registry.autonolas.tech/tcp/443/https"
 
 # Setup the minting tool
 export CUSTOM_CHAIN_RPC=$rpc
