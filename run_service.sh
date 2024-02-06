@@ -139,6 +139,47 @@ ensure_erc20_balance() {
     echo ""
 }
 
+# Function to wait until service is in a certain state
+ensure_rpc_reports_service_state() {
+    local service_id="$1"
+    local expected_state="$2"
+    local timeout=30
+
+    local start_time=$(date +%s)
+    local current_state="$(get_on_chain_service_state "$service_id")"
+
+    local spin='-\|/'
+    local i=0
+    local cycle_count=0
+    while [ "$current_state" != "$expected_state" ]; do
+        printf "\rWaiting for RPC to report Service %s in %s state... %s" "$service_id" "$expected_state" "${spin:$i:1} "
+        i=$(((i + 1) % 4))
+        sleep .1
+
+        # This will be checked every 5 seconds (50 cycles).
+        cycle_count=$((cycle_count + 1))
+        if [ "$cycle_count" -eq 50 ]; then
+            current_state="$(get_on_chain_service_state "$service_id")"
+            cycle_count=0
+
+            local current_time=$(date +%s)
+            local elapsed_time=$((current_time - start_time))
+            if [ "$elapsed_time" -ge "$timeout" ]; then
+                break
+            fi
+        fi
+    done
+
+    current_state="$(get_on_chain_service_state "$service_id")"  # Update current state before final check
+
+    if [ "$current_state" == "$expected_state" ]; then
+        printf "\rWaiting for RPC to report Service %s in %s state... OK\n" "$service_id" "$expected_state"
+    else
+        printf "\rWaiting for RPC to report Service %s in %s state... Timeout after %s seconds.\n" "$service_id" "$expected_state" "$timeout"
+    fi
+    echo ""
+}
+
 # Get the address from a keys.json file
 get_address() {
     local keys_json_path="$1"
@@ -572,7 +613,7 @@ then
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 fi
 
-sleep_duration=8
+sleep_duration=12
 
 echo ""
 echo "---------------"
@@ -770,7 +811,7 @@ then
       cmd+=" -c $cost_of_bonding"
     fi
     service_id=$(eval $cmd)
-    sleep $sleep_duration
+    ensure_rpc_reports_service_state $service_id "PRE_REGISTRATION"
     # parse only the id from the response
     service_id="${service_id##*: }"
     # validate id
@@ -856,7 +897,8 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   --use-custom-chain \
                   terminate "$service_id" \
                   --key "../$operator_pkey_path" $password_argument
-              sleep $sleep_duration
+
+              ensure_rpc_reports_service_state $service_id "TERMINATED_BONDED"
       fi
 
       # unbond current service
@@ -869,7 +911,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
             unbond "$service_id" \
             --key "../$operator_pkey_path" $password_argument
 
-          sleep $sleep_duration
+          ensure_rpc_reports_service_state $service_id "PRE_REGISTRATION"
       fi
 
       # update service
@@ -899,7 +941,11 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
                   --update \"$service_id\""
           fi
           eval "$cmd"
+        
+          # Updating a service does not change the on-chain service state.
+          # Therefore, we add a sleep as precaution.
           sleep $sleep_duration
+          ensure_rpc_reports_service_state $service_id "PRE_REGISTRATION"
       fi
 
       echo ""
@@ -934,7 +980,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
         cmd+=" --token $CUSTOM_OLAS_ADDRESS"
     fi
     eval "$cmd"
-    sleep $sleep_duration
+    ensure_rpc_reports_service_state $service_id "ACTIVE_REGISTRATION"
 fi
 
 # register agent instance
@@ -947,7 +993,7 @@ if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; t
     fi
 
     eval "$cmd"
-    sleep $sleep_duration
+    ensure_rpc_reports_service_state $service_id "FINISHED_REGISTRATION"
 fi
 
 # deploy on-chain service
@@ -956,15 +1002,12 @@ multisig_address="$(get_multisig_address "$service_id")"
 if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) && [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument
-    sleep $sleep_duration
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     echo "[Service owner] Deploying on-chain service $service_id..."
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig
-    sleep $sleep_duration
 fi
 
-# Sleep slightly more due to possible RPC out-of-sync at this point.
-sleep $sleep_duration
+ensure_rpc_reports_service_state $service_id "DEPLOYED"
 
 # check state
 service_state="$(get_on_chain_service_state "$service_id")"
