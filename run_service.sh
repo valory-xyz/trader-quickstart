@@ -572,7 +572,7 @@ then
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 fi
 
-sleep_duration=5
+sleep_duration=12
 
 echo ""
 echo "---------------"
@@ -962,6 +962,9 @@ elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig
     sleep $sleep_duration
 fi
+
+# Sleep slightly more due to possible RPC out-of-sync at this point.
+sleep $sleep_duration
 
 # check state
 service_state="$(get_on_chain_service_state "$service_id")"
