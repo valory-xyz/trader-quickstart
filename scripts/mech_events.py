@@ -25,82 +25,92 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from string import Template
+from typing import Any, ClassVar, Dict
 
 import requests
-from eth_utils import to_checksum_address
 from tqdm import tqdm
-from web3 import HTTPProvider, Web3
 from web3.datastructures import AttributeDict
-from web3.types import BlockParams
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
 MECH_EVENTS_JSON_PATH = Path(STORE_PATH, "mech_events.json")
-AGENT_MECH_JSON_PATH = Path(SCRIPT_PATH, "..", "contracts", "AgentMech.json")
 HTTP = "http://"
 HTTPS = HTTP[:4] + "s" + HTTP[4:]
 CID_PREFIX = "f01701220"
 IPFS_ADDRESS = f"{HTTPS}gateway.autonolas.tech/ipfs/"
-LATEST_BLOCK_NAME: BlockParams = "latest"
-BLOCK_DATA_NUMBER = "number"
-BLOCKS_CHUNK_SIZE = 5000
-EXCLUDED_BLOCKS_THRESHOLD = 2 * BLOCKS_CHUNK_SIZE
-NUM_EXCLUDED_BLOCKS = 10
-MECH_EVENTS_DB_VERSION = 2
+MECH_EVENTS_DB_VERSION = 3
 DEFAULT_MECH_FEE = 10000000000000000
-
-# Pair of (Mech contract address, Mech contract deployed on block number).
-MECH_CONTRACT_ADDRESSES = [
-    # Old Mech contract
-    (
-        to_checksum_address("0xff82123dfb52ab75c417195c5fdb87630145ae81"),
-        27939217,
-    ),
-    # New Mech contract
-    (
-        to_checksum_address("0x77af31de935740567cf4ff1986d04b2c964a786a"),
-        30663133,
-    ),
-]
+MECH_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/57238/mech/0.0.2"
+SUBGRAPH_HEADERS = {
+    "Accept": "application/json, multipart/mixed",
+    "Content-Type": "application/json",
+}
+QUERY_BATCH_SIZE = 1000
+MECH_EVENTS_SUBGRAPH_QUERY = Template(
+    """
+    query {
+        ${subgraph_event_set_name}(
+            where: {
+                sender: "${sender}"
+                id_gt: "${id_gt}"
+            }
+            first: ${first}
+            orderBy: id
+            orderDirection: asc
+            ) {
+            id
+            ipfsHash
+            requestId
+            sender
+            transactionHash
+            blockNumber
+            blockTimestamp
+        }
+    }
+    """
+)
 
 
 @dataclass
-class MechBaseEvent:
+class MechBaseEvent:  # pylint: disable=too-many-instance-attributes
     """Base class for mech's on-chain event representation."""
 
     event_id: str
-    data: str
     sender: str
     transaction_hash: str
+    ipfs_hash: str
     block_number: int
-    utc_timestamp: int
+    block_timestamp: int
     ipfs_link: str
     ipfs_contents: Dict[str, Any]
+
+    event_name: ClassVar[str]
+    subgraph_event_name: ClassVar[str]
 
     def __init__(
         self,
         event_id: str,
-        data: str,
         sender: str,
+        ipfs_hash: str,
         transaction_hash: str,
         block_number: int,
-        utc_timestamp: int,
+        block_timestamp: int,
     ):  # pylint: disable=too-many-arguments
         """Initializes the MechBaseEvent"""
         self.event_id = event_id
-        self.data = data
         self.sender = sender
+        self.ipfs_hash = ipfs_hash
         self.transaction_hash = transaction_hash
         self.block_number = block_number
-        self.utc_timestamp = utc_timestamp
+        self.block_timestamp = block_timestamp
         self.ipfs_link = ""
         self.ipfs_contents = {}
-        self._populate_ipfs_contents(data)
+        self._populate_ipfs_contents(ipfs_hash)
 
     def _populate_ipfs_contents(self, data: str) -> None:
-        url = f"{IPFS_ADDRESS}{CID_PREFIX}{data}"
+        url = f"{IPFS_ADDRESS}{data}"
         for _url in [f"{url}/metadata.json", url]:
             try:
                 response = requests.get(_url)
@@ -117,22 +127,20 @@ class MechRequest(MechBaseEvent):
 
     request_id: str
     fee: int
-    event_name: str = "Request"
 
-    def __init__(self, event: AttributeDict, utc_timestamp: int):
+    event_name: ClassVar[str] = "Request"
+    subgraph_event_name: ClassVar[str] = "request"
+
+    def __init__(self, event: AttributeDict):
         """Initializes the MechRequest"""
 
-        if self.event_name != event["event"]:
-            raise ValueError("Invalid event to initialize MechRequest")
-
-        args = event["args"]
         super().__init__(
-            event_id=args["requestId"],
-            data=args["data"].hex(),
-            sender=args["sender"],
-            transaction_hash=event["transactionHash"].hex(),
+            event_id=event["requestId"],
+            sender=event["sender"],
+            ipfs_hash=event["ipfsHash"],
+            transaction_hash=event["transactionHash"],
             block_number=event["blockNumber"],
-            utc_timestamp=utc_timestamp,
+            block_timestamp=event["blockTimestamp"],
         )
 
         self.request_id = self.event_id
@@ -163,10 +171,10 @@ MINIMUM_WRITE_FILE_DELAY = 20
 last_write_time = 0.0
 
 
-def _write_mech_events_data(
-    mech_events_data: Dict[str, Any], force_write=False
+def _write_mech_events_data_to_file(
+    mech_events_data: Dict[str, Any], force_write: bool = False
 ) -> None:
-    global last_write_time
+    global last_write_time  # pylint: disable=global-statement
     now = time.time()
 
     if force_write or (now - last_write_time) >= MINIMUM_WRITE_FILE_DELAY:
@@ -175,130 +183,114 @@ def _write_mech_events_data(
         last_write_time = now
 
 
+def _query_mech_events_subgraph(
+    sender: str, event_cls: type[MechBaseEvent]
+) -> dict[str, Any]:
+    """Query the subgraph."""
+
+    subgraph_event_set_name = f"{event_cls.subgraph_event_name}s"
+    all_results: dict[str, Any] = {"data": {subgraph_event_set_name: []}}
+    id_gt = ""
+    while True:
+        query = MECH_EVENTS_SUBGRAPH_QUERY.substitute(
+            subgraph_event_set_name=subgraph_event_set_name,
+            sender=sender,
+            id_gt=id_gt,
+            first=QUERY_BATCH_SIZE,
+        )
+        response = requests.post(
+            MECH_SUBGRAPH_URL,
+            headers=SUBGRAPH_HEADERS,
+            json={"query": query},
+            timeout=300,
+        )
+        result_json = response.json()
+        events = result_json.get("data", {}).get(subgraph_event_set_name, [])
+
+        if not events:
+            break
+
+        all_results["data"][subgraph_event_set_name].extend(events)
+        id_gt = events[len(events) - 1]["id"]
+
+    return all_results
+
+
 # pylint: disable=too-many-locals
 def _update_mech_events_db(
-    rpc: str,
-    mech_contract_address: str,
-    event_name: str,
-    earliest_block: int,
     sender: str,
+    event_cls: type[MechBaseEvent],
 ) -> None:
-    """Get the mech Request events."""
+    """Get the mech Events database."""
 
     print(
         f"Updating the local Mech events database. This may take a while.\n"
-        f"           Event: {event_name}\n"
-        f"   Mech contract: {mech_contract_address}\n"
-        f"  Sender address: {sender}"
+        f"             Event: {event_cls.event_name}\n"
+        f"    Sender address: {sender}"
     )
 
-    # Read the current Mech events database
-    mech_events_data = _read_mech_events_data_from_file()
-
-    # Search for Mech events in the blockchain
     try:
-        w3 = Web3(HTTPProvider(rpc))
-        with open(AGENT_MECH_JSON_PATH, "r", encoding="utf-8") as file:
-            contract_data = json.load(file)
+        # Query the subgraph
+        query = _query_mech_events_subgraph(sender, event_cls)
+        subgraph_data = query["data"]
 
-        abi = contract_data.get("abi", [])
-        contract_instance = w3.eth.contract(address=mech_contract_address, abi=abi)
-
-        last_processed_block = (
-            mech_events_data.get(sender, {})
-            .get(mech_contract_address, {})
-            .get(event_name, {})
-            .get("last_processed_block", 0)
+        # Read the current Mech events database
+        mech_events_data = _read_mech_events_data_from_file()
+        stored_events = mech_events_data.setdefault(sender, {}).setdefault(
+            event_cls.event_name, {}
         )
-        starting_block = max(earliest_block, last_processed_block + 1)
-        ending_block = w3.eth.get_block(LATEST_BLOCK_NAME)[BLOCK_DATA_NUMBER]
 
-        print(f"  Starting block: {starting_block}")
-        print(f"    Ending block: {ending_block}")
-
-        # If the script has to process relatively recent blocks,
-        # this will allow the RPC synchronize them and prevent
-        # throwing an exception.
-        if ending_block - starting_block < EXCLUDED_BLOCKS_THRESHOLD:
-            ending_block -= NUM_EXCLUDED_BLOCKS
-            time.sleep(10)
-
-        for from_block in tqdm(
-            range(starting_block, ending_block, BLOCKS_CHUNK_SIZE),
-            desc="        Progress: ",
+        subgraph_event_set_name = f"{event_cls.subgraph_event_name}s"
+        for subgraph_event in tqdm(
+            subgraph_data[subgraph_event_set_name],
+            miniters=1,
+            desc="        Processing",
         ):
-            to_block = min(from_block + BLOCKS_CHUNK_SIZE, ending_block)
-            event_filter = contract_instance.events[event_name].create_filter(
-                fromBlock=from_block, toBlock=to_block
-            )
-            chunk = event_filter.get_all_entries()
-            w3.eth.uninstall_filter(event_filter.filter_id)
-            filtered_events = [
-                event for event in chunk if event["args"]["sender"] == sender
-            ]
+            if subgraph_event[
+                "requestId"
+            ] not in stored_events or not stored_events.get(
+                subgraph_event["requestId"], {}
+            ).get(
+                "ipfs_contents"
+            ):
+                mech_event = event_cls(subgraph_event)  # type: ignore
+                stored_events[mech_event.event_id] = mech_event.__dict__
 
-            # Update the Mech events data with the latest examined chunk
-            sender_data = mech_events_data.setdefault(sender, {})
-            contract_data = sender_data.setdefault(mech_contract_address, {})
-            event_data = contract_data.setdefault(event_name, {})
-            event_data["last_processed_block"] = to_block
+                _write_mech_events_data_to_file(mech_events_data=mech_events_data)
 
-            mech_events = event_data.setdefault("mech_events", {})
-            for event in filtered_events:
-                block_number = event["blockNumber"]
-                utc_timestamp = w3.eth.get_block(block_number).timestamp
-
-                if event_name == MechRequest.event_name:
-                    mech_event = MechRequest(event, utc_timestamp)
-                    mech_events[mech_event.event_id] = mech_event.__dict__
-
-            # Store the (updated) Mech events database
-            _write_mech_events_data(mech_events_data)
+        _write_mech_events_data_to_file(
+            mech_events_data=mech_events_data, force_write=True
+        )
 
     except KeyboardInterrupt:
         print(
             "\n"
-            f"WARNING: The update of the local Mech events database was cancelled (contract {mech_contract_address}). "
+            "WARNING: The update of the local Mech events database was cancelled. "
             "Therefore, the Mech calls and costs might not be reflected accurately. "
             "You may attempt to rerun this script to retry synchronizing the database."
         )
         input("Press Enter to continue...")
     except Exception:  # pylint: disable=broad-except
         print(
-            f"WARNING: An error occurred while updating the local Mech events database (contract {mech_contract_address}). "
+            "WARNING: An error occurred while updating the local Mech events database. "
             "Therefore, the Mech calls and costs might not be reflected accurately. "
             "You may attempt to rerun this script to retry synchronizing the database."
         )
         input("Press Enter to continue...")
 
-    _write_mech_events_data(mech_events_data, True)
     print("")
 
 
-def _get_mech_events(rpc: str, sender: str, event_name: str) -> Dict[str, Any]:
+def _get_mech_events(sender: str, event_cls: type[MechBaseEvent]) -> Dict[str, Any]:
     """Updates the local database of Mech events and returns the Mech events."""
 
-    for (
-        mech_contract_address,
-        mech_contract_deployed_block,
-    ) in MECH_CONTRACT_ADDRESSES:
-        _update_mech_events_db(
-            rpc, mech_contract_address, event_name, mech_contract_deployed_block, sender
-        )
-
+    _update_mech_events_db(sender, event_cls)
     mech_events_data = _read_mech_events_data_from_file()
     sender_data = mech_events_data.get(sender, {})
-
-    all_mech_events = {}
-    for mech_contract_data in sender_data.values():
-        event_data = mech_contract_data.get(event_name, {})
-        mech_events = event_data.get("mech_events", {})
-        all_mech_events.update(mech_events)
-
-    return all_mech_events
+    return sender_data.get(event_cls.event_name, {})
 
 
-def get_mech_requests(rpc: str, sender: str) -> Dict[str, Any]:
+def get_mech_requests(sender: str) -> Dict[str, Any]:
     """Returns the Mech requests."""
 
-    return _get_mech_events(rpc, sender, MechRequest.event_name)
+    return _get_mech_events(sender, MechRequest)

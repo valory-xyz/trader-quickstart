@@ -786,7 +786,7 @@ if __name__ == "__main__":
     with open(RPC_PATH, "r", encoding="utf-8") as rpc_file:
         rpc = rpc_file.read()
 
-    mech_requests = get_mech_requests(rpc, user_args.creator)
+    mech_requests = get_mech_requests(user_args.creator)
     mech_statistics = get_mech_statistics(mech_requests)
 
     trades_json = _query_omen_xdai_subgraph(
