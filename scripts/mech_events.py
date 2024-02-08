@@ -139,8 +139,8 @@ class MechRequest(MechBaseEvent):
             sender=event["sender"],
             ipfs_hash=event["ipfsHash"],
             transaction_hash=event["transactionHash"],
-            block_number=event["blockNumber"],
-            block_timestamp=event["blockTimestamp"],
+            block_number=int(event["blockNumber"]),
+            block_timestamp=int(event["blockTimestamp"]),
         )
 
         self.request_id = self.event_id
