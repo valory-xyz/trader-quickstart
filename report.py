@@ -141,7 +141,7 @@ def _get_mech_requests_count(
     return sum(
         1
         for mech_request in mech_requests.values()
-        if mech_request.get("utc_timestamp", 0) > timestamp
+        if mech_request.get("block_timestamp", 0) > timestamp
     )
 
 
