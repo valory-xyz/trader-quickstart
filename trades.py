@@ -59,6 +59,9 @@ SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
 WXDAI_CONTRACT_ADDRESS = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
+SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 
 
 headers = {
@@ -255,7 +258,7 @@ def _parse_args() -> Any:
     """Parse the script arguments."""
     parser = ArgumentParser(description="Get trades on Omen for a Safe address.")
     parser.add_argument(
-        "creator",
+        "--creator",
         action=EthereumAddressAction,
         help="Ethereum address of the service Safe",
     )
@@ -284,6 +287,10 @@ def _parse_args() -> Any:
         help="End date (UTC) in YYYY-MM-DD:HH:mm:ss format",
     )
     args = parser.parse_args()
+
+    if args.creator is None:
+        with open(SAFE_ADDRESS_PATH, "r", encoding="utf-8") as file:
+            args.creator = file.read().strip()
 
     args.from_date = args.from_date.replace(tzinfo=datetime.timezone.utc)
     args.to_date = args.to_date.replace(tzinfo=datetime.timezone.utc)
