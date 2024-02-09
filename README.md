@@ -97,13 +97,13 @@ Agent runners are recommended to create a [backup](https://github.com/valory-xyz
 1. Use the `trades` command to display information about placed trades by a given address:
 
     ```bash
-    cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS; cd ..
+    cd trader; poetry run python ../trades.py --creator YOUR_SAFE_ADDRESS; cd ..
     ```
 
     Or restrict the search to specific dates by defining the "from" and "to" dates:
 
     ```bash
-    cd trader; poetry run python ../trades.py YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00; cd ..
+    cd trader; poetry run python ../trades.py --creator YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00; cd ..
     ```
 
 2. Use the `report` command to display a summary of the service status:
