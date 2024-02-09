@@ -141,7 +141,7 @@ def _get_mech_requests_count(
     return sum(
         1
         for mech_request in mech_requests.values()
-        if mech_request.get("utc_timestamp", 0) > timestamp
+        if mech_request.get("block_timestamp", 0) > timestamp
     )
 
 
@@ -218,7 +218,7 @@ if __name__ == "__main__":
         rpc = file.read().strip()
 
     # Prediction market trading
-    mech_requests = trades.get_mech_requests(rpc, safe_address)
+    mech_requests = trades.get_mech_requests(safe_address)
     mech_statistics = trades.get_mech_statistics(mech_requests)
     trades_json = trades._query_omen_xdai_subgraph(safe_address)
     _, statistics_table = trades.parse_user(
