@@ -609,7 +609,7 @@ export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 if [ "$USE_NEVERMINED" == "true" ];
 then
     echo "A Nevermined subscription will be used to pay for the mech requests."
-    export MECH_AGENT_ADDRESS="0x1Ce2Bc116fF7E668b1c57572B8981Ac0947034D1"
+    export MECH_AGENT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 fi
 
