@@ -622,6 +622,7 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
 ) -> tuple[str, dict[Any, Any]]:
     """Parse the trades from the response."""
 
+    _mech_statistics = dict(mech_statistics)
     user_json = _query_conditional_tokens_gc_subgraph(creator)
 
     statistics_table = {
@@ -670,10 +671,11 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 market_status
             ] += collateral_amount
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
+            mech_data = _mech_statistics.pop(fpmmTrade["title"], {})
             statistics_table[MarketAttribute.MECH_CALLS][
                 market_status
-            ] += mech_statistics.get(fpmmTrade["title"], {}).get("count", 0)
-            mech_fees = mech_statistics.get(fpmmTrade["title"], {}).get("fees", 0)
+            ] += mech_data.get("count", 0)
+            mech_fees = mech_data.get("fees", 0)
             statistics_table[MarketAttribute.MECH_FEES][market_status] += mech_fees
 
             output += f" Market status: {market_status}\n"
