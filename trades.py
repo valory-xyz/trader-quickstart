@@ -304,7 +304,7 @@ def _parse_args() -> Any:
     return args
 
 
-def _to_content(q: str) -> dict[str, Any]:
+def _to_content(q: str) -> Dict[str, Any]:
     """Convert the given query string to payload content, i.e., add it under a `queries` key and convert it to bytes."""
     finalized_query = {
         "query": q,
@@ -320,7 +320,7 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     to_timestamp: float = DEFAULT_TO_TIMESTAMP,
     fpmm_from_timestamp: float = DEFAULT_FROM_TIMESTAMP,
     fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
 
@@ -365,11 +365,11 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     return all_results
 
 
-def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
+def _query_conditional_tokens_gc_subgraph(creator: str) -> Dict[str, Any]:
     """Query the subgraph."""
     url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
 
-    all_results: dict[str, Any] = {"data": {"user": {"userPositions": []}}}
+    all_results: Dict[str, Any] = {"data": {"user": {"userPositions": []}}}
     userPositions_id_gt = ""
     while True:
         query = conditional_tokens_gc_user_query.substitute(
@@ -419,7 +419,7 @@ def wei_to_olas(wei: int) -> str:
     return "{:.2f} OLAS".format(wei_to_unit(wei))
 
 
-def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
+def _is_redeemed(user_json: Dict[str, Any], fpmmTrade: Dict[str, Any]) -> bool:
     user_positions = user_json["data"]["user"]["userPositions"]
     outcomes_tokens_traded = int(fpmmTrade["outcomeTokensTraded"])
     condition_id = fpmmTrade["fpmm"]["condition"]["id"]
@@ -451,7 +451,7 @@ def _compute_roi(initial_value: int, final_value: int) -> float:
 
 
 def _compute_totals(
-    table: dict[Any, dict[Any, Any]], mech_statistics: dict[str, Any]
+    table: Dict[Any, Dict[Any, Any]], mech_statistics: Dict[str, Any]
 ) -> None:
     for row in table.keys():
         total = sum(table[row][c] for c in table[row])
@@ -489,7 +489,7 @@ def _compute_totals(
         )
 
 
-def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
+def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
     column_width = 14
 
     table_str = " " * column_width
@@ -617,9 +617,9 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
 def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     rpc: str,
     creator: str,
-    creator_trades_json: dict[str, Any],
-    mech_statistics: dict[str, Any],
-) -> tuple[str, dict[Any, Any]]:
+    creator_trades_json: Dict[str, Any],
+    mech_statistics: Dict[str, Any],
+) -> tuple[str, Dict[Any, Any]]:
     """Parse the trades from the response."""
 
     _mech_statistics = dict(mech_statistics)
