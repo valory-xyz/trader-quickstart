@@ -211,7 +211,7 @@ get_private_key() {
 # Function to warm start the policy
 warm_start() {
     echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
-    echo '{"counts": [1,1,1,1,1], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
+    echo '{"counts": [0,0,0,0,0], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
     echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
 }
 
