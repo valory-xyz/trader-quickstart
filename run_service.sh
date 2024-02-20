@@ -211,7 +211,7 @@ get_private_key() {
 # Function to warm start the policy
 warm_start() {
     echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
-    echo '{"counts": [1,1,1,1,1], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
+    echo '{"counts": [0,0,0,0,0], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
     echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
 }
 
@@ -581,7 +581,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.12.4"
+service_version="v0.12.5"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -609,7 +609,7 @@ export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 if [ "$USE_NEVERMINED" == "true" ];
 then
     echo "A Nevermined subscription will be used to pay for the mech requests."
-    export MECH_AGENT_ADDRESS="0x1Ce2Bc116fF7E668b1c57572B8981Ac0947034D1"
+    export MECH_AGENT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 fi
 
