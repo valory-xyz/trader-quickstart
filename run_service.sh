@@ -143,7 +143,7 @@ ensure_erc20_balance() {
 ensure_rpc_reports_service_state() {
     local service_id="$1"
     local expected_state="$2"
-    local timeout=30
+    local timeout=60
 
     local start_time=$(date +%s)
     local current_state="$(get_on_chain_service_state "$service_id")"
@@ -826,7 +826,7 @@ fi
 
 # Update the on-chain service if outdated
 packages="packages/packages.json"
-local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
+local_service_hash="$(grep 'service/valory/trader' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
 
