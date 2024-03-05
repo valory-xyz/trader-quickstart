@@ -780,8 +780,7 @@ echo "-----------------------------------------"
 AGENT_ID=14
 dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
 
-if [ -z ${service_id+x} ];
-then
+if [ -z ${service_id+x} ]; then
     # Check balances
     suggested_amount=$suggested_top_up_default
     ensure_minimum_balance "$operator_address" $suggested_amount "owner/operator's address"
@@ -811,7 +810,6 @@ then
       cmd+=" -c $cost_of_bonding"
     fi
     service_id=$(eval $cmd)
-    ensure_rpc_reports_service_state $service_id "PRE_REGISTRATION"
     # parse only the id from the response
     service_id="${service_id##*: }"
     # validate id
@@ -821,6 +819,7 @@ then
         exit 1
     fi
 
+    ensure_rpc_reports_service_state $service_id "PRE_REGISTRATION"
     echo -n "$service_id" > "../$service_id_path"
 fi
 
