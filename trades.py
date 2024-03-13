@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2022-2023 Valory AG
+#   Copyright 2022-2024 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 
 import datetime
 import re
-import time
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from collections import defaultdict
 from enum import Enum
@@ -159,6 +158,7 @@ class MarketState(Enum):
     FINALIZING = 3
     ARBITRATING = 4
     CLOSED = 5
+    UNKNOWN = 6
 
     def __str__(self) -> str:
         """Prints the market status."""
@@ -489,6 +489,31 @@ def _compute_totals(
         )
 
 
+def _get_market_state(market: Dict[str, Any]) -> MarketState:
+    try:
+        now = datetime.datetime.utcnow()
+
+        market_state = MarketState.CLOSED
+        if market[
+            "currentAnswer"
+        ] is None and now >= datetime.datetime.utcfromtimestamp(
+            float(market.get("openingTimestamp", 0))
+        ):
+            market_state = MarketState.PENDING
+        elif market["currentAnswer"] is None:
+            market_state = MarketState.OPEN
+        elif market["isPendingArbitration"]:
+            market_state = MarketState.ARBITRATING
+        elif now < datetime.datetime.utcfromtimestamp(
+            float(market.get("answerFinalizedTimestamp", 0))
+        ):
+            market_state = MarketState.FINALIZING
+
+        return market_state
+    except Exception:  # pylint: disable=broad-except
+        return MarketState.UNKNOWN
+
+
 def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
     column_width = 14
 
@@ -642,9 +667,6 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             creation_timestamp = float(fpmmTrade["creationTimestamp"])
 
             fpmm = fpmmTrade["fpmm"]
-            answer_finalized_timestamp = fpmm["answerFinalizedTimestamp"]
-            is_pending_arbitration = fpmm["isPendingArbitration"]
-            opening_timestamp = fpmm["openingTimestamp"]
 
             output += f'      Question: {fpmmTrade["title"]}\n'
             output += f'    Market URL: https://aiomen.eth.limo/#/{fpmm["id"]}\n'
@@ -654,17 +676,7 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             )
             output += f'    Trade date: {creation_timestamp_utc.strftime("%Y-%m-%d %H:%M:%S %Z")}\n'
 
-            market_status = MarketState.CLOSED
-            if fpmm["currentAnswer"] is None and time.time() >= float(
-                opening_timestamp
-            ):
-                market_status = MarketState.PENDING
-            elif fpmm["currentAnswer"] is None:
-                market_status = MarketState.OPEN
-            elif is_pending_arbitration:
-                market_status = MarketState.ARBITRATING
-            elif time.time() < float(answer_finalized_timestamp):
-                market_status = MarketState.FINALIZING
+            market_status = _get_market_state(fpmm)
 
             statistics_table[MarketAttribute.NUM_TRADES][market_status] += 1
             statistics_table[MarketAttribute.INVESTMENT][
@@ -795,7 +807,11 @@ if __name__ == "__main__":
     with open(RPC_PATH, "r", encoding="utf-8") as rpc_file:
         rpc = rpc_file.read()
 
-    mech_requests = get_mech_requests(user_args.creator)
+    mech_requests = get_mech_requests(
+        user_args.creator,
+        user_args.from_date.timestamp(),
+        user_args.to_date.timestamp(),
+    )
     mech_statistics = get_mech_statistics(mech_requests)
 
     trades_json = _query_omen_xdai_subgraph(
