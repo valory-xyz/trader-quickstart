@@ -42,6 +42,8 @@ CID_PREFIX = "f01701220"
 IPFS_ADDRESS = f"{HTTPS}gateway.autonolas.tech/ipfs/"
 MECH_EVENTS_DB_VERSION = 3
 DEFAULT_MECH_FEE = 10000000000000000
+DEFAULT_FROM_TIMESTAMP = 0
+DEFAULT_TO_TIMESTAMP = 2147483647
 MECH_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/57238/mech/0.0.2"
 SUBGRAPH_HEADERS = {
     "Accept": "application/json, multipart/mixed",
@@ -290,7 +292,18 @@ def _get_mech_events(sender: str, event_cls: type[MechBaseEvent]) -> Dict[str, A
     return sender_data.get(event_cls.event_name, {})
 
 
-def get_mech_requests(sender: str) -> Dict[str, Any]:
+def get_mech_requests(
+    sender: str,
+    from_timestamp: float = DEFAULT_FROM_TIMESTAMP,
+    to_timestamp: float = DEFAULT_TO_TIMESTAMP,
+) -> Dict[str, Any]:
     """Returns the Mech requests."""
 
-    return _get_mech_events(sender, MechRequest)
+    all_mech_events = _get_mech_events(sender, MechRequest)
+    filtered_mech_events = {}
+    for event_id, event_data in all_mech_events.items():
+        block_timestamp = event_data["block_timestamp"]
+        if from_timestamp <= block_timestamp <= to_timestamp:
+            filtered_mech_events[event_id] = event_data
+
+    return filtered_mech_events
