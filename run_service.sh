@@ -1058,7 +1058,7 @@ export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
 export BET_THRESHOLD=100000000000000000
 export TRADING_STRATEGY=kelly_criterion
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
-export IRRELEVANT_TOOLS='["claude-prediction-online", "openai-gpt-3.5-turbo-instruct", "prediction-online-summarized-info", "prediction-online-sum-url-content", "prediction-online", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization", "claude-prediction-offline"]'
+export IRRELEVANT_TOOLS='["prediction-offline-sme", "openai-gpt-3.5-turbo-instruct", "prediction-online-summarized-info", "prediction-online-sum-url-content", "prediction-online", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization", "claude-prediction-offline"]'
 
 service_dir="trader_service"
 build_dir="abci_build"
