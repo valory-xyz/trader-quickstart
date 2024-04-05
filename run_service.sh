@@ -611,6 +611,7 @@ then
     echo "A Nevermined subscription will be used to pay for the mech requests."
     export MECH_CONTRACT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
+    export REQUEST_PRICE=0
 fi
 
 sleep_duration=12
