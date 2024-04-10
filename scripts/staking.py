@@ -66,11 +66,11 @@ def _unstake(
     print(f"Checking if service is staked on {staking_program}...")
 
     # Check if service is staked
-    if staking_program == "Everest":
+    if staking_program.startswith("Everest"):
         if service_id not in get_service_ids(ledger_api, staking_contract_address):
             print(f"Service {service_id} is not staked on {staking_program}.")
             return
-    elif staking_program == "Alpine":
+    elif staking_program.startswith("Alpine"):
         if not is_service_staked(
             ledger_api, args.service_id, args.staking_contract_address
         ):
