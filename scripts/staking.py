@@ -45,8 +45,9 @@ from utils import (
 )
 
 
-EVEREST_STAKING_CONTRACT_ADDRESS = "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
-
+OLD_STAKING_PROGRAMS = {
+    "Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+}
 
 def _format_duration(duration_seconds: int) -> str:
     days, remainder = divmod(duration_seconds, 86400)
@@ -56,21 +57,28 @@ def _format_duration(duration_seconds: int) -> str:
     return formatted_duration
 
 
-def _unstake_everest(
-    ledger_api: EthereumApi, service_id: int, owner_crypto: EthereumCrypto
+def _unstake(
+    ledger_api: EthereumApi, service_id: int, staking_contract_address: str, staking_program: str, owner_crypto: EthereumCrypto
 ) -> None:
-    print("Checking if service is staked on Everest...")
-    staking_contract_address = EVEREST_STAKING_CONTRACT_ADDRESS
+    print(f"Checking if service is staked on {staking_program}...")
 
-    if service_id not in get_service_ids(ledger_api, staking_contract_address):
-        print(f"Service {service_id} is not staked on Everest.")
-        return
+    # Check if service is staked
+    if staking_program == "Everest":
+        if service_id not in get_service_ids(ledger_api, staking_contract_address):
+            print(f"Service {service_id} is not staked on {staking_program}.")
+            return
+    elif staking_program == "Alpine":
+        if not is_service_staked(
+            ledger_api, args.service_id, args.staking_contract_address
+        ):
+            print(f"Service {args.service_id} is not staked on {staking_program}..")
+            return
 
     print(
-        f"Service {service_id} is staked on Everest. To continue in a new staking program, first, it must be unstaked from Everest."
+        f"Service {service_id} is staked on {staking_program}. To continue in a new staking program, first, it must be unstaked from {staking_program}."
     )
     user_input = input(
-        "Do you want to continue unstaking from Everest? (yes/no)\n"
+        "Do you want to continue unstaking from {staking_program}? (yes/no)\n"
     ).lower()
     print()
 
@@ -78,11 +86,22 @@ def _unstake_everest(
         print("Terminating script.")
         sys.exit(1)
 
-    print(f"Unstaking service {service_id} from Everest...")
-    unstake_txs = get_unstake_txs(ledger_api, service_id, staking_contract_address)
+    print(f"Unstaking service {service_id} from {staking_program}...")
+    unstake_txs = get_unstake_txs(
+        ledger_api, service_id, staking_contract_address
+    )
     for tx in unstake_txs:
         send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-    print("Successfully unstaked from Everest.")
+    print(
+        f"Successfully unstaked service {args.service_id} from {staking_program}."
+    )
+
+
+def _unstake_old_programs(
+    ledger_api: EthereumApi, service_id: int, owner_crypto: EthereumCrypto
+) -> None:
+    for program, address in OLD_STAKING_PROGRAMS.items():
+        _unstake(ledger_api, service_id, address, program, owner_crypto)
 
 
 def _check_unstaking_availability(
@@ -184,7 +203,7 @@ if __name__ == "__main__":
             private_key_path=args.owner_private_key_path, password=args.password
         )
 
-        _unstake_everest(ledger_api, args.service_id, owner_crypto)
+        _unstake_old_programs(ledger_api, args.service_id, owner_crypto)
 
         # Collect information
         next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
@@ -208,7 +227,7 @@ if __name__ == "__main__":
                 ledger_api, args.service_id, args.staking_contract_address
             ):
                 # the service is not staked, so we don't need to do anything
-                print(f"Service {args.service_id} is not staked.")
+                print(f"Service {args.service_id} is not staked on {staking_program}..")
                 sys.exit(0)
 
             if is_service_evicted(
