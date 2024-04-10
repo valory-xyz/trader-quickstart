@@ -45,9 +45,8 @@ from utils import (
 )
 
 
-OLD_STAKING_PROGRAMS = {
-    "Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
-}
+OLD_STAKING_PROGRAMS = {"Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"}
+
 
 def _format_duration(duration_seconds: int) -> str:
     days, remainder = divmod(duration_seconds, 86400)
@@ -58,7 +57,11 @@ def _format_duration(duration_seconds: int) -> str:
 
 
 def _unstake(
-    ledger_api: EthereumApi, service_id: int, staking_contract_address: str, staking_program: str, owner_crypto: EthereumCrypto
+    ledger_api: EthereumApi,
+    service_id: int,
+    staking_contract_address: str,
+    staking_program: str,
+    owner_crypto: EthereumCrypto,
 ) -> None:
     print(f"Checking if service is staked on {staking_program}...")
 
@@ -87,14 +90,10 @@ def _unstake(
         sys.exit(1)
 
     print(f"Unstaking service {service_id} from {staking_program}...")
-    unstake_txs = get_unstake_txs(
-        ledger_api, service_id, staking_contract_address
-    )
+    unstake_txs = get_unstake_txs(ledger_api, service_id, staking_contract_address)
     for tx in unstake_txs:
         send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-    print(
-        f"Successfully unstaked service {args.service_id} from {staking_program}."
-    )
+    print(f"Successfully unstaked service {args.service_id} from {staking_program}.")
 
 
 def _unstake_old_programs(
