@@ -581,7 +581,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.13.1"
+service_version="v0.13.2"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -602,8 +602,12 @@ export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb1
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
-export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
+export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
+export DISABLE_TRADING=false
+export STOP_TRADING_IF_STAKING_KPI_MET=true
+export RESET_PAUSE_DURATION=300
 
 # check if USE_NEVERMINED is set to true
 if [ "$USE_NEVERMINED" == "true" ];
@@ -611,7 +615,7 @@ then
     echo "A Nevermined subscription will be used to pay for the mech requests."
     export MECH_CONTRACT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
     export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
-    export REQUEST_PRICE=0
+    export MECH_REQUEST_PRICE=0
 fi
 
 sleep_duration=12

@@ -77,6 +77,17 @@ SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH = Path(
     "contracts",
     "ServiceRegistryTokenUtility.json",
 )
+MECH_CONTRACT_ADDRESS = "0x77af31De935740567Cf4fF1986D04B2c964A786a"
+MECH_CONTRACT_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "mech",
+    "build",
+    "mech.json",
+)
 
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
@@ -277,6 +288,15 @@ if __name__ == "__main__":
                 abi=service_registry_token_utility_abi,
             )
 
+            with open(MECH_CONTRACT_JSON_PATH, "r", encoding="utf-8") as file:
+                mech_contract_data = json.load(file)
+
+            mech_contract_abi = mech_contract_data.get("abi", [])
+
+            mech_contract = w3.eth.contract(
+                address=MECH_CONTRACT_ADDRESS, abi=mech_contract_abi
+            )
+
             security_deposit = (
                 service_registry_token_utility_contract.functions.getOperatorBalance(
                     operator_address, service_id
@@ -320,9 +340,16 @@ if __name__ == "__main__":
                 service_staking_token_contract.functions.livenessPeriod().call()
             )
             last_checkpoint_ts = next_checkpoint_ts - liveness_period
-            mech_requests_current_epoch = _get_mech_requests_count(
-                mech_requests, last_checkpoint_ts
-            )
+
+            mech_request_count = mech_contract.functions.getRequestsCount(safe_address).call()
+            mech_request_count_on_last_checkpoint = (
+                service_staking_token_contract.functions.getServiceInfo(service_id).call()
+            )[2][1]
+            mech_requests_since_last_cp = mech_request_count - mech_request_count_on_last_checkpoint
+            # mech_requests_current_epoch = _get_mech_requests_count(
+            #     mech_requests, last_checkpoint_ts
+            # )
+            mech_requests_current_epoch = mech_requests_since_last_cp
             _print_status(
                 "Num. Mech txs current epoch",
                 f"{mech_requests_current_epoch} {_warning_message(mech_requests_current_epoch, mech_requests_24h_threshold, f'- Too low. Threshold is {mech_requests_24h_threshold}.')}",
