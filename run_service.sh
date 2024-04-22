@@ -608,7 +608,6 @@ export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export DISABLE_TRADING=false
 export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=300
-export MECH_CHAIN_ID=ethereum
 
 # check if USE_NEVERMINED is set to true
 if [ "$USE_NEVERMINED" == "true" ];
