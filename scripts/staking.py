@@ -45,7 +45,10 @@ from utils import (
 )
 
 
-OLD_STAKING_PROGRAMS = {"Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"}
+OLD_STAKING_PROGRAMS = {
+    "Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C",
+    "Alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
+}
 
 
 def _format_duration(duration_seconds: int) -> str:
@@ -72,16 +75,26 @@ def _unstake(
             return
     elif staking_program.startswith("Alpine"):
         if not is_service_staked(
-            ledger_api, args.service_id, args.staking_contract_address
+            ledger_api, service_id, staking_contract_address
         ):
-            print(f"Service {args.service_id} is not staked on {staking_program}..")
+            print(f"Service {service_id} is not staked on {staking_program}..")
             return
+
+        can_unstake = _check_unstaking_availability(
+            ledger_api,
+            service_id,
+            staking_contract_address,
+            staking_program,
+        )
+        if not can_unstake:
+            print("Terminating script.")
+            sys.exit(1)
 
     print(
         f"Service {service_id} is staked on {staking_program}. To continue in a new staking program, first, it must be unstaked from {staking_program}."
     )
     user_input = input(
-        "Do you want to continue unstaking from {staking_program}? (yes/no)\n"
+        f"Do you want to continue unstaking service {service_id} from {staking_program}? (yes/no)\n"
     ).lower()
     print()
 
@@ -93,7 +106,7 @@ def _unstake(
     unstake_txs = get_unstake_txs(ledger_api, service_id, staking_contract_address)
     for tx in unstake_txs:
         send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-    print(f"Successfully unstaked service {args.service_id} from {staking_program}.")
+    print(f"Successfully unstaked service {service_id} from {staking_program}.")
 
 
 def _unstake_old_programs(
@@ -104,12 +117,20 @@ def _unstake_old_programs(
 
 
 def _check_unstaking_availability(
-    now: float,
-    ts_start: float,
-    minimum_staking_duration: int,
-    available_rewards: float,
+    ledger_api: EthereumApi,
+    service_id: int,
+    staking_contract_address: str,
     staking_program: str,
-) -> None:
+) -> bool:
+
+    now = time.time()
+    ts_start = get_service_info(
+        ledger_api, service_id, staking_contract_address
+    )[3]
+    minimum_staking_duration = get_min_staking_duration(
+        ledger_api, staking_contract_address
+    )
+    available_rewards = get_available_rewards(ledger_api, staking_contract_address)
     if (now - ts_start) < minimum_staking_duration and available_rewards > 0:
         print(
             f"WARNING: Your service has been staked on {staking_program} for {_format_duration(int(now - ts_start))}."
@@ -117,8 +138,9 @@ def _check_unstaking_availability(
         print(
             f"You cannot unstake your service from {staking_program} until it has been staked for at least {_format_duration(minimum_staking_duration)}."
         )
-        print("Terminating script.")
-        sys.exit(1)
+        return False
+
+    return True
 
 
 def _try_stake_service(
@@ -160,9 +182,9 @@ def _try_stake_service(
         sys.exit(1)
 
 
-if __name__ == "__main__":
+def main() -> None:
     try:
-        staking_program = "Alpine"
+        staking_program = "Coastal"
         print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
 
         parser = argparse.ArgumentParser(
@@ -206,17 +228,9 @@ if __name__ == "__main__":
 
         # Collect information
         next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
-        ts_start = get_service_info(
-            ledger_api, args.service_id, args.staking_contract_address
-        )[3]
-
         liveness_period = get_liveness_period(ledger_api, args.staking_contract_address)
         last_ts = next_ts - liveness_period
         now = time.time()
-
-        minimum_staking_duration = get_min_staking_duration(
-            ledger_api, args.staking_contract_address
-        )
         available_rewards = get_available_rewards(
             ledger_api, args.staking_contract_address
         )
@@ -237,13 +251,16 @@ if __name__ == "__main__":
                 )
                 input("Press Enter to continue...")
 
-            _check_unstaking_availability(
-                now,
-                ts_start,
-                minimum_staking_duration,
-                available_rewards,
+            can_unstake = _check_unstaking_availability(
+                ledger_api,
+                args.service_id,
+                args.staking_contract_address,
                 staking_program,
             )
+
+            if not can_unstake:
+                print("Terminating script.")
+                sys.exit(1)
 
             if now < next_ts:
                 formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime(
@@ -294,13 +311,16 @@ if __name__ == "__main__":
                     f"Service {args.service_id} has been evicted from the {staking_program} staking program due to inactivity. Unstaking..."
                 )
 
-                _check_unstaking_availability(
-                    now,
-                    ts_start,
-                    minimum_staking_duration,
-                    available_rewards,
+                can_unstake = _check_unstaking_availability(
+                    ledger_api,
+                    args.service_id,
+                    args.staking_contract_address,
                     staking_program,
                 )
+
+                if not can_unstake:
+                    print("Terminating script.")
+                    sys.exit(1)
 
                 unstake_txs = get_unstake_txs(
                     ledger_api, args.service_id, args.staking_contract_address
@@ -364,3 +384,7 @@ if __name__ == "__main__":
             "\nPlease confirm whether your service is participating in a staking program, and then retry running the script."
         )
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
