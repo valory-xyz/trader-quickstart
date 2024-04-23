@@ -112,6 +112,7 @@ def _unstake(
 def _unstake_old_programs(
     ledger_api: EthereumApi, service_id: int, owner_crypto: EthereumCrypto
 ) -> None:
+    print("Unstaking from old programs...")
     for program, address in OLD_STAKING_PROGRAMS.items():
         _unstake(ledger_api, service_id, address, program, owner_crypto)
 
