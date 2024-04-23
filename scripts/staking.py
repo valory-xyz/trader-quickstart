@@ -59,7 +59,7 @@ def _format_duration(duration_seconds: int) -> str:
     return formatted_duration
 
 
-def _unstake(
+def _unstake_old_program(
     ledger_api: EthereumApi,
     service_id: int,
     staking_contract_address: str,
@@ -87,8 +87,16 @@ def _unstake(
             staking_program,
         )
         if not can_unstake:
-            print("Terminating script.")
-            sys.exit(1)
+            print(
+                "\n"
+                "WARNING: Service cannot be unstaked yet\n"
+                "---------------------------------------\n"
+                f"Service {service_id} cannot be unstaked from {staking_program} at this time.\n"
+                f"You can still run your service, but it will stay staked in {staking_program}.\n"
+                "Please, try re-running this script again at a later time to try stake on a new program.\n"
+            )
+            input("Press Enter to continue...")
+            sys.exit(0)
 
     print(
         f"Service {service_id} is staked on {staking_program}. To continue in a new staking program, first, it must be unstaked from {staking_program}."
@@ -109,12 +117,12 @@ def _unstake(
     print(f"Successfully unstaked service {service_id} from {staking_program}.")
 
 
-def _unstake_old_programs(
+def _unstake_all_old_programs(
     ledger_api: EthereumApi, service_id: int, owner_crypto: EthereumCrypto
 ) -> None:
     print("Unstaking from old programs...")
     for program, address in OLD_STAKING_PROGRAMS.items():
-        _unstake(ledger_api, service_id, address, program, owner_crypto)
+        _unstake_old_program(ledger_api, service_id, address, program, owner_crypto)
 
 
 def _check_unstaking_availability(
@@ -226,7 +234,7 @@ def main() -> None:
             private_key_path=args.owner_private_key_path, password=args.password
         )
 
-        _unstake_old_programs(ledger_api, args.service_id, owner_crypto)
+        _unstake_all_old_programs(ledger_api, args.service_id, owner_crypto)
 
         # Collect information
         next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
