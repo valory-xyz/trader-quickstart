@@ -150,6 +150,7 @@ def _try_stake_service(
     owner_crypto: EthereumCrypto,
     service_registry_address: str,
     staking_contract_address: str,
+    staking_program: str,
 ) -> None:
     if get_available_staking_slots(ledger_api, staking_contract_address) > 0:
         print(
@@ -339,6 +340,7 @@ def main() -> None:
                     owner_crypto=owner_crypto,
                     service_registry_address=args.service_registry_address,
                     staking_contract_address=args.staking_contract_address,
+                    staking_program=staking_program,
                 )
                 sys.exit(0)
 
@@ -375,6 +377,7 @@ def main() -> None:
                 owner_crypto=owner_crypto,
                 service_registry_address=args.service_registry_address,
                 staking_contract_address=args.staking_contract_address,
+                staking_program=staking_program,
             )
 
     except Exception as e:  # pylint: disable=broad-except
