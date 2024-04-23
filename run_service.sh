@@ -596,7 +596,7 @@ export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
+export CUSTOM_STAKING_ADDRESS="0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
 export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
 export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
@@ -1064,7 +1064,7 @@ export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
 export BET_THRESHOLD=100000000000000000
 export TRADING_STRATEGY=kelly_criterion
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
-export IRRELEVANT_TOOLS='["prediction-offline-sme", "openai-gpt-3.5-turbo-instruct", "prediction-online-summarized-info", "prediction-online-sum-url-content", "prediction-online", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "deepmind-optimization-strong", "deepmind-optimization", "claude-prediction-offline"]'
+export IRRELEVANT_TOOLS='["claude-prediction-online","prediction-request-reasoning","prediction-online","prediction-offline","prediction-offline-sme","deepmind-optimization", "deepmind-optimization-strong", "openai-gpt-3.5-turbo", "openai-gpt-3.5-turbo-instruct", "openai-gpt-4", "openai-text-davinci-002", "openai-text-davinci-003", "prediction-online-sum-url-content", "prediction-online-summarized-info", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2"]'
 
 service_dir="trader_service"
 build_dir="abci_build"
