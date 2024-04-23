@@ -581,7 +581,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.14.0"
+service_version="v0.14.1"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -607,7 +607,8 @@ export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export DISABLE_TRADING=false
 export STOP_TRADING_IF_STAKING_KPI_MET=true
-export RESET_PAUSE_DURATION=300
+export RESET_PAUSE_DURATION=120
+export MECH_CHAIN_ID=ethereum
 
 # check if USE_NEVERMINED is set to true
 if [ "$USE_NEVERMINED" == "true" ];
