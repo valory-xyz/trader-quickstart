@@ -302,7 +302,7 @@ def get_mech_requests(
     all_mech_events = _get_mech_events(sender, MechRequest)
     filtered_mech_events = {}
     for event_id, event_data in all_mech_events.items():
-        block_timestamp = event_data["block_timestamp"]
+        block_timestamp = int(event_data["block_timestamp"])
         if from_timestamp <= block_timestamp <= to_timestamp:
             filtered_mech_events[event_id] = event_data
 
