@@ -22,6 +22,7 @@
 
 import json
 import os
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -166,6 +167,12 @@ def _read_mech_events_data_from_file() -> Dict[str, Any]:
     except FileNotFoundError:
         mech_events_data = {}
         mech_events_data["db_version"] = MECH_EVENTS_DB_VERSION
+    except json.decoder.JSONDecodeError:
+        print(
+            f'\nERROR: The local Mech events database "{MECH_EVENTS_JSON_PATH.resolve()}" is corrupted. Please try delete or rename the file, and run the script again.'
+        )
+        sys.exit(1)
+
     return mech_events_data
 
 
@@ -302,7 +309,7 @@ def get_mech_requests(
     all_mech_events = _get_mech_events(sender, MechRequest)
     filtered_mech_events = {}
     for event_id, event_data in all_mech_events.items():
-        block_timestamp = event_data["block_timestamp"]
+        block_timestamp = int(event_data["block_timestamp"])
         if from_timestamp <= block_timestamp <= to_timestamp:
             filtered_mech_events[event_id] = event_data
 

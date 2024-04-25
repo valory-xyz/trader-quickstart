@@ -604,11 +604,6 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
-export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
-export DISABLE_TRADING=false
-export STOP_TRADING_IF_STAKING_KPI_MET=true
-export RESET_PAUSE_DURATION=120
-export MECH_CHAIN_ID=ethereum
 
 # check if USE_NEVERMINED is set to true
 if [ "$USE_NEVERMINED" == "true" ];
@@ -1065,6 +1060,12 @@ export BET_THRESHOLD=100000000000000000
 export TRADING_STRATEGY=kelly_criterion
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export IRRELEVANT_TOOLS='["claude-prediction-online","prediction-request-reasoning","prediction-online","prediction-offline","prediction-offline-sme","deepmind-optimization", "deepmind-optimization-strong", "openai-gpt-3.5-turbo", "openai-gpt-3.5-turbo-instruct", "openai-gpt-4", "openai-text-davinci-002", "openai-text-davinci-003", "prediction-online-sum-url-content", "prediction-online-summarized-info", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2"]'
+export STAKING_CONTRACT_ADDRESS=$CUSTOM_STAKING_ADDRESS
+export DISABLE_TRADING=false
+export STOP_TRADING_IF_STAKING_KPI_MET=true
+export RESET_PAUSE_DURATION=120
+export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
+export MECH_CHAIN_ID=ethereum
 
 service_dir="trader_service"
 build_dir="abci_build"
