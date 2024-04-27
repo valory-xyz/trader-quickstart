@@ -47,7 +47,8 @@ from utils import (
 
 OLD_STAKING_PROGRAMS = {
     "Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C",
-    "Alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
+    "Alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
+    "CoastalTest": "0x97371b1c0cda1d04dfc43dfb50a04645b7bc9bee"
 }
 
 
@@ -73,7 +74,7 @@ def _unstake_old_program(
         if service_id not in get_service_ids(ledger_api, staking_contract_address):
             print(f"Service {service_id} is not staked on {staking_program}.")
             return
-    elif staking_program.startswith("Alpine"):
+    else:  # Alpine, CoastalTest
         if not is_service_staked(
             ledger_api, service_id, staking_contract_address
         ):
