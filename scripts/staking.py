@@ -48,7 +48,7 @@ from utils import (
 OLD_STAKING_PROGRAMS = {
     "Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C",
     "Alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
-    "CoastalTest": "0x97371b1c0cda1d04dfc43dfb50a04645b7bc9bee"
+    "CoastalTest": "0x97371B1C0cDA1D04dFc43DFb50a04645b7Bc9BEe"
 }
 
 
