@@ -11,16 +11,16 @@ from operate.account.user import UserAccount
 import time
 import sys
 import getpass
+import requests
 from halo import Halo
 from termcolor import colored
 
-
-OLAS_BALANCE_REQUIRED_TO_BOND = 10000000000000000000
-OLAS_BALANCE_REQUIRED_TO_STAKE = 10000000000000000000
-XDAI_BALANCE_REQUIRED_TO_BOND = 10000000000000000
-SUGGESTED_TOP_UP_DEFAULT = 50000000000000000
-SUGGESTED_SAFE_TOP_UP_DEFAULT = 500000000000000000
-MAIN_WALLET_MIMIMUM_BALANCE = 200000000000000000
+OLAS_BALANCE_REQUIRED_TO_BOND = 10_000_000_000_000_000_000
+OLAS_BALANCE_REQUIRED_TO_STAKE = 10_000_000_000_000_000_000
+XDAI_BALANCE_REQUIRED_TO_BOND = 10_000_000_000_000_000
+SUGGESTED_TOP_UP_DEFAULT = 50_000_000_000_000_000
+SUGGESTED_SAFE_TOP_UP_DEFAULT = 500_000_000_000_000_000
+MASTER_WALLET_MIMIMUM_BALANCE = 1_000_000_000_000_000_000
 WARNING_ICON = colored('\u26A0', 'yellow')
 OPERATE_HOME = Path.cwd() / ".operate2"
 
@@ -32,7 +32,7 @@ TEMPLATE = ServiceTemplate(
         "description": "trader service",
         "configuration": ConfigurationTemplate(
             {
-                "rpc": "http://127.0.0.1:8545/",
+                "rpc": "",
                 "nft": "bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq",
                 "agent_id": 14,
                 "cost_of_bond": XDAI_BALANCE_REQUIRED_TO_BOND,
@@ -54,7 +54,9 @@ TEMPLATE = ServiceTemplate(
 
 def print_box(text: str, margin: int = 1, character: str = '=') -> None:
     """Print text centered within a box."""
-    text_length = len(text)
+
+    lines = text.split('\n')
+    text_length = max(len(line) for line in lines)
     length = text_length + 2 * margin
 
     border = character * length
@@ -98,6 +100,50 @@ def ask_confirm_password() -> str:
         sys.exit(1)
 
 
+def check_rpc(rpc_url: str) -> None:
+    spinner = Halo(text=f"Checking RPC...", spinner="dots")
+    spinner.start()
+
+    rpc_data = {
+        "jsonrpc": "2.0",
+        "method": "eth_newFilter",
+        "params": ["invalid"],
+        "id": 1
+    }
+
+    try:
+        response = requests.post(
+            rpc_url,
+            json=rpc_data,
+            headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+        rpc_response = response.json()
+    except Exception as e:
+        print("Error: Failed to send RPC request:", e)
+        sys.exit(1)
+
+    rcp_error_message = rpc_response.get("error", {}).get("message", "Exception processing RCP response")
+
+    if rcp_error_message == "Exception processing RCP response":
+        print("Error: The received RCP response is malformed. Please verify the RPC address and/or RCP behavior.")
+        print("  Received response:")
+        print("  ", rpc_response)
+        print("")
+        print("Terminating script.")
+        sys.exit(1)
+    elif rcp_error_message == "Out of requests":
+        print("Error: The provided RCP is out of requests.")
+        print("Terminating script.")
+        sys.exit(1)
+    elif rcp_error_message == "The method eth_newFilter does not exist/is not available":
+        print("Error: The provided RPC does not support 'eth_newFilter'.")
+        print("Terminating script.")
+        sys.exit(1)
+    
+    spinner.succeed("RPC checks passed.")
+
+
 def main() -> None:
     """Run service."""
 
@@ -117,7 +163,7 @@ def main() -> None:
         UserAccount.new(
             password=password,
             path=app._path / "user.json",
-        ),
+        )
     else:
         password = getpass.getpass("Enter local user account password: ")
         if not app.user_account.is_valid(password=password):
@@ -129,14 +175,20 @@ def main() -> None:
         print("Creating the main wallet...")
         wallet, mnemonic = app.wallet_manager.create(ledger_type=LedgerType.ETHEREUM)
         wallet.password = password
-        print(f"{WARNING_ICON} Please save the recovery key for the main wallet: {mnemonic}.")
+        print()
+        print_box(f"Please save the mnemonic phrase for the main wallet:\n{', '.join(mnemonic)}", 0 , '-')
         input("Press enter to continue...")
     else:
         wallet = app.wallet_manager.load(ledger_type=LedgerType.ETHEREUM)
 
-    print()
-
     manager = app.service_manager()
+
+    service_path = app._services / TEMPLATE["hash"]
+    if not service_path.exists():
+        rpc_url = getpass.getpass("Please enter your RPC: ")
+        TEMPLATE["configuration"]["rpc"] = rpc_url
+        check_rpc(rpc_url=rpc_url)
+
     service = manager.create_or_load(
         hash=TEMPLATE["hash"],
         rpc=TEMPLATE["configuration"].get("rpc"),
@@ -150,13 +202,14 @@ def main() -> None:
         rpc=TEMPLATE["configuration"].get("rpc"),
     )
 
-    spinner = Halo(text=f"Please make sure {wallet.crypto.address} has at least {wei_to_token(MAIN_WALLET_MIMIMUM_BALANCE)}.", spinner="dots")
+    print(f"Main wallet balance: {wei_to_token(ledger_api.get_balance(wallet.crypto.address))}")
+    spinner = Halo(text=f"Please make sure main wallet {wallet.crypto.address} has at least {wei_to_token(MASTER_WALLET_MIMIMUM_BALANCE)}.", spinner="dots")
     spinner.start()
 
-    while ledger_api.get_balance(wallet.crypto.address) < MAIN_WALLET_MIMIMUM_BALANCE:
+    while ledger_api.get_balance(wallet.crypto.address) < MASTER_WALLET_MIMIMUM_BALANCE:
         time.sleep(1)
 
-    spinner.stop()
+    spinner.succeed(f"Main wallet updated balance: {wei_to_token(ledger_api.get_balance(wallet.crypto.address))}.")
     print()
 
     print_section("Set up the service in the Olas Protocol")
