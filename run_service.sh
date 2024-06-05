@@ -1109,7 +1109,8 @@ export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy dep
 
 cd ..
 
-warm_start
+# warm start is disabled as no global weights are provided to calibrate the tools' weights
+# warm_start
 
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
 sudo chown -R $(whoami) "$PWD/../$store/"
