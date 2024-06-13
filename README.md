@@ -22,6 +22,7 @@ Ensure your machine satisfies the requirements:
 
 - You need xDAI on Gnosis Chain in one of your wallets.
 - You need an RPC for your agent instance. We recommend [Nodies RPC](https://www.nodies.app/).
+- (From release v0.16.0 onwards) You need a Subgraph API key that can be obtained at [The Graph](https://thegraph.com/studio/apikeys/). 
 
 ## Run the Service
 
