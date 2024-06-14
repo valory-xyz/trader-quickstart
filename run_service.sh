@@ -405,7 +405,7 @@ prompt_subgraph_api_key() {
     echo "Since June 12, 2024, you need a Subgraph API key that can be obtained at The Graph https://thegraph.com/studio/apikeys/"
     echo ""
     echo "If you set your Subgraph API key to blank, the script will use the deprecated Subgraph endpoints."
-    echo "These deprecated endpoints might stop working, and you will need to manually edit the .trader_runner/.env file manually to provide your API key."
+    echo "These deprecated endpoints might stop working, and you will need to manually edit the .trader_runner/.env file to provide your API key."
     echo ""
     read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
     echo ""
