@@ -400,14 +400,15 @@ prompt_use_staking() {
 
 # Prompt user for subgraph API key
 prompt_subgraph_api_key() {
-    echo "You can get a Subgraph API key at https://thegraph.com/studio/apikeys/"
-    while [[ -z "$SUBGRAPH_API_KEY" ]]; do
-        read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
-        echo ""
-        if [[ -z "$SUBGRAPH_API_KEY" ]]; then
-            echo "API key cannot be blank. Please try again."
-        fi
-    done
+    echo "Please provide a Subgraph API key"
+    echo "---------------------------------"
+    echo "Since June 12, 2024, you need a Subgraph API key that can be obtained at The Graph https://thegraph.com/studio/apikeys/"
+    echo ""
+    echo "If you set your Subgraph API key to blank, the script will use the deprecated Subgraph endpoints (hosted services)."
+    echo "These deprecated endpoints might stop working, and you will need to manually edit the .trader_runner/.env file to provide your API key."
+    echo ""
+    read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
+    echo ""
 }
 
 # Verify if there are enough slots for staking this service
@@ -573,7 +574,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "$SUBGRAPH_API_KEY" ]; then
+        if [ -z "${SUBGRAPH_API_KEY+x}" ]; then
             prompt_subgraph_api_key
             dotenv_set_key "$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
         fi
@@ -610,7 +611,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.16.0"
+service_version="v0.16.1"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1086,7 +1087,7 @@ export ALL_PARTICIPANTS='["'$agent_address'"]'
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
 # 10 cents minimum bet amount. Also, the bet will not be placed if expected returns - bet_threshold <= 0
 export BET_THRESHOLD=100000000000000000
-export TRADING_STRATEGY=kelly_criterion
+export TRADING_STRATEGY=kelly_criterion_no_conf
 export STRATEGIES_KWARGS='[["bet_kelly_fraction",1.5],["floor_balance",500000000000000000],["bet_amount_per_threshold",{"0.0":0,"0.1":0,"0.2":0,"0.3":0,"0.4":0,"0.5":0,"0.6":60000000000000000,"0.7":80000000000000000,"0.8":160000000000000000,"0.9":1000000000000000000,"1.0":1000000000000000000}]]'
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export IRRELEVANT_TOOLS='["native-transfer","prediction-online-lite","claude-prediction-online-lite","prediction-online-sme-lite","prediction-request-reasoning-lite","prediction-request-reasoning-claude-lite","prediction-request-rag","prediction-request-reasoning-claude","prediction-url-cot-claude","claude-prediction-offline","claude-prediction-online","prediction-offline-sme","deepmind-optimization", "deepmind-optimization-strong", "openai-gpt-3.5-turbo", "openai-gpt-3.5-turbo-instruct", "openai-gpt-4", "openai-text-davinci-002", "openai-text-davinci-003", "prediction-online-sum-url-content", "prediction-online-summarized-info", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2"]'
@@ -1096,11 +1097,14 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
-export NETWORK_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/FxV6YUix58SpYmLBwc9gEHkwjfkqwe1X5FJQjn8nKPyA"
-export OMEN_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
-export REALITIO_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5"
-export TRADES_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
+
+if [ -n "$SUBGRAPH_API_KEY" ]; then
+    export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
+    export NETWORK_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/FxV6YUix58SpYmLBwc9gEHkwjfkqwe1X5FJQjn8nKPyA"
+    export OMEN_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
+    export REALITIO_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5"
+    export TRADES_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
+fi
 
 service_dir="trader_service"
 build_dir="abci_build"
