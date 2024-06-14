@@ -400,14 +400,15 @@ prompt_use_staking() {
 
 # Prompt user for subgraph API key
 prompt_subgraph_api_key() {
-    echo "You can get a Subgraph API key at https://thegraph.com/studio/apikeys/"
-    while [[ -z "$SUBGRAPH_API_KEY" ]]; do
-        read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
-        echo ""
-        if [[ -z "$SUBGRAPH_API_KEY" ]]; then
-            echo "API key cannot be blank. Please try again."
-        fi
-    done
+    echo "Please provide a Subgraph API key"
+    echo "---------------------------------"
+    echo "Since June 12, 2024, you need a Subgraph API key that can be obtained at The Graph https://thegraph.com/studio/apikeys/"
+    echo ""
+    echo "If you set your Subgraph API key to blank, the script will use the deprecated Subgraph endpoints."
+    echo "These deprecated endpoints might stop working, and you will need to manually edit the .trader_runner/.env file manually to provide your API key."
+    echo ""
+    read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
+    echo ""
 }
 
 # Verify if there are enough slots for staking this service
@@ -573,7 +574,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "$SUBGRAPH_API_KEY" ]; then
+        if [ -z "${SUBGRAPH_API_KEY+x}" ]; then
             prompt_subgraph_api_key
             dotenv_set_key "$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
         fi
@@ -1096,11 +1097,14 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
-export NETWORK_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/FxV6YUix58SpYmLBwc9gEHkwjfkqwe1X5FJQjn8nKPyA"
-export OMEN_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
-export REALITIO_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5"
-export TRADES_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
+
+if [ -n "$SUBGRAPH_API_KEY" ]; then
+    export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
+    export NETWORK_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/FxV6YUix58SpYmLBwc9gEHkwjfkqwe1X5FJQjn8nKPyA"
+    export OMEN_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
+    export REALITIO_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5"
+    export TRADES_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
+fi
 
 service_dir="trader_service"
 build_dir="abci_build"

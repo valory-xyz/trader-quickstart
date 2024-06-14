@@ -22,7 +22,7 @@ Ensure your machine satisfies the requirements:
 
 - You need xDAI on Gnosis Chain in one of your wallets.
 - You need an RPC for your agent instance. We recommend [Nodies RPC](https://www.nodies.app/).
-- (From release v0.16.0 onwards) You need a Subgraph API key that can be obtained at [The Graph](https://thegraph.com/studio/apikeys/). 
+- (From release v0.16.0 onwards) You need a Subgraph API key that can be obtained at [The Graph](https://thegraph.com/studio/apikeys/).
 
 ## Run the Service
 
@@ -67,7 +67,7 @@ Find below a diagram of the possible status a service can be in the **Alpine sta
 
 ![Alpine staking FSM](images/alpine_staking_fsm.svg)
 
-Services can become staked by invoking the `stake()` contract method, where service parameters and deposit amounts are verified. Staked services can call the `checkpoint()` method at regular intervals, ensuring liveness checks and calculating staking incentives. In case a service remains inactive beyond the specified `maxAllowedInactivity` time, it faces eviction from the staking program, ceasing to accrue additional rewards. Staked or evicted services can unstaked by calling the `unstake()` contract method. They can do so after `minStakingDuration` has passed or if no more staking rewards are available. 
+Services can become staked by invoking the `stake()` contract method, where service parameters and deposit amounts are verified. Staked services can call the `checkpoint()` method at regular intervals, ensuring liveness checks and calculating staking incentives. In case a service remains inactive beyond the specified `maxAllowedInactivity` time, it faces eviction from the staking program, ceasing to accrue additional rewards. Staked or evicted services can unstaked by calling the `unstake()` contract method. They can do so after `minStakingDuration` has passed or if no more staking rewards are available.
 
  __Notes__:
 
@@ -199,6 +199,7 @@ Execute the following steps in a PowerShell terminal:
     ```bash
     winget install Python.Python.3.10
     ```
+
 3. Close and re-open the PowerShell terminal.
 
 4. Install [Poetry](https://python-poetry.org/docs/):
@@ -235,17 +236,17 @@ This chapter is for advanced users who want to further customize the trader agen
 
 ##### Policy weights
 
-This script automatically sets some default weights to the agent's policy as a warm start 
-to help convergence and improve tool selection. 
-These data were obtained after many days of running the service and are set 
+This script automatically sets some default weights to the agent's policy as a warm start.
+to help convergence and improve tool selection.
+These data were obtained after many days of running the service and are set
 [here](https://github.com/valory-xyz/trader-quickstart/blob/0f093ebbf0857b8484a017912c3992f00fbe1a29/run_service.sh#L133-L137).
-As a result, the current weights are always deleted and replaced by this strategy 
+As a result, the current weights are always deleted and replaced by this strategy
 which is considered to boost the initial performance of the service.
 
-However, you may have found better performing policy weights and would like to remove this logic. 
-It can easily be done, by removing this method call, 
-[here](https://github.com/valory-xyz/trader-quickstart/blob/0f093ebbf0857b8484a017912c3992f00fbe1a29/run_service.sh#L698), 
-in order to set your own custom warm start. 
+However, you may have found better performing policy weights and would like to remove this logic.
+It can easily be done, by removing this method call,
+[here](https://github.com/valory-xyz/trader-quickstart/blob/0f093ebbf0857b8484a017912c3992f00fbe1a29/run_service.sh#L698),
+in order to set your own custom warm start.
 Setting your own custom weights can be done by editing the corresponding files in `.trader_runner`.
 Moreover, you may store your current policy as a backup before editing those files, using the following set of commands:
 
@@ -259,12 +260,12 @@ cp ".trader_runner/utilized_tools.json" ".trader_runner/utilized_tools_$(date +"
 
 Sometimes, a mech tool might temporarily return invalid results.
 As a result, the service would end up performing mech calls without being able to use the response.
-Assuming that this tool has a large reward rate in the policy weights, 
-the service might end up spending a considerable amount of xDAI before adjusting the tool's reward rate, 
+Assuming that this tool has a large reward rate in the policy weights,
+the service might end up spending a considerable amount of xDAI before adjusting the tool's reward rate,
 without making any progress.
 If a tool is temporarily misbehaving, you could use an environment variable in order to exclude it.
-This environment variable is defined 
-[here](https://github.com/valory-xyz/trader/blob/v0.8.0/packages/valory/services/trader/service.yaml#L109-L112) 
+This environment variable is defined
+[here](https://github.com/valory-xyz/trader/blob/v0.8.0/packages/valory/services/trader/service.yaml#L109-L112)
 and can be overriden by setting it anywhere in the `run_service.sh` script with a new value, e.g.:
 
 ```shell
@@ -317,4 +318,3 @@ Error: Service deployment failed with following error; ChainTimeoutError(Timed o
 
 Error: Service terminatation failed with following error; ChainInteractionError({'code': -32010, 'message': 'AlreadyKnown'})
 ```
-
