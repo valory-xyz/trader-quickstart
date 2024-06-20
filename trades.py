@@ -720,6 +720,15 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = collateral_amount
                     output += "  Final answer: Market has been declared invalid.\n"
                     output += f"      Earnings: {wei_to_xdai(earnings)}\n"
+                    redeemed = _is_redeemed(user_json, fpmmTrade)
+                    if redeemed:
+                        statistics_table[MarketAttribute.NUM_REDEEMED][
+                            market_status
+                        ] += 1
+                        statistics_table[MarketAttribute.REDEMPTIONS][
+                            market_status
+                        ] += earnings
+
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
