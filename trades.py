@@ -171,11 +171,13 @@ class MarketAttribute(Enum):
     NUM_TRADES = "Num_trades"
     WINNER_TRADES = "Winner_trades"
     NUM_REDEEMED = "Num_redeemed"
+    NUM_INVALID = "Num_invalid"
     INVESTMENT = "Investment"
     FEES = "Fees"
     MECH_CALLS = "Mech_calls"
     MECH_FEES = "Mech_fees"
     EARNINGS = "Earnings"
+    INVALID_PAYBACK = "Invalid_payback"
     NET_EARNINGS = "Net_earnings"
     REDEMPTIONS = "Redemptions"
     ROI = "ROI"
@@ -476,6 +478,7 @@ def _compute_totals(
         )
         table[MarketAttribute.NET_EARNINGS][col] = (
             table[MarketAttribute.EARNINGS][col]
+            + table[MarketAttribute.INVALID_PAYBACK][col]
             - table[MarketAttribute.INVESTMENT][col]
             - table[MarketAttribute.FEES][col]
             - table[MarketAttribute.MECH_FEES][col]
@@ -485,7 +488,8 @@ def _compute_totals(
             table[MarketAttribute.INVESTMENT][col]
             + table[MarketAttribute.FEES][col]
             + table[MarketAttribute.MECH_FEES][col],
-            table[MarketAttribute.EARNINGS][col],
+            table[MarketAttribute.EARNINGS][col]
+            + table[MarketAttribute.INVALID_PAYBACK][col],
         )
 
 
@@ -556,6 +560,16 @@ def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
         + "\n"
     )
     table_str += (
+        f"{MarketAttribute.NUM_INVALID:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.NUM_INVALID][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
         f"{MarketAttribute.MECH_CALLS:<{column_width}}"
         + "".join(
             [
@@ -590,6 +604,16 @@ def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{wei_to_xdai(table[MarketAttribute.MECH_FEES][c]):>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.INVALID_PAYBACK:<{column_width}}"
+        + "".join(
+            [
+                f"{wei_to_xdai(table[MarketAttribute.INVALID_PAYBACK][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -700,17 +724,18 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 is_invalid = current_answer == INVALID_ANSWER
 
                 if is_invalid:
-                    earnings = collateral_amount
+                    payback = collateral_amount
                     output += "Current answer: Market has been declared invalid.\n"
+                    statistics_table[MarketAttribute.INVALID_PAYBACK][market_status] += payback
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
                     statistics_table[MarketAttribute.WINNER_TRADES][market_status] += 1
+                    statistics_table[MarketAttribute.EARNINGS][
+                        market_status
+                    ] += earnings
                 else:
-                    earnings = 0
                     output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
-
-                statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
 
             elif market_status == MarketState.CLOSED:
                 current_answer = int(fpmm["currentAnswer"], 16)  # type: ignore
@@ -722,10 +747,13 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     output += f"      Earnings: {wei_to_xdai(earnings)}\n"
                     redeemed = _is_redeemed(user_json, fpmmTrade)
                     if redeemed:
-                        statistics_table[MarketAttribute.NUM_REDEEMED][
+                        statistics_table[MarketAttribute.NUM_INVALID][
                             market_status
                         ] += 1
                         statistics_table[MarketAttribute.REDEMPTIONS][
+                            market_status
+                        ] += earnings
+                        statistics_table[MarketAttribute.INVALID_PAYBACK][
                             market_status
                         ] += earnings
 
@@ -748,7 +776,10 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = 0
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the loser answer.\n"
 
-                statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
+                if not is_invalid:
+                    statistics_table[MarketAttribute.EARNINGS][
+                        market_status
+                    ] += earnings
 
                 if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
