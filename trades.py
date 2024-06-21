@@ -519,7 +519,7 @@ def _get_market_state(market: Dict[str, Any]) -> MarketState:
 
 
 def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
-    column_width = 14
+    column_width = 15
 
     table_str = " " * column_width
 
