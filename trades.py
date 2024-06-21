@@ -724,9 +724,9 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 is_invalid = current_answer == INVALID_ANSWER
 
                 if is_invalid:
-                    payback = collateral_amount
+                    invalid_payback = collateral_amount
                     output += "Current answer: Market has been declared invalid.\n"
-                    statistics_table[MarketAttribute.INVALID_PAYBACK][market_status] += payback
+                    statistics_table[MarketAttribute.INVALID_PAYBACK][market_status] += invalid_payback
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"Current answer: {fpmm['outcomes'][current_answer]!r}\n"
