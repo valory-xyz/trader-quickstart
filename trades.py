@@ -171,6 +171,7 @@ class MarketAttribute(Enum):
     NUM_TRADES = "Num_trades"
     WINNER_TRADES = "Winner_trades"
     NUM_REDEEMED = "Num_redeemed"
+    NUM_INVALID_MARKET = "Num_invalid_market"
     INVESTMENT = "Investment"
     FEES = "Fees"
     MECH_CALLS = "Mech_calls"
@@ -515,7 +516,7 @@ def _get_market_state(market: Dict[str, Any]) -> MarketState:
 
 
 def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
-    column_width = 14
+    column_width = 18
 
     table_str = " " * column_width
 
@@ -550,6 +551,16 @@ def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{table[MarketAttribute.NUM_REDEEMED][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.NUM_INVALID_MARKET:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.NUM_INVALID_MARKET][c]:>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -722,7 +733,7 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     output += f"      Earnings: {wei_to_xdai(earnings)}\n"
                     redeemed = _is_redeemed(user_json, fpmmTrade)
                     if redeemed:
-                        statistics_table[MarketAttribute.NUM_REDEEMED][
+                        statistics_table[MarketAttribute.NUM_INVALID_MARKET][
                             market_status
                         ] += 1
                         statistics_table[MarketAttribute.REDEMPTIONS][
@@ -748,7 +759,10 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = 0
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the loser answer.\n"
 
-                statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
+                if not is_invalid:
+                    statistics_table[MarketAttribute.EARNINGS][
+                        market_status
+                    ] += earnings
 
                 if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
