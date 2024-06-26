@@ -1055,17 +1055,6 @@ if [ "${USE_STAKING}" = true ]; then
   perform_staking_ops
 fi
 
-
-# ensure Safe owner is agent
-# (This may occur if update flow was interrupted)
-service_safe_address=$(<"../$service_safe_address_path")
-current_safe_owners=$(poetry run python "../scripts/get_safe_owners.py" "$service_safe_address" "../$agent_pkey_path" "$rpc" $password_argument | awk '{gsub(/"/, "\047", $0); print $0}')
-if [[ "$current_safe_owners" == "['$operator_address']" ]]; then
-    echo "[Operator] Swapping Safe owner..."
-    poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$operator_pkey_path" "$agent_address" "$rpc" $password_argument
-fi
-
-
 echo ""
 echo "Finished checking Autonolas Protocol service $service_id state."
 
