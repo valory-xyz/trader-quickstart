@@ -353,7 +353,7 @@ def main() -> None:
                 sys.exit(0)
 
             print(
-                f"Service {args.service_id} is already staked on {staking_program}."
+                f"Service {args.service_id} is already staked on {staking_program}. "
                 f"Checking if the staking contract has any rewards..."
             )
             available_rewards = get_available_rewards(
