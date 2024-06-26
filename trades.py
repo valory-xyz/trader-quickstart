@@ -21,9 +21,11 @@
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
 import datetime
+import os
 import re
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from collections import defaultdict
+from dotenv import load_dotenv
 from enum import Enum
 from pathlib import Path
 from string import Template
@@ -57,10 +59,14 @@ DEFAULT_TO_TIMESTAMP = 2147483647
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
+ENV_FILE = Path(STORE_PATH, ".env")
 WXDAI_CONTRACT_ADDRESS = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
+
+
+load_dotenv(ENV_FILE)
 
 
 headers = {
@@ -323,7 +329,8 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP,
 ) -> Dict[str, Any]:
     """Query the subgraph."""
-    url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
+    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
 
     grouped_results = defaultdict(list)
     creationTimestamp_gt = "0"
@@ -368,7 +375,8 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
 
 def _query_conditional_tokens_gc_subgraph(creator: str) -> Dict[str, Any]:
     """Query the subgraph."""
-    url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
+    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
 
     all_results: Dict[str, Any] = {"data": {"user": {"userPositions": []}}}
     userPositions_id_gt = ""
