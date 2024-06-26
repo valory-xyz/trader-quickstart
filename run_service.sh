@@ -400,15 +400,17 @@ prompt_use_staking() {
 
 # Prompt user for subgraph API key
 prompt_subgraph_api_key() {
-    echo "Please provide a Subgraph API key"
-    echo "---------------------------------"
+    echo "Provide a Subgraph API key"
+    echo "--------------------------"
     echo "Since June 12, 2024, you need a Subgraph API key that can be obtained at The Graph https://thegraph.com/studio/apikeys/"
     echo ""
-    echo "If you set your Subgraph API key to blank, the script will use the deprecated Subgraph endpoints (hosted services)."
-    echo "These deprecated endpoints might stop working, and you will need to manually edit the .trader_runner/.env file to provide your API key."
+    read -rsp "Please, enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
     echo ""
-    read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
-    echo ""
+    while [ -z "${SUBGRAPH_API_KEY}" ]; do
+        echo "You cannot enter a blank API key."
+        read -rsp "Please, enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
+        echo ""
+    done
 }
 
 # Verify if there are enough slots for staking this service
@@ -574,7 +576,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "${SUBGRAPH_API_KEY+x}" ]; then
+        if [ -z "${SUBGRAPH_API_KEY}" ]; then
             prompt_subgraph_api_key
             dotenv_set_key "$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
         fi
@@ -611,7 +613,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.16.1"
+service_version="v0.16.2"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1055,6 +1057,17 @@ if [ "${USE_STAKING}" = true ]; then
   perform_staking_ops
 fi
 
+
+# ensure Safe owner is agent
+# (This may occur if update flow was interrupted)
+service_safe_address=$(<"../$service_safe_address_path")
+current_safe_owners=$(poetry run python "../scripts/get_safe_owners.py" "$service_safe_address" "../$agent_pkey_path" "$rpc" $password_argument | awk '{gsub(/"/, "\047", $0); print $0}')
+if [[ "$current_safe_owners" == "['$operator_address']" ]]; then
+    echo "[Operator] Swapping Safe owner..."
+    poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$operator_pkey_path" "$agent_address" "$rpc" $password_argument
+fi
+
+
 echo ""
 echo "Finished checking Autonolas Protocol service $service_id state."
 
@@ -1102,7 +1115,7 @@ if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
     export NETWORK_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/FxV6YUix58SpYmLBwc9gEHkwjfkqwe1X5FJQjn8nKPyA"
     export OMEN_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
-    export REALITIO_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5"
+    export REALITIO_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh"
     export TRADES_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
 fi
 

@@ -21,9 +21,11 @@
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
 import datetime
+import os
 import re
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from collections import defaultdict
+from dotenv import load_dotenv
 from enum import Enum
 from pathlib import Path
 from string import Template
@@ -57,10 +59,14 @@ DEFAULT_TO_TIMESTAMP = 2147483647
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
+ENV_FILE = Path(STORE_PATH, ".env")
 WXDAI_CONTRACT_ADDRESS = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
+
+
+load_dotenv(ENV_FILE)
 
 
 headers = {
@@ -171,6 +177,7 @@ class MarketAttribute(Enum):
     NUM_TRADES = "Num_trades"
     WINNER_TRADES = "Winner_trades"
     NUM_REDEEMED = "Num_redeemed"
+    NUM_INVALID_MARKET = "Num_invalid_market"
     INVESTMENT = "Investment"
     FEES = "Fees"
     MECH_CALLS = "Mech_calls"
@@ -322,7 +329,8 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP,
 ) -> Dict[str, Any]:
     """Query the subgraph."""
-    url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
+    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
 
     grouped_results = defaultdict(list)
     creationTimestamp_gt = "0"
@@ -367,7 +375,8 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
 
 def _query_conditional_tokens_gc_subgraph(creator: str) -> Dict[str, Any]:
     """Query the subgraph."""
-    url = "https://api.thegraph.com/subgraphs/name/gnosis/conditional-tokens-gc"
+    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
 
     all_results: Dict[str, Any] = {"data": {"user": {"userPositions": []}}}
     userPositions_id_gt = ""
@@ -515,7 +524,7 @@ def _get_market_state(market: Dict[str, Any]) -> MarketState:
 
 
 def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
-    column_width = 14
+    column_width = 18
 
     table_str = " " * column_width
 
@@ -550,6 +559,16 @@ def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
         + "".join(
             [
                 f"{table[MarketAttribute.NUM_REDEEMED][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
+        f"{MarketAttribute.NUM_INVALID_MARKET:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.NUM_INVALID_MARKET][c]:>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -720,6 +739,15 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = collateral_amount
                     output += "  Final answer: Market has been declared invalid.\n"
                     output += f"      Earnings: {wei_to_xdai(earnings)}\n"
+                    redeemed = _is_redeemed(user_json, fpmmTrade)
+                    if redeemed:
+                        statistics_table[MarketAttribute.NUM_INVALID_MARKET][
+                            market_status
+                        ] += 1
+                        statistics_table[MarketAttribute.REDEMPTIONS][
+                            market_status
+                        ] += earnings
+
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
@@ -739,7 +767,10 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = 0
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the loser answer.\n"
 
-                statistics_table[MarketAttribute.EARNINGS][market_status] += earnings
+                if not is_invalid:
+                    statistics_table[MarketAttribute.EARNINGS][
+                        market_status
+                    ] += earnings
 
                 if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
