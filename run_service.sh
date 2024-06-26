@@ -574,7 +574,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "${SUBGRAPH_API_KEY+x}" ]; then
+        if [ -z "${SUBGRAPH_API_KEY}" ]; then
             prompt_subgraph_api_key
             dotenv_set_key "$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
         fi
