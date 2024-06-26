@@ -400,15 +400,17 @@ prompt_use_staking() {
 
 # Prompt user for subgraph API key
 prompt_subgraph_api_key() {
-    echo "Please provide a Subgraph API key"
-    echo "---------------------------------"
+    echo "Provide a Subgraph API key"
+    echo "--------------------------"
     echo "Since June 12, 2024, you need a Subgraph API key that can be obtained at The Graph https://thegraph.com/studio/apikeys/"
     echo ""
-    echo "If you set your Subgraph API key to blank, the script will use the deprecated Subgraph endpoints (hosted services)."
-    echo "These deprecated endpoints might stop working, and you will need to manually edit the .trader_runner/.env file to provide your API key."
+    read -rsp "Please, enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
     echo ""
-    read -rsp "Enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
-    echo ""
+    while [ -z "${SUBGRAPH_API_KEY}" ]; do
+        echo "You cannot enter a blank API key."
+        read -rsp "Please, enter a Subgraph API key [hidden input]: " SUBGRAPH_API_KEY
+        echo ""
+    done
 }
 
 # Verify if there are enough slots for staking this service
