@@ -175,6 +175,7 @@ class MarketAttribute(Enum):
     """Attribute"""
 
     NUM_TRADES = "Num_trades"
+    NUM_VALID_TRADES = "Num_valid_trades"
     WINNER_TRADES = "Winner_trades"
     NUM_REDEEMED = "Num_redeemed"
     NUM_INVALID_MARKET = "Num_invalid_market"
@@ -545,6 +546,16 @@ def _format_table(table: Dict[Any, Dict[Any, Any]]) -> str:
         + "\n"
     )
     table_str += (
+        f"{MarketAttribute.NUM_VALID_TRADES:<{column_width}}"
+        + "".join(
+            [
+                f"{table[MarketAttribute.NUM_VALID_TRADES][c]:>{column_width}}"
+                for c in STATS_TABLE_COLS
+            ]
+        )
+        + "\n"
+    )
+    table_str += (
         f"{MarketAttribute.WINNER_TRADES:<{column_width}}"
         + "".join(
             [
@@ -771,6 +782,14 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 statistics_table[MarketAttribute.EARNINGS][
                         market_status
                     ] += earnings
+                
+                statistics_table[MarketAttribute.NUM_VALID_TRADES][
+                        market_status
+                    ] = statistics_table[MarketAttribute.NUM_TRADES][
+                        market_status
+                    ] - statistics_table[MarketAttribute.NUM_INVALID_MARKET][
+                        market_status
+                    ]
 
                 if 0 < earnings < DUST_THRESHOLD:
                     output += "Earnings are dust.\n"
