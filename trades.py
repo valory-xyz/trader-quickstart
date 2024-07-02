@@ -767,8 +767,8 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                     earnings = 0
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - The trade was for the loser answer.\n"
 
-                if not is_invalid:
-                    statistics_table[MarketAttribute.EARNINGS][
+
+                statistics_table[MarketAttribute.EARNINGS][
                         market_status
                     ] += earnings
 
