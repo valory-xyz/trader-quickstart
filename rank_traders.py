@@ -21,9 +21,12 @@
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
 import datetime
+import os
 import sys
 from argparse import ArgumentParser
 from collections import defaultdict
+from dotenv import load_dotenv
+from pathlib import Path
 from string import Template
 from typing import Any
 
@@ -38,6 +41,11 @@ INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 FPMM_CREATOR = "0x89c5cc945dd550bcffb72fe42bff002429f46fec"
 DEFAULT_FROM_DATE = "1970-01-01T00:00:00"
 DEFAULT_TO_DATE = "2038-01-19T03:14:07"
+SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
+ENV_FILE = Path(STORE_PATH, ".env")
+
+load_dotenv(ENV_FILE)
 
 
 headers = {
@@ -167,7 +175,8 @@ def _query_omen_xdai_subgraph(
     fpmm_to_timestamp: float,
 ) -> dict[str, Any]:
     """Query the subgraph."""
-    url = "https://api.thegraph.com/subgraphs/name/protofire/omen-xdai"
+    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
 
     grouped_results = defaultdict(list)
     id_gt = ""

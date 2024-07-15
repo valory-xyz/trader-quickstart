@@ -179,6 +179,10 @@ def is_service_staked(
     service_staking_state = staking_contract.get_service_staking_state(
         ledger_api, staking_contract_address, service_id
     ).pop("data")
+
+    if isinstance(service_staking_state, int):
+        service_staking_state = StakingState(service_staking_state)
+
     is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
     return is_staked
 
@@ -190,6 +194,9 @@ def is_service_evicted(
     service_staking_state = staking_contract.get_service_staking_state(
         ledger_api, staking_contract_address, service_id
     ).pop("data")
+
+    if isinstance(service_staking_state, int):
+        service_staking_state = StakingState(service_staking_state)
 
     is_evicted = service_staking_state == StakingState.EVICTED
     return is_evicted
