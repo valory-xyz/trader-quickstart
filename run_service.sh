@@ -210,9 +210,9 @@ get_private_key() {
 
 # Function to warm start the policy
 warm_start() {
-    echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
-    echo '{"counts": [0,0,0,0,0], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
-    echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
+    echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "${path_to_store}available_tools_store.json"  > /dev/null
+    echo '{"counts": [0,0,0,0,0], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "${path_to_store}policy_store.json"  > /dev/null
+    echo '{}' | sudo tee "${path_to_store}utilized_tools.json"  > /dev/null
 }
 
 # Function to add a volume to a service in a Docker Compose file
@@ -463,6 +463,7 @@ dotenv_set_key() {
 
 
 store=".trader_runner"
+path_to_store="$PWD/$store/"
 env_file_path="$store/.env"
 rpc_path="$store/rpc.txt"
 operator_keys_file="$store/operator_keys.json"
@@ -1165,8 +1166,8 @@ cd ..
 # warm start is disabled as no global weights are provided to calibrate the tools' weights
 # warm_start
 
-add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
-sudo chown -R $(whoami) "$PWD/../$store/"
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
+sudo chown -R $(whoami) "$path_to_store"
 
 # Run the deployment
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy run --build-dir "$directory" --detach
