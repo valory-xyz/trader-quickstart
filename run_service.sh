@@ -210,9 +210,9 @@ get_private_key() {
 
 # Function to warm start the policy
 warm_start() {
-    echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "$PWD/../$store/available_tools_store.json"  > /dev/null
-    echo '{"counts": [0,0,0,0,0], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "$PWD/../$store/policy_store.json"  > /dev/null
-    echo '{}' | sudo tee "$PWD/../$store/utilized_tools.json"  > /dev/null
+    echo '["prediction-online", "prediction-online-sme", "prediction-online-summarized-info", "prediction-sentence-embedding-bold", "prediction-sentence-embedding-conservative"]' | sudo tee "${path_to_store}available_tools_store.json"  > /dev/null
+    echo '{"counts": [0,0,0,0,0], "eps": 0.1, "rewards": [0.0,0.0,0.0,0.0,0.0]}' | sudo tee "${path_to_store}policy_store.json"  > /dev/null
+    echo '{}' | sudo tee "${path_to_store}utilized_tools.json"  > /dev/null
 }
 
 # Function to add a volume to a service in a Docker Compose file
@@ -271,6 +271,51 @@ get_on_chain_service_state() {
     local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
     local state="$(echo "$service_info" | awk '/Service State/ {sub(/\|[ \t]*Service State[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
     echo "$state"
+}
+
+move_if_exists() {
+  local source_file="$1"
+  local target_file="$2"
+  [ -e "$source_file" ] && mv "$source_file" "$target_file" || true
+}
+
+backup_file() {
+  local filename="$1"
+  previous_version="v1"
+  move_if_exists "${path_to_store}${filename}" "${path_to_store}${filename}.${previous_version}"
+  echo "File $filename successfully backed up in $path_to_store with suffix '.$previous_version'."
+}
+
+# Prepare for the new policy version's update
+new_policy_update() {
+  echo "Updating the policy store to v2. Keeping a backup of the old store."
+  echo -n "v2" > "$policy_version_file"
+  backup_file "available_tools_store.json"
+  backup_file "policy_store.json"
+  backup_file "utilized_tools.json"
+  echo "Policy store has been updated to v2."
+}
+
+# Check if we need to update the policy
+check_for_policy_update() {
+  # Define the policy version file
+  policy_version_file="${path_to_store}policy_version.txt"
+
+  # Check if the policy version file exists
+  if [ -f "$policy_version_file" ]; then
+    # Read the version from the file
+    echo "Reading the policy version file from $policy_version_file."
+    version=$(<"$policy_version_file")
+
+    # Check the version and print the appropriate message
+    if [ "$version" != "v2" ]; then
+      echo "Updating the policy version file."
+      new_policy_update
+    fi
+  else
+    echo "Creating the policy version file."
+    new_policy_update
+  fi
 }
 
 # Asks if user wishes to use password-protected key files
@@ -463,6 +508,7 @@ dotenv_set_key() {
 
 
 store=".trader_runner"
+path_to_store="$PWD/$store/"
 env_file_path="$store/.env"
 rpc_path="$store/rpc.txt"
 operator_keys_file="$store/operator_keys.json"
@@ -613,7 +659,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.16.5"
+service_version="v0.17.0"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1073,6 +1119,7 @@ fi
 echo ""
 echo "Finished checking Autonolas Protocol service $service_id state."
 
+check_for_policy_update
 
 echo ""
 echo "------------------------------"
@@ -1165,8 +1212,8 @@ cd ..
 # warm start is disabled as no global weights are provided to calibrate the tools' weights
 # warm_start
 
-add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
-sudo chown -R $(whoami) "$PWD/../$store/"
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
+sudo chown -R $(whoami) "$path_to_store"
 
 # Run the deployment
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy run --build-dir "$directory" --detach
