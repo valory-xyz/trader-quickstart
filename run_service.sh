@@ -273,6 +273,51 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+move_if_exists() {
+  local source_file="$1"
+  local target_file="$2"
+  [ -e "$source_file" ] && mv "$source_file" "$target_file" || true
+}
+
+backup_file() {
+  local filename="$1"
+  previous_version="v1"
+  move_if_exists "${path_to_store}${filename}" "${path_to_store}${filename}.${previous_version}"
+  echo "File $filename successfully backed up in $path_to_store with suffix '.$previous_version'."
+}
+
+# Prepare for the new policy version's update
+new_policy_update() {
+  echo "Updating the policy store to v2. Keeping a backup of the old store."
+  echo -n "v2" > "$policy_version_file"
+  backup_file "available_tools_store.json"
+  backup_file "policy_store.json"
+  backup_file "utilized_tools.json"
+  echo "Policy store has been updated to v2."
+}
+
+# Check if we need to update the policy
+check_for_policy_update() {
+  # Define the policy version file
+  policy_version_file="${path_to_store}policy_version.txt"
+
+  # Check if the policy version file exists
+  if [ -f "$policy_version_file" ]; then
+    # Read the version from the file
+    echo "Reading the policy version file from $policy_version_file."
+    version=$(<"$policy_version_file")
+
+    # Check the version and print the appropriate message
+    if [ "$version" != "v2" ]; then
+      echo "Updating the policy version file."
+      new_policy_update
+    fi
+  else
+    echo "Creating the policy version file."
+    new_policy_update
+  fi
+}
+
 # Asks if user wishes to use password-protected key files
 ask_confirm_password() {
     echo "Use a password?"
@@ -1074,6 +1119,7 @@ fi
 echo ""
 echo "Finished checking Autonolas Protocol service $service_id state."
 
+check_for_policy_update
 
 echo ""
 echo "------------------------------"
