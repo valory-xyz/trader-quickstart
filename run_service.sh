@@ -828,6 +828,8 @@ cd $directory
 if [ "$(git rev-parse --is-inside-work-tree)" = true ]
 then
     poetry install
+    # temporarily pinning cryptography to `42.0.8` to address https://github.com/paramiko/paramiko/issues/2419
+    poetry run pip install cryptography==42.0.8
     poetry run autonomy packages sync
     poetry run autonomy init --reset --author $open_autonomy_author --remote --ipfs --ipfs-node "/dns/registry.autonolas.tech/tcp/443/https"
     poetry add tqdm
