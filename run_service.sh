@@ -273,12 +273,14 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+# Move a file if it exists
 move_if_exists() {
   local source_file="$1"
   local target_file="$2"
   [ -e "$source_file" ] && mv "$source_file" "$target_file" || true
 }
 
+# Backup a file if it exists
 backup_file() {
   local filename="$1"
   previous_version="v1"
