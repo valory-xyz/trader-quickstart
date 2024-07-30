@@ -273,12 +273,14 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+# Move a file if it exists
 move_if_exists() {
   local source_file="$1"
   local target_file="$2"
   [ -e "$source_file" ] && mv "$source_file" "$target_file" || true
 }
 
+# Backup a file if it exists
 backup_file() {
   local filename="$1"
   previous_version="v1"
@@ -289,32 +291,41 @@ backup_file() {
 # Prepare for the new policy version's update
 new_policy_update() {
   echo "Updating the policy store to v2. Keeping a backup of the old store."
-  echo -n "v2" > "$policy_version_file"
   backup_file "available_tools_store.json"
   backup_file "policy_store.json"
   backup_file "utilized_tools.json"
   echo "Policy store has been updated to v2."
 }
 
+# Get the policy's version
+get_policy_version() {
+  local policy_file="$1"
+
+  # Check which version the file is written in
+  if grep -q '"counts"' "$policy_file"; then
+    echo "v1"
+  elif grep -q '"accuracy_store"' "$policy_file"; then
+    echo "v2"
+  else
+    echo "Unknown version"
+  fi
+}
+
 # Check if we need to update the policy
 check_for_policy_update() {
-  # Define the policy version file
-  policy_version_file="${path_to_store}policy_version.txt"
+  # Define the policy file
+  policy_file="${path_to_store}policy_store.json"
 
-  # Check if the policy version file exists
-  if [ -f "$policy_version_file" ]; then
-    # Read the version from the file
-    echo "Reading the policy version file from $policy_version_file."
-    version=$(<"$policy_version_file")
+  # Check if the policy file exists
+  if [ -f "$policy_file" ]; then
+    # Check the policy's version from the file
+    echo "Checking the policy's version in $policy_file."
+    version=$(get_policy_version $policy_file)
 
     # Check the version and print the appropriate message
     if [ "$version" != "v2" ]; then
-      echo "Updating the policy version file."
       new_policy_update
     fi
-  else
-    echo "Creating the policy version file."
-    new_policy_update
   fi
 }
 
@@ -1160,6 +1171,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
+export TOOLS_ACCURACY_HASH=Qmem7ME7CCQH8bU26NQ6R8rV4Eu329dMuErSvjwoSvqfEh
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
