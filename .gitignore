@@ -1,5 +1,6 @@
 .trader_runner*
 .operate*
 trader
+temp/
 *.DS_Store
 __pycache__
