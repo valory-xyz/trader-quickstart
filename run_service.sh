@@ -430,30 +430,6 @@ perform_staking_ops() {
     echo ""
 }
 
-# Prompt user for staking preference
-prompt_use_staking() {
-    while true; do
-        echo "Use staking?"
-        echo "------------"
-        read -p "Do you want to stake this service? (yes/no): " use_staking
-
-        case "$use_staking" in
-            [Yy]|[Yy][Ee][Ss])
-                USE_STAKING="true"
-                break
-                ;;
-            [Nn]|[Nn][Oo])
-                USE_STAKING="false"
-                break
-                ;;
-            *)
-                echo "Please enter 'yes' or 'no'."
-                ;;
-        esac
-    done
-    echo ""
-}
-
 # Prompt user for subgraph API key
 prompt_subgraph_api_key() {
     echo "Provide a Subgraph API key"
@@ -639,10 +615,7 @@ try_read_storage() {
         fi
 
         # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "$USE_STAKING" ]; then
-            prompt_use_staking
-            dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
-        fi
+        cd trader; poetry run python "../scripts/choose_staking.py"; cd ..
 
         # INFO: This is a fix to avoid corrupting already-created stores
         if [ -z "$AGENT_ID" ]; then
@@ -684,15 +657,10 @@ suggested_safe_top_up_default=500000000000000000
 export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
-export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
-export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
-export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 
 # check if USE_NEVERMINED is set to true
 if [ "$USE_NEVERMINED" == "true" ];
