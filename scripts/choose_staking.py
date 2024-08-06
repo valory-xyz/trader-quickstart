@@ -173,7 +173,7 @@ def _populate_env_file_variables(staking_program_key: str) -> None:
     staking_token = staking_token_contract.functions.stakingToken().call()
     service_registry_token_utility = staking_token_contract.functions.serviceRegistryTokenUtility().call()
 
-    if 'activityChecker' in staking_token_contract.all_functions():
+    if 'activityChecker' in [func.fn_name for func in staking_token_contract.all_functions()]:
         activity_checker = staking_token_contract.functions.activityChecker().call()
         abi = _get_abi(activity_checker)
         activity_checker_contract = w3.eth.contract(address=activity_checker, abi=abi)
