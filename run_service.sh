@@ -493,6 +493,15 @@ dotenv_set_key() {
     export "$key_to_set=$value_to_set"
 }
 
+export_dotenv() {
+    local dotenv_path="$1"
+    unamestr=$(uname)
+    if [ "$unamestr" = 'Linux' ]; then
+        export $(grep -v '^#' $dotenv_path | xargs -d '\n')
+    elif [ "$unamestr" = 'FreeBSD' ] || [ "$unamestr" = 'Darwin' ]; then
+        export $(grep -v '^#' $dotenv_path | xargs -0)
+    fi
+}
 
 store=".trader_runner"
 path_to_store="$PWD/$store/"
@@ -520,8 +529,6 @@ create_storage() {
 
     ask_confirm_password
 
-    # Prompt use staking
-    prompt_use_staking
     prompt_subgraph_api_key
     verify_staking_slots
 
@@ -533,10 +540,6 @@ create_storage() {
         '   Please back up this folder and be cautious if you are modifying or sharing these files to avoid potential asset loss.' > "../$store_readme_path"
 
     dotenv_set_key "../$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
-    dotenv_set_key "../$env_file_path" "USE_STAKING" "$USE_STAKING"
-
-    AGENT_ID=14
-    dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
 
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
@@ -597,8 +600,6 @@ try_read_storage() {
             fi
         done
 
-        unset USE_STAKING
-        unset AGENT_ID
         source "$env_file_path"
 
         rpc=$(cat $rpc_path)
@@ -612,15 +613,6 @@ try_read_storage() {
         if [ -z "${SUBGRAPH_API_KEY}" ]; then
             prompt_subgraph_api_key
             dotenv_set_key "$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
-        fi
-
-        # INFO: This is a fix to avoid corrupting already-created stores
-        cd trader; poetry run python "../scripts/choose_staking.py"; cd ..
-
-        # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "$AGENT_ID" ]; then
-            AGENT_ID=14
-            dotenv_set_key "$env_file_path" "AGENT_ID" "$AGENT_ID"
         fi
 
         ask_password_if_needed
@@ -656,20 +648,18 @@ suggested_safe_top_up_default=500000000000000000
 
 export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
+
+# export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"  # Set up in .env file
+# export CUSTOM_STAKING_ADDRESS="0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"  # Set up in .env file
+# export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"  # Set up in .env file
+# export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"  # Set up in .env file
+# export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"  # Set up in env file
+
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-
-# check if USE_NEVERMINED is set to true
-if [ "$USE_NEVERMINED" == "true" ];
-then
-    echo "A Nevermined subscription will be used to pay for the mech requests."
-    export MECH_CONTRACT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
-    export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
-    export MECH_REQUEST_PRICE=0
-fi
 
 sleep_duration=12
 
@@ -832,12 +822,20 @@ echo ""
 echo "-----------------------------------------"
 echo "Checking Autonolas Protocol service state"
 echo "-----------------------------------------"
+echo ""
 
-# We set by default AGENT_ID=14. In Everest the AGENT_ID was 12.
-# This script does not allow to stake on Everest anymore, therefore
-# all stores must be correctly updated with AGENT_ID=14.
-AGENT_ID=14
-dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
+# Prompt use staking
+poetry run python "../scripts/choose_staking.py"
+export_dotenv "../$env_file_path"
+
+# check if USE_NEVERMINED is set to true
+if [ "$USE_NEVERMINED" == "true" ];
+then
+    echo "A Nevermined subscription will be used to pay for the mech requests."
+    export MECH_CONTRACT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
+    export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
+    export MECH_REQUEST_PRICE=0
+fi
 
 if [ -z ${service_id+x} ]; then
     # Check balances
