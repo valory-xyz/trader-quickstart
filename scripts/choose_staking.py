@@ -49,10 +49,9 @@ def _fetch_json(url):
 
 # Information stored in the "deployment" key is used only to retrieve "stakingTokenInstanceAddress" (proxy)
 # and "stakingTokenAddress" (implementation). The rest of the parameters are read on-chain.
-staking_programs = {
+STAKING_PROGRAMS = {
     "no_staking": {
         "name": "No staking",
-        "deprecated": False,
         "description": "Your Olas Predict agent will still actively participate in prediction markets, but it will not be staked within any staking program.",
         "deployment": {
             "stakingTokenAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
@@ -61,7 +60,6 @@ staking_programs = {
     },
     "quickstart_beta_hobbyist": {
         "name": "Quickstart Beta - Hobbyist",
-        "deprecated": False,
         "description": "The Quickstart Beta - Hobbyist staking contract offers 100 slots for operators running Olas Predict agents with the quickstart. It is designed as a step up from Coastal Staker Expeditions, requiring 100 OLAS for staking. The rewards are also more attractive than with Coastal Staker Expeditions.",
         # https://github.com/valory-xyz/autonolas-staking-programmes/blob/main/scripts/deployment/globals_gnosis_mainnet_qs_beta_hobbyist.json
         "deployment": {
@@ -71,7 +69,6 @@ staking_programs = {
     },
     "quickstart_beta_expert": {
         "name": "Quickstart Beta - Expert",
-        "deprecated": False,
         "description": "The Quickstart Beta - Expert staking contract offers 20 slots for operators running Olas Predict agents with the quickstart. It is designed for professional agent operators, requiring 1000 OLAS for staking. The rewards are proportional to the Quickstart Beta - Hobbyist.",
         # https://github.com/valory-xyz/autonolas-staking-programmes/blob/main/scripts/deployment/globals_gnosis_mainnet_qs_beta_expert.json
         "deployment": {
@@ -81,11 +78,29 @@ staking_programs = {
     },
     "quickstart_alpha_coastal": {
         "name": "Quickstart Alpha - Coastal",
-        "deprecated": True,
         "description": "The Quickstart Alpha - Coastal offers 100 slots for operators running Olas Predict agents with the quickstart. It requires 20 OLAS for staking.",
         "deployment": {
             "stakingTokenAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
             "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
+        }
+    }
+}
+
+DEPRECATED_STAKING_PROGRAMS = {
+    "quickstart_alpha_everest": {
+        "name": "Quickstart Alpha - Everest",
+        "description": "",
+        "deployment": {
+            "stakingTokenAddress": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C",
+            "stakingTokenInstanceAddress": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+        }
+    },
+    "quickstart_alpha_alpine": {
+        "name": "Quickstart Alpha - Alpine",
+        "description": "",
+        "deployment": {
+            "stakingTokenAddress": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
+            "stakingTokenInstanceAddress": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
         }
     }
 }
@@ -99,7 +114,7 @@ def _prompt_select_staking_program() -> str:
         print("The staking program is already selected.")
 
         program_id = env_file_vars.get('STAKING_PROGRAM')
-        if program_id not in staking_programs:
+        if program_id not in STAKING_PROGRAMS:
             print(f"WARNING: Selected staking program {program_id} is unknown.")
             print("")
             program_id = None
@@ -107,17 +122,11 @@ def _prompt_select_staking_program() -> str:
     if not program_id:
         print("Please, select your staking program preference")
         print("----------------------------------------------")
-        ids = list(staking_programs.keys())
+        ids = list(STAKING_PROGRAMS.keys())
         for index, key in enumerate(ids):
-            program = staking_programs[key]
-
-            if program.get("deprecated", False) is True:
-                program_name = f"{program['name']} {DEPRECATED_TEXT}"
-            else:
-                program_name = program['name']
-            
+            program = STAKING_PROGRAMS[key]            
             wrapped_description = textwrap.fill(program['description'], width=80, initial_indent='   ', subsequent_indent='   ')
-            print(f"{index + 1}) {program_name}\n{wrapped_description}\n")
+            print(f"{index + 1}) {program['name']}\n{wrapped_description}\n")
 
         while True:
             try:
@@ -129,7 +138,7 @@ def _prompt_select_staking_program() -> str:
             except ValueError:
                 print(f"Please enter a valid option (1 - {len(ids)}).")
 
-    print(f"Selected staking program: {staking_programs[program_id]['name']}")
+    print(f"Selected staking program: {STAKING_PROGRAMS[program_id]['name']}")
     print("")
     return program_id
 
@@ -152,7 +161,7 @@ def _get_abi(contract_address: str) -> List:
 
 
 def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
-    staking_program_data = staking_programs.get(program_id)
+    staking_program_data = STAKING_PROGRAMS.get(program_id)
 
     with open(RPC_PATH, 'r', encoding="utf-8") as file:
         rpc = file.read().strip()
