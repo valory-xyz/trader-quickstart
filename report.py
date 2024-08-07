@@ -55,6 +55,42 @@ AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
 OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
+SERVICE_STAKING_TOKEN_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "service_staking_token",
+    "build",
+    "ServiceStakingToken.json",
+)
+SERVICE_REGISTRY_L2_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "service_registry",
+    "build",
+    "ServiceRegistryL2.json",
+)
+SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "contracts",
+    "ServiceRegistryTokenUtility.json",
+)
+MECH_CONTRACT_ADDRESS = "0x77af31De935740567Cf4fF1986D04B2c964A786a"
+MECH_CONTRACT_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "mech",
+    "build",
+    "mech.json",
+)
 
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
@@ -99,23 +135,6 @@ def _color_percent(p: float, multiplier: float = 100, symbol: str = "%") -> str:
     if p >= 0:
         return f"{p*multiplier:.2f} {symbol}"
     return _color_string(f"{p*multiplier:.2f} {symbol}", ColorCode.RED)
-
-
-def _get_abi(contract_address: str) -> List:
-    contract_abi_url = "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
-    response = requests.get(contract_abi_url.format(contract_address=contract_address)).json()
-
-    if "result" in response:
-        result = response["result"]
-        try:
-            abi = json.loads(result)
-        except json.JSONDecodeError:
-            print("Error: Failed to parse 'result' field as JSON")
-            sys.exit(1)
-    else:
-        abi = response.get("abi")
-
-    return abi if abi else []
 
 
 def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str:
@@ -235,7 +254,10 @@ if __name__ == "__main__":
         w3 = Web3(HTTPProvider(rpc))
 
         service_staking_contract_address = env_file_vars.get("CUSTOM_STAKING_ADDRESS")
-        service_staking_token_abi = _get_abi(service_staking_contract_address)
+        with open(SERVICE_STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
+            service_staking_token_data = json.load(file)
+
+        service_staking_token_abi = service_staking_token_data.get("abi", [])
         service_staking_token_contract = w3.eth.contract(
             address=service_staking_contract_address, abi=service_staking_token_abi  # type: ignore
         )
@@ -257,18 +279,30 @@ if __name__ == "__main__":
         elif service_staking_state == StakingState.EVICTED:
             _print_status("Staking state", _color_string(service_staking_state.name, ColorCode.RED))
 
+
         if is_staked:
+            with open(
+                SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH, "r", encoding="utf-8"
+            ) as file:
+                service_registry_token_utility_data = json.load(file)
+
             service_registry_token_utility_contract_address = (
                 service_staking_token_contract.functions.serviceRegistryTokenUtility().call()
             )
-            service_registry_token_utility_abi = _get_abi(service_registry_token_utility_contract_address)
+            service_registry_token_utility_abi = (
+                service_registry_token_utility_data.get("abi", [])
+            )
             service_registry_token_utility_contract = w3.eth.contract(
                 address=service_registry_token_utility_contract_address,
                 abi=service_registry_token_utility_abi,
             )
 
             mech_contract_address = env_file_vars.get("MECH_CONTRACT_ADDRESS")
-            mech_contract_abi = _get_abi(mech_contract_address)
+            with open(MECH_CONTRACT_JSON_PATH, "r", encoding="utf-8") as file:
+                mech_contract_data = json.load(file)
+
+            mech_contract_abi = mech_contract_data.get("abi", [])
+
             mech_contract = w3.eth.contract(
                 address=mech_contract_address, abi=mech_contract_abi   # type: ignore
             )
