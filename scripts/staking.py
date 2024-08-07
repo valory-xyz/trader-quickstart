@@ -251,9 +251,6 @@ def main() -> None:
             ledger_api, args.staking_contract_address
         )
 
-        print(args.staking_contract_address)
-        print(".........")
-
         if args.unstake:
             if not is_service_staked(
                 ledger_api, args.service_id, args.staking_contract_address
