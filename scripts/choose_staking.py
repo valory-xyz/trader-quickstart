@@ -38,6 +38,7 @@ NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
 NEVERMINED_AGENT_REGISTRY_ADDRESS = "0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 NEVERMINED_MECH_REQUEST_PRICE = "0"
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+DEPRECATED_TEXT = "(DEPRECATED)"
 
 
 def _fetch_json(url):
@@ -51,28 +52,40 @@ def _fetch_json(url):
 staking_programs = {
     "no_staking": {
         "name": "No staking",
+        "deprecated": False,
         "description": "Your Olas Predict agent will still actively participate in prediction markets, but it will not be staked within any staking program.",
         "deployment": {
-            "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
             "stakingTokenAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
+            "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
         }
     },
     "quickstart_beta_hobbyist": {
         "name": "Quickstart Beta - Hobbyist",
+        "deprecated": False,
         "description": "The Quickstart Beta - Hobbyist staking contract offers 100 slots for operators running Olas Predict agents with the quickstart. It is designed as a step up from Coastal Staker Expeditions, requiring 100 OLAS for staking. The rewards are also more attractive than with Coastal Staker Expeditions.",
-        "deployment": _fetch_json("https://raw.githubusercontent.com/valory-xyz/autonolas-staking-programmes/main/scripts/deployment/globals_gnosis_mainnet_qs_beta_hobbyist.json"),
+        # https://github.com/valory-xyz/autonolas-staking-programmes/blob/main/scripts/deployment/globals_gnosis_mainnet_qs_beta_hobbyist.json
+        "deployment": {
+            "stakingTokenAddress": "0xEa00be6690a871827fAfD705440D20dd75e67AB1",
+            "stakingTokenInstanceAddress": "0x389B46c259631Acd6a69Bde8B6cEe218230bAE8C"
+        }
     },
     "quickstart_beta_expert": {
         "name": "Quickstart Beta - Expert",
+        "deprecated": False,
         "description": "The Quickstart Beta - Expert staking contract offers 20 slots for operators running Olas Predict agents with the quickstart. It is designed for professional agent operators, requiring 1000 OLAS for staking. The rewards are proportional to the Quickstart Beta - Hobbyist.",
-        "deployment": _fetch_json("https://raw.githubusercontent.com/valory-xyz/autonolas-staking-programmes/main/scripts/deployment/globals_gnosis_mainnet_qs_beta_expert.json"),
+        # https://github.com/valory-xyz/autonolas-staking-programmes/blob/main/scripts/deployment/globals_gnosis_mainnet_qs_beta_expert.json
+        "deployment": {
+            "stakingTokenAddress": "0xEa00be6690a871827fAfD705440D20dd75e67AB1",
+            "stakingTokenInstanceAddress": "0x5344B7DD311e5d3DdDd46A4f71481bD7b05AAA3e"
+        }
     },
     "quickstart_alpha_coastal": {
-        "name": "Quickstart Alpha - Coastal (Deprecated)",
-        "description": "The Quickstart Alpha - Coastal is a deprecated staking contract. It offers 100 slots for operators running Olas Predict agents with the quickstart. It requires 20 OLAS for staking.",
+        "name": "Quickstart Alpha - Coastal",
+        "deprecated": True,
+        "description": "The Quickstart Alpha - Coastal offers 100 slots for operators running Olas Predict agents with the quickstart. It requires 20 OLAS for staking.",
         "deployment": {
-            "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
             "stakingTokenAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
+            "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
         }
     }
 }
@@ -97,8 +110,14 @@ def _prompt_select_staking_program() -> str:
         ids = list(staking_programs.keys())
         for index, key in enumerate(ids):
             program = staking_programs[key]
+
+            if program.get("deprecated", False) is True:
+                program_name = f"{program['name']} {DEPRECATED_TEXT}"
+            else:
+                program_name = program['name']
+            
             wrapped_description = textwrap.fill(program['description'], width=80, initial_indent='   ', subsequent_indent='   ')
-            print(f"{index + 1}) {program['name']}\n{wrapped_description}\n")
+            print(f"{index + 1}) {program_name}\n{wrapped_description}\n")
 
         while True:
             try:
