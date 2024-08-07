@@ -640,9 +640,7 @@ service_version="v0.18.0"
 # Define constants for on-chain interaction
 gnosis_chain_id=100
 n_agents=1
-olas_balance_required_to_bond=10000000000000000000
-olas_balance_required_to_stake=10000000000000000000
-xdai_balance_required_to_bond=10000000000000000
+MIN_STAKING_BOND_XDAI=10000000000000000
 suggested_top_up_default=50000000000000000
 suggested_safe_top_up_default=500000000000000000
 
@@ -828,15 +826,6 @@ echo ""
 poetry run python "../scripts/choose_staking.py"
 export_dotenv "../$env_file_path"
 
-# check if USE_NEVERMINED is set to true
-if [ "$USE_NEVERMINED" == "true" ];
-then
-    echo "A Nevermined subscription will be used to pay for the mech requests."
-    export MECH_CONTRACT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
-    export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
-    export MECH_REQUEST_PRICE=0
-fi
-
 if [ -z ${service_id+x} ]; then
     # Check balances
     suggested_amount=$suggested_top_up_default
@@ -860,10 +849,10 @@ if [ -z ${service_id+x} ]; then
       --threshold $n_agents"
 
     if [ "${USE_STAKING}" = true ]; then
-      cost_of_bonding=$olas_balance_required_to_bond
+      cost_of_bonding=$MIN_STAKING_BOND_OLAS
       cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
     else
-      cost_of_bonding=$xdai_balance_required_to_bond
+      cost_of_bonding=$MIN_STAKING_BOND_XDAI
       cmd+=" -c $cost_of_bonding"
     fi
     service_id=$(eval $cmd)
@@ -979,10 +968,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
           export cmd=""
           if [ "${USE_STAKING}" = true ]; then
-              cost_of_bonding=$olas_balance_required_to_bond
+              cost_of_bonding=$MIN_STAKING_BOND_OLAS
               poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc" $password_argument
           else
-              cost_of_bonding=$xdai_balance_required_to_bond
+              cost_of_bonding=$MIN_STAKING_BOND_XDAI
               cmd="poetry run autonomy mint \
                   --retries $RPC_RETRIES \
                   --timeout $RPC_TIMEOUT_SECONDS \
@@ -1023,11 +1012,11 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
     export cmd="poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain activate --key "../$operator_pkey_path" $password_argument "$service_id""
     if [ "${USE_STAKING}" = true ]; then
-        minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
+        minimum_olas_balance=$($PYTHON_CMD -c "print(int($MIN_STAKING_DEPOSIT_OLAS) + int($MIN_STAKING_BOND_OLAS))")
         echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address."
-        echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for security deposit (service owner)"
+        echo "    $(wei_to_dai "$MIN_STAKING_DEPOSIT_OLAS") OLAS for security deposit (service owner)"
         echo "        +"
-        echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."
+        echo "    $(wei_to_dai "$MIN_STAKING_BOND_OLAS") OLAS for slashable bond (operator)."
         echo ""
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "owner/operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
 

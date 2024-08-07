@@ -34,6 +34,11 @@ STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
 DOTENV_PATH = Path(STORE_PATH, ".env")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
 
+NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
+NEVERMINED_AGENT_REGISTRY_ADDRESS = "0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
+NEVERMINED_MECH_REQUEST_PRICE = "0"
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
 
 def _fetch_json(url):
     response = requests.get(url)
@@ -73,69 +78,41 @@ staking_programs = {
 }
 
 
-def _prompt_use_staking() -> None:
+def _prompt_select_staking_program() -> str:
     env_file_vars = dotenv_values(DOTENV_PATH)
 
-    if 'USE_STAKING' in env_file_vars:
-        return
-
-    print("Use staking?")
-    print("------------")
-
-    while True:
-        use_staking = input("Do you want to stake this service? (yes/no): ").strip().lower()
-
-        if use_staking in ('yes', 'y'):
-            use_staking_value = "true"
-            break
-        elif use_staking in ('no', 'n'):
-            use_staking_value = "false"
-            break
-        else:
-            print("Please enter 'yes' or 'no'.")
-
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_STAKING", value_to_set=use_staking_value, quote_mode="never")
-    print("")
-
-
-def _prompt_select_staking_program() -> None:
-    env_file_vars = dotenv_values(DOTENV_PATH)
-
-    selected_key = None
+    program_id = None
     if 'STAKING_PROGRAM' in env_file_vars:
         print("The staking program is already selected.")
 
-        selected_key = env_file_vars.get('STAKING_PROGRAM')
-        if selected_key not in staking_programs:
-            selected_key = None
-            print(f"WARNING: Selected staking program {selected_key} is unknown.")
+        program_id = env_file_vars.get('STAKING_PROGRAM')
+        if program_id not in staking_programs:
+            print(f"WARNING: Selected staking program {program_id} is unknown.")
             print("")
+            program_id = None
 
-    if not selected_key:
+    if not program_id:
         print("Please, select your staking program preference")
         print("----------------------------------------------")
-        program_keys = list(staking_programs.keys())
-        for index, key in enumerate(program_keys):
+        ids = list(staking_programs.keys())
+        for index, key in enumerate(ids):
             program = staking_programs[key]
             wrapped_description = textwrap.fill(program['description'], width=80, initial_indent='   ', subsequent_indent='   ')
             print(f"{index + 1}) {program['name']}\n{wrapped_description}\n")
 
         while True:
             try:
-                choice = int(input(f"Enter your choice (1 - {len(program_keys)}): ")) - 1
-                if not (0 <= choice < len(program_keys)):
+                choice = int(input(f"Enter your choice (1 - {len(ids)}): ")) - 1
+                if not (0 <= choice < len(ids)):
                     raise ValueError
-                selected_key = program_keys[choice]
+                program_id = ids[choice]
                 break
             except ValueError:
-                print(f"Please enter a valid option (1 - {len(program_keys)}).")
+                print(f"Please enter a valid option (1 - {len(ids)}).")
 
-    selected_staking_program_data = staking_programs[selected_key]
-    print(f"Selected staking program: {selected_staking_program_data['name']}")
-
-    print("Populating the staking program variables in the .env file")
-    _populate_env_file_variables(selected_key)
+    print(f"Selected staking program: {staking_programs[program_id]['name']}")
     print("")
+    return program_id
 
 
 def _get_abi(contract_address: str) -> List:
@@ -155,9 +132,8 @@ def _get_abi(contract_address: str) -> List:
     return abi if abi else []
 
 
-def _populate_env_file_variables(staking_program_key: str) -> None:
-
-    staking_program_data = staking_programs.get(staking_program_key)
+def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
+    staking_program_data = staking_programs.get(program_id)
 
     with open(RPC_PATH, 'r', encoding="utf-8") as file:
         rpc = file.read().strip()
@@ -172,6 +148,8 @@ def _populate_env_file_variables(staking_program_key: str) -> None:
     service_registry = staking_token_contract.functions.serviceRegistry().call()
     staking_token = staking_token_contract.functions.stakingToken().call()
     service_registry_token_utility = staking_token_contract.functions.serviceRegistryTokenUtility().call()
+    min_staking_deposit = staking_token_contract.functions.minStakingDeposit().call()
+    min_staking_bond = min_staking_deposit
 
     if 'activityChecker' in [func.fn_name for func in staking_token_contract.all_functions()]:
         activity_checker = staking_token_contract.functions.activityChecker().call()
@@ -179,33 +157,88 @@ def _populate_env_file_variables(staking_program_key: str) -> None:
         activity_checker_contract = w3.eth.contract(address=activity_checker, abi=abi)
         agent_mech = activity_checker_contract.functions.agentMech().call()
     else:
-        activity_checker = '0x0000000000000000000000000000000000000000'
+        activity_checker = ZERO_ADDRESS
         agent_mech = staking_token_contract.functions.agentMech().call()
 
-    if staking_program_key == "no_staking":
-        set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_STAKING", value_to_set="false", quote_mode="never")
+    if program_id == "no_staking":
+        use_staking = "false"
     else:
-        set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_STAKING", value_to_set="true", quote_mode="never")
+        use_staking = "true"
 
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="STAKING_PROGRAM", value_to_set=staking_program_key, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="CUSTOM_STAKING_ADDRESS", value_to_set=staking_token_instance_address, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="AGENT_ID", value_to_set=agent_id, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="CUSTOM_SERVICE_REGISTRY_ADDRESS", value_to_set=service_registry, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="CUSTOM_OLAS_ADDRESS", value_to_set=staking_token, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS", value_to_set=service_registry_token_utility, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="MECH_ACTIVITY_CHECKER_CONTRACT", value_to_set=activity_checker, quote_mode="never")
-    set_key(dotenv_path=DOTENV_PATH, key_to_set="MECH_CONTRACT_ADDRESS", value_to_set=agent_mech, quote_mode="never")
+    return {
+        "USE_STAKING": use_staking,
+        "STAKING_PROGRAM": program_id,
+        "CUSTOM_STAKING_ADDRESS": staking_token_instance_address,
+        "AGENT_ID": agent_id,
+        "CUSTOM_SERVICE_REGISTRY_ADDRESS": service_registry,
+        "CUSTOM_OLAS_ADDRESS": staking_token,
+        "CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS": service_registry_token_utility,
+        "MECH_ACTIVITY_CHECKER_CONTRACT": activity_checker,
+        "MECH_CONTRACT_ADDRESS": agent_mech,
+        "MIN_STAKING_DEPOSIT_OLAS": min_staking_deposit,
+        "MIN_STAKING_BOND_OLAS": min_staking_bond
+    }
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Set up staking configuration.')
-    parser.add_argument('--reset', action='store_true', help='Reset USE_STAKING and STAKING_PROGRAM in .env file')
+def _set_dotenv_file_variables(env_vars: Dict[str, str]) -> None:
+    for key, value in env_vars.items():
+        if value:
+            set_key(dotenv_path=DOTENV_PATH, key_to_set=key, value_to_set=value, quote_mode="never")
+        else:
+            unset_key(dotenv_path=DOTENV_PATH, key_to_unset=key)
+
+
+def _get_nevermined_env_variables() -> Dict[str, str]:
+    env_file_vars = dotenv_values(DOTENV_PATH)
+    use_nevermined = False
+
+    if 'USE_NEVERMINED' not in env_file_vars:
+        set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_NEVERMINED", value_to_set="false", quote_mode="never")
+    elif env_file_vars.get('USE_NEVERMINED').strip() not in ("True", "true"):
+        set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_NEVERMINED", value_to_set="false", quote_mode="never")
+    else:
+        use_nevermined = True
+
+    if use_nevermined:
+        print("A Nevermined subscription will be used to pay for the mech requests.")
+        return {
+            "MECH_CONTRACT_ADDRESS": NEVERMINED_MECH_CONTRACT_ADDRESS,
+            "AGENT_REGISTRY_ADDRESS": NEVERMINED_AGENT_REGISTRY_ADDRESS,
+            "MECH_REQUEST_PRICE": NEVERMINED_MECH_REQUEST_PRICE
+        }
+    else:
+        print("No Nevermined subscription set.")
+        return {
+            "AGENT_REGISTRY_ADDRESS": "",
+            "MECH_REQUEST_PRICE": ""
+        }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Set up staking configuration.")
+    parser.add_argument("--reset", action="store_true", help="Reset USE_STAKING and STAKING_PROGRAM in .env file")
     args = parser.parse_args()
 
     if args.reset:
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="USE_STAKING")
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="STAKING_PROGRAM")
-        print("Environment variables USE_STAKING and STAKING_PROGRAM have been reset.")
+        print(f"Environment variables USE_STAKING and STAKING_PROGRAM have been reset in '{DOTENV_PATH}'.")
+        print("You can now execute './run_service.sh' and select a different staking program.")
         print("")
+        return
 
-    _prompt_select_staking_program()
+    program_id = _prompt_select_staking_program()
+
+    print("Populating staking program variables in the .env file")
+    print("")
+    staking_env_variables = _get_staking_env_variables(program_id)
+    _set_dotenv_file_variables(staking_env_variables)
+
+    print("Populating Nevermined variables in the .env file")
+    print("")
+    nevermined_env_variables = _get_nevermined_env_variables()
+    _set_dotenv_file_variables(nevermined_env_variables)
+
+
+if __name__ == "__main__":
+    main()
