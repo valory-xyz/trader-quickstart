@@ -33,6 +33,7 @@ from packages.valory.contracts.erc20.contract import (
 from packages.valory.contracts.service_staking_token.contract import (
     ServiceStakingTokenContract,
 )
+from packages.valory.contracts.staking_token.contract import StakingTokenContract
 from autonomy.chain.tx import (
     TxSettler,
     should_retry,
@@ -46,9 +47,14 @@ from autonomy.chain.exceptions import (
     TxBuildError,
 )
 from autonomy.chain.config import ChainType
-
+from dotenv import dotenv_values
+from choose_staking import ZERO_ADDRESS
 from packages.valory.skills.staking_abci.rounds import StakingState
+from pathlib import Path
 
+SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+DOTENV_PATH = Path(STORE_PATH, ".env")
 
 DEFAULT_ON_CHAIN_INTERACT_TIMEOUT = 120.0
 DEFAULT_ON_CHAIN_INTERACT_RETRIES = 10
@@ -176,30 +182,46 @@ def is_service_staked(
     ledger_api: EthereumApi, service_id: int, staking_contract_address: str
 ) -> bool:
     """Check if service is staked."""
-    service_staking_state = staking_contract.get_service_staking_state(
-        ledger_api, staking_contract_address, service_id
-    ).pop("data")
+    # TODO Not best approach. This is required because staking.py might call
+    # different contract versions.
+    for staking_contract in all_staking_contracts:
+        try:
+            service_staking_state = staking_contract.get_service_staking_state(
+                ledger_api, staking_contract_address, service_id
+            ).pop("data")
 
-    if isinstance(service_staking_state, int):
-        service_staking_state = StakingState(service_staking_state)
+            if isinstance(service_staking_state, int):
+                service_staking_state = StakingState(service_staking_state)
 
-    is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
-    return is_staked
+            is_staked = service_staking_state == StakingState.STAKED or service_staking_state == StakingState.EVICTED
+            return is_staked
+        except:  # noqa
+            continue
+    
+    raise Exception("Unable to retrieve staking state.")
 
 
 def is_service_evicted(
     ledger_api: EthereumApi, service_id: int, staking_contract_address: str
 ) -> bool:
     """Check if service is staked."""
-    service_staking_state = staking_contract.get_service_staking_state(
-        ledger_api, staking_contract_address, service_id
-    ).pop("data")
+    # TODO Not best approach. This is required because staking.py might call
+    # different contract versions.
+    for staking_contract in all_staking_contracts:
+        try:
+            service_staking_state = staking_contract.get_service_staking_state(
+                ledger_api, staking_contract_address, service_id
+            ).pop("data")
 
-    if isinstance(service_staking_state, int):
-        service_staking_state = StakingState(service_staking_state)
+            if isinstance(service_staking_state, int):
+                service_staking_state = StakingState(service_staking_state)
 
-    is_evicted = service_staking_state == StakingState.EVICTED
-    return is_evicted
+            is_evicted = service_staking_state == StakingState.EVICTED
+            return is_evicted
+        except:  # noqa
+            continue
+    
+    raise Exception("Unable to retrieve eviction state.")
 
 
 def get_next_checkpoint_ts(
@@ -359,7 +381,29 @@ def send_tx_and_wait_for_receipt(
     return receipt
 
 
-staking_contract = typing.cast(
-    typing.Type[ServiceStakingTokenContract], load_contract(ServiceStakingTokenContract)
-)
+# TODO 'staking_contract' refers to the current active program.abs
+# There are methods above that will be called for other programs,
+# and whose ABI might differ. A "patch" is currently implemented,
+# but it should be refactored in a more elegant and robust way.
+env_file_vars = dotenv_values(DOTENV_PATH)
+activity_checker = env_file_vars.get("MECH_ACTIVITY_CHECKER_CONTRACT")
+
+if activity_checker is None or activity_checker == ZERO_ADDRESS:
+    staking_contract = typing.cast(
+        typing.Type[Contract], load_contract(ServiceStakingTokenContract)
+    )
+else:
+    staking_contract = typing.cast(
+        typing.Type[Contract], load_contract(StakingTokenContract)
+    )
+
+all_staking_contracts = [
+    typing.cast(
+        typing.Type[Contract], load_contract(ServiceStakingTokenContract)
+    ),
+    typing.cast(
+        typing.Type[Contract], load_contract(StakingTokenContract)
+    )
+]
+
 erc20 = typing.cast(typing.Type[ERC20], load_contract(ERC20))

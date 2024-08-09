@@ -25,9 +25,12 @@ import math
 import time
 import traceback
 from argparse import ArgumentParser
+from dotenv import dotenv_values
 from enum import Enum
 from pathlib import Path
-from typing import Any
+import requests
+import sys
+from typing import Any, List
 
 import docker
 import trades
@@ -46,12 +49,12 @@ from web3 import HTTPProvider, Web3
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
+DOTENV_PATH = Path(STORE_PATH, ".env")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
 AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
 OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
-SERVICE_STAKING_CONTRACT_ADDRESS = "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
 SERVICE_STAKING_TOKEN_JSON_PATH = Path(
     SCRIPT_PATH,
     "trader",
@@ -228,6 +231,8 @@ if __name__ == "__main__":
     with open(RPC_PATH, "r", encoding="utf-8") as file:
         rpc = file.read().strip()
 
+    env_file_vars = dotenv_values(DOTENV_PATH)
+
     # Prediction market trading
     mech_requests = trades.get_mech_requests(safe_address)
     mech_statistics = trades.get_mech_statistics(mech_requests)
@@ -247,12 +252,14 @@ if __name__ == "__main__":
 
     try:
         w3 = Web3(HTTPProvider(rpc))
+
+        service_staking_contract_address = env_file_vars.get("CUSTOM_STAKING_ADDRESS")
         with open(SERVICE_STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
             service_staking_token_data = json.load(file)
 
         service_staking_token_abi = service_staking_token_data.get("abi", [])
         service_staking_token_contract = w3.eth.contract(
-            address=SERVICE_STAKING_CONTRACT_ADDRESS, abi=service_staking_token_abi
+            address=service_staking_contract_address, abi=service_staking_token_abi  # type: ignore
         )
         service_staking_state = StakingState(
             service_staking_token_contract.functions.getServiceStakingState(
@@ -265,6 +272,8 @@ if __name__ == "__main__":
             or service_staking_state == StakingState.EVICTED
         )
         _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
+        if is_staked:
+            _print_status("Staking program", env_file_vars.get("STAKING_PROGRAM"))  # type: ignore
         if service_staking_state == StakingState.STAKED:
             _print_status("Staking state", service_staking_state.name)
         elif service_staking_state == StakingState.EVICTED:
@@ -288,13 +297,14 @@ if __name__ == "__main__":
                 abi=service_registry_token_utility_abi,
             )
 
+            mech_contract_address = env_file_vars.get("MECH_CONTRACT_ADDRESS")
             with open(MECH_CONTRACT_JSON_PATH, "r", encoding="utf-8") as file:
                 mech_contract_data = json.load(file)
 
             mech_contract_abi = mech_contract_data.get("abi", [])
 
             mech_contract = w3.eth.contract(
-                address=MECH_CONTRACT_ADDRESS, abi=mech_contract_abi
+                address=mech_contract_address, abi=mech_contract_abi   # type: ignore
             )
 
             security_deposit = (
