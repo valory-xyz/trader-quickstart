@@ -107,7 +107,6 @@ AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
 MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
-AGENT_ID = 14
 
 OUTPUT_WIDTH = 80
 
@@ -332,8 +331,9 @@ if __name__ == "__main__":
                     operator_address, service_id
                 ).call()
             )
+            agent_id = int(env_file_vars.get("AGENT_ID").strip())
             agent_bond = service_registry_token_utility_contract.functions.getAgentBond(
-                service_id, AGENT_ID
+                service_id, agent_id
             ).call()
             min_staking_deposit = (
                 staking_token_contract.functions.minStakingDeposit().call()
