@@ -273,6 +273,13 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+get_on_chain_agent_ids() {
+    local service_id="$1"
+    local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
+    local agent_ids="$(echo "$service_info" | awk '/Cannonical Agents/ {sub(/\|[ \t]*Cannonical Agents[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
+    echo "$agent_ids"
+}
+
 # Move a file if it exists
 move_if_exists() {
   local source_file="$1"
@@ -430,30 +437,6 @@ perform_staking_ops() {
     echo ""
 }
 
-# Prompt user for staking preference
-prompt_use_staking() {
-    while true; do
-        echo "Use staking?"
-        echo "------------"
-        read -p "Do you want to stake this service? (yes/no): " use_staking
-
-        case "$use_staking" in
-            [Yy]|[Yy][Ee][Ss])
-                USE_STAKING="true"
-                break
-                ;;
-            [Nn]|[Nn][Oo])
-                USE_STAKING="false"
-                break
-                ;;
-            *)
-                echo "Please enter 'yes' or 'no'."
-                ;;
-        esac
-    done
-    echo ""
-}
-
 # Prompt user for subgraph API key
 prompt_subgraph_api_key() {
     echo "Provide a Subgraph API key"
@@ -517,6 +500,15 @@ dotenv_set_key() {
     export "$key_to_set=$value_to_set"
 }
 
+export_dotenv() {
+    local dotenv_path="$1"
+    unamestr=$(uname)
+    if [ "$unamestr" = 'Linux' ]; then
+        export $(grep -v '^#' $dotenv_path | xargs -d '\n')
+    elif [ "$unamestr" = 'FreeBSD' ] || [ "$unamestr" = 'Darwin' ]; then
+        export $(grep -v '^#' $dotenv_path | xargs -0)
+    fi
+}
 
 store=".trader_runner"
 path_to_store="$PWD/$store/"
@@ -544,8 +536,6 @@ create_storage() {
 
     ask_confirm_password
 
-    # Prompt use staking
-    prompt_use_staking
     prompt_subgraph_api_key
     verify_staking_slots
 
@@ -557,10 +547,6 @@ create_storage() {
         '   Please back up this folder and be cautious if you are modifying or sharing these files to avoid potential asset loss.' > "../$store_readme_path"
 
     dotenv_set_key "../$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
-    dotenv_set_key "../$env_file_path" "USE_STAKING" "$USE_STAKING"
-
-    AGENT_ID=14
-    dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
 
     # Generate the RPC file
     echo -n "$rpc" > "../$rpc_path"
@@ -621,8 +607,6 @@ try_read_storage() {
             fi
         done
 
-        unset USE_STAKING
-        unset AGENT_ID
         source "$env_file_path"
 
         rpc=$(cat $rpc_path)
@@ -636,18 +620,6 @@ try_read_storage() {
         if [ -z "${SUBGRAPH_API_KEY}" ]; then
             prompt_subgraph_api_key
             dotenv_set_key "$env_file_path" "SUBGRAPH_API_KEY" "$SUBGRAPH_API_KEY" true
-        fi
-
-        # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "$USE_STAKING" ]; then
-            prompt_use_staking
-            dotenv_set_key "$env_file_path" "USE_STAKING" "$USE_STAKING"
-        fi
-
-        # INFO: This is a fix to avoid corrupting already-created stores
-        if [ -z "$AGENT_ID" ]; then
-            AGENT_ID=14
-            dotenv_set_key "$env_file_path" "AGENT_ID" "$AGENT_ID"
         fi
 
         ask_password_if_needed
@@ -675,33 +647,19 @@ service_version="v0.18.0"
 # Define constants for on-chain interaction
 gnosis_chain_id=100
 n_agents=1
-olas_balance_required_to_bond=10000000000000000000
-olas_balance_required_to_stake=10000000000000000000
-xdai_balance_required_to_bond=10000000000000000
+MIN_STAKING_BOND_XDAI=10000000000000000
 suggested_top_up_default=50000000000000000
 suggested_safe_top_up_default=500000000000000000
 
 export RPC_RETRIES=40
 export RPC_TIMEOUT_SECONDS=120
+
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
-export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
-export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
-export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-export MECH_CONTRACT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
-
-# check if USE_NEVERMINED is set to true
-if [ "$USE_NEVERMINED" == "true" ];
-then
-    echo "A Nevermined subscription will be used to pay for the mech requests."
-    export MECH_CONTRACT_ADDRESS="0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
-    export AGENT_REGISTRY_ADDRESS="0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
-    export MECH_REQUEST_PRICE=0
-fi
+export OPEN_AUTONOMY_SUBGRAPH_URL="https://subgraph.autonolas.tech/subgraphs/name/autonolas-staging"
 
 sleep_duration=12
 
@@ -864,12 +822,11 @@ echo ""
 echo "-----------------------------------------"
 echo "Checking Autonolas Protocol service state"
 echo "-----------------------------------------"
+echo ""
 
-# We set by default AGENT_ID=14. In Everest the AGENT_ID was 12.
-# This script does not allow to stake on Everest anymore, therefore
-# all stores must be correctly updated with AGENT_ID=14.
-AGENT_ID=14
-dotenv_set_key "../$env_file_path" "AGENT_ID" "$AGENT_ID"
+# Prompt use staking
+poetry run python "../scripts/choose_staking.py"
+export_dotenv "../$env_file_path"
 
 if [ -z ${service_id+x} ]; then
     # Check balances
@@ -894,10 +851,10 @@ if [ -z ${service_id+x} ]; then
       --threshold $n_agents"
 
     if [ "${USE_STAKING}" = true ]; then
-      cost_of_bonding=$olas_balance_required_to_bond
+      cost_of_bonding=$MIN_STAKING_BOND_OLAS
       cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
     else
-      cost_of_bonding=$xdai_balance_required_to_bond
+      cost_of_bonding=$MIN_STAKING_BOND_XDAI
       cmd+=" -c $cost_of_bonding"
     fi
     service_id=$(eval $cmd)
@@ -919,16 +876,19 @@ packages="packages/packages.json"
 local_service_hash="$(grep 'service/valory/trader' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
+on_chain_agent_id=$(get_on_chain_agent_ids "$service_id")
 
-if [ "$local_service_hash" != "$remote_service_hash" ]; then
+if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ]; then
     echo ""
     echo "WARNING: Your on-chain service configuration is out-of-date"
     echo "-----------------------------------------------------------"
-    echo "Your currently minted on-chain service (id $service_id) mismatches the local trader service ($service_version):"
+    echo "Your currently minted on-chain service (id $service_id) mismatches the local configuration:"
     echo "  - Local service hash ($service_version): $local_service_hash"
-    echo "  - On-chain service hash (id $service_id): $remote_service_hash"
+    echo "  - On-chain service hash: $remote_service_hash"
+    echo "  - Local agent id: $AGENT_ID"
+    echo "  - On-chain agent id: $on_chain_agent_id"
     echo ""
-    echo "This is most likely caused due to an update of the trader service code."
+    echo "This is most likely caused due to an update of the trader service code or agent id."
     echo "The script will proceed now to update the on-chain service."
     echo "The operator and agent addresses need to have enough funds to complete the process."
     echo ""
@@ -1013,10 +973,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
           export cmd=""
           if [ "${USE_STAKING}" = true ]; then
-              cost_of_bonding=$olas_balance_required_to_bond
+              cost_of_bonding=$MIN_STAKING_BOND_OLAS
               poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc" $password_argument
           else
-              cost_of_bonding=$xdai_balance_required_to_bond
+              cost_of_bonding=$MIN_STAKING_BOND_XDAI
               cmd="poetry run autonomy mint \
                   --retries $RPC_RETRIES \
                   --timeout $RPC_TIMEOUT_SECONDS \
@@ -1057,11 +1017,11 @@ if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
     export cmd="poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain activate --key "../$operator_pkey_path" $password_argument "$service_id""
     if [ "${USE_STAKING}" = true ]; then
-        minimum_olas_balance=$($PYTHON_CMD -c "print(int($olas_balance_required_to_bond) + int($olas_balance_required_to_stake))")
+        minimum_olas_balance=$($PYTHON_CMD -c "print(int($MIN_STAKING_DEPOSIT_OLAS) + int($MIN_STAKING_BOND_OLAS))")
         echo "Your service is using staking. Therefore, you need to provide a total of $(wei_to_dai "$minimum_olas_balance") OLAS to your owner/operator's address."
-        echo "    $(wei_to_dai "$olas_balance_required_to_bond") OLAS for security deposit (service owner)"
+        echo "    $(wei_to_dai "$MIN_STAKING_DEPOSIT_OLAS") OLAS for security deposit (service owner)"
         echo "        +"
-        echo "    $(wei_to_dai "$olas_balance_required_to_stake") OLAS for slashable bond (operator)."
+        echo "    $(wei_to_dai "$MIN_STAKING_BOND_OLAS") OLAS for slashable bond (operator)."
         echo ""
         ensure_erc20_balance "$operator_address" $minimum_olas_balance "owner/operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
 
@@ -1171,7 +1131,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=Qmem7ME7CCQH8bU26NQ6R8rV4Eu329dMuErSvjwoSvqfEh
+export TOOLS_ACCURACY_HASH=QmexjVcbhh7sMAKmRtxLbgZiiGKdGpHHMYAWecVq7riAD1
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"

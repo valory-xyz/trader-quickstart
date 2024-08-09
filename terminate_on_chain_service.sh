@@ -94,6 +94,16 @@ validate_password() {
     fi
 }
 
+export_dotenv() {
+    local dotenv_path="$1"
+    unamestr=$(uname)
+    if [ "$unamestr" = 'Linux' ]; then
+        export $(grep -v '^#' $dotenv_path | xargs -d '\n')
+    elif [ "$unamestr" = 'FreeBSD' ] || [ "$unamestr" = 'Darwin' ]; then
+        export $(grep -v '^#' $dotenv_path | xargs -0)
+    fi
+}
+
 store=".trader_runner"
 env_file_path="$store/.env"
 rpc_path="$store/rpc.txt"
@@ -120,15 +130,12 @@ export RPC_TIMEOUT_SECONDS=120
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
-export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
-export CUSTOM_STAKING_ADDRESS="0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
-export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
-export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
 export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
-export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+
+export_dotenv "$env_file_path"
 
 set -e  # Exit script on first error
 echo "--------------------------"

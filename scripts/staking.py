@@ -25,10 +25,12 @@ import sys
 import time
 import traceback
 from datetime import datetime
+from dotenv import dotenv_values
 from pathlib import Path
 
 import dotenv
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
+from choose_staking import STAKING_PROGRAMS, DEPRECATED_STAKING_PROGRAMS
 from utils import (
     get_available_rewards,
     get_available_staking_slots,
@@ -43,12 +45,6 @@ from utils import (
     is_service_staked,
     send_tx_and_wait_for_receipt,
 )
-
-
-OLD_STAKING_PROGRAMS = {
-    "Everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C",
-    "Alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
-}
 
 
 def _format_duration(duration_seconds: int) -> str:
@@ -69,11 +65,11 @@ def _unstake_old_program(
     print(f"Checking if service is staked on {staking_program}...")
 
     # Check if service is staked
-    if staking_program.startswith("Everest"):
+    if staking_program.startswith("quickstart_alpha_everest"):
         if service_id not in get_service_ids(ledger_api, staking_contract_address):
             print(f"Service {service_id} is not staked on {staking_program}.")
             return
-    elif staking_program.startswith("Alpine"):
+    else:
         if not is_service_staked(
             ledger_api, service_id, staking_contract_address
         ):
@@ -118,11 +114,16 @@ def _unstake_old_program(
 
 
 def _unstake_all_old_programs(
-    ledger_api: EthereumApi, service_id: int, owner_crypto: EthereumCrypto
+    ledger_api: EthereumApi,
+    service_id: int,
+    owner_crypto: EthereumCrypto,
+    current_staking_contract_address: str
 ) -> None:
     print("Unstaking from old programs...")
-    for program, address in OLD_STAKING_PROGRAMS.items():
-        _unstake_old_program(ledger_api, service_id, address, program, owner_crypto)
+    for program_id, details in DEPRECATED_STAKING_PROGRAMS.items():
+        staking_token_instance_address = details['deployment']['stakingTokenInstanceAddress']
+        if staking_token_instance_address != current_staking_contract_address:
+            _unstake_old_program(ledger_api, service_id, staking_token_instance_address, program_id, owner_crypto)
 
 
 def _check_unstaking_availability(
@@ -194,8 +195,6 @@ def _try_stake_service(
 
 def main() -> None:
     try:
-        staking_program = "Coastal"
-        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
 
         parser = argparse.ArgumentParser(
             description="Stake or unstake the service based on the state."
@@ -229,12 +228,21 @@ def main() -> None:
         )
         parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
+
+        staking_program = args.staking_contract_address
+        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
+
         ledger_api = EthereumApi(address=args.rpc)
         owner_crypto = EthereumCrypto(
             private_key_path=args.owner_private_key_path, password=args.password
         )
 
-        _unstake_all_old_programs(ledger_api, args.service_id, owner_crypto)
+        _unstake_all_old_programs(
+            ledger_api=ledger_api,
+            service_id=args.service_id,
+            owner_crypto=owner_crypto,
+            current_staking_contract_address=args.staking_contract_address
+        )
 
         # Collect information
         next_ts = get_next_checkpoint_ts(ledger_api, args.staking_contract_address)
