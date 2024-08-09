@@ -55,15 +55,25 @@ AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
 OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
 SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
-SERVICE_STAKING_TOKEN_JSON_PATH = Path(
+STAKING_TOKEN_JSON_PATH = Path(
     SCRIPT_PATH,
     "trader",
     "packages",
     "valory",
     "contracts",
-    "service_staking_token",
+    "staking_token",
     "build",
-    "ServiceStakingToken.json",
+    "StakingToken.json",
+)
+ACTIVITY_CHECKER_JSON_PATH = Path(
+    SCRIPT_PATH,
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "mech_activity",
+    "build",
+    "MechActivity.json",
 )
 SERVICE_REGISTRY_L2_JSON_PATH = Path(
     SCRIPT_PATH,
@@ -97,7 +107,6 @@ AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
 MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
-AGENT_ID = 14
 
 OUTPUT_WIDTH = 80
 
@@ -253,41 +262,51 @@ if __name__ == "__main__":
     try:
         w3 = Web3(HTTPProvider(rpc))
 
-        service_staking_contract_address = env_file_vars.get("CUSTOM_STAKING_ADDRESS")
-        with open(SERVICE_STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
-            service_staking_token_data = json.load(file)
+        staking_token_address = env_file_vars.get("CUSTOM_STAKING_ADDRESS")
+        with open(STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
+            staking_token_data = json.load(file)
 
-        service_staking_token_abi = service_staking_token_data.get("abi", [])
-        service_staking_token_contract = w3.eth.contract(
-            address=service_staking_contract_address, abi=service_staking_token_abi  # type: ignore
+        staking_token_abi = staking_token_data.get("abi", [])
+        staking_token_contract = w3.eth.contract(
+            address=staking_token_address, abi=staking_token_abi  # type: ignore
         )
-        service_staking_state = StakingState(
-            service_staking_token_contract.functions.getServiceStakingState(
+
+        staking_state = StakingState(
+            staking_token_contract.functions.getStakingState(
                 service_id
             ).call()
         )
 
         is_staked = (
-            service_staking_state == StakingState.STAKED
-            or service_staking_state == StakingState.EVICTED
+            staking_state == StakingState.STAKED
+            or staking_state == StakingState.EVICTED
         )
         _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
         if is_staked:
             _print_status("Staking program", env_file_vars.get("STAKING_PROGRAM"))  # type: ignore
-        if service_staking_state == StakingState.STAKED:
-            _print_status("Staking state", service_staking_state.name)
-        elif service_staking_state == StakingState.EVICTED:
-            _print_status("Staking state", _color_string(service_staking_state.name, ColorCode.RED))
-
+        if staking_state == StakingState.STAKED:
+            _print_status("Staking state", staking_state.name)
+        elif staking_state == StakingState.EVICTED:
+            _print_status("Staking state", _color_string(staking_state.name, ColorCode.RED))
 
         if is_staked:
+
+            activity_checker_address = staking_token_contract.functions.activityChecker().call()
+            with open(ACTIVITY_CHECKER_JSON_PATH, "r", encoding="utf-8") as file:
+                activity_checker_data = json.load(file)
+
+            activity_checker_abi = activity_checker_data.get("abi", [])
+            activity_checker_contract = w3.eth.contract(
+                address=activity_checker_address, abi=activity_checker_abi  # type: ignore
+            )
+
             with open(
                 SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH, "r", encoding="utf-8"
             ) as file:
                 service_registry_token_utility_data = json.load(file)
 
             service_registry_token_utility_contract_address = (
-                service_staking_token_contract.functions.serviceRegistryTokenUtility().call()
+                staking_token_contract.functions.serviceRegistryTokenUtility().call()
             )
             service_registry_token_utility_abi = (
                 service_registry_token_utility_data.get("abi", [])
@@ -312,11 +331,12 @@ if __name__ == "__main__":
                     operator_address, service_id
                 ).call()
             )
+            agent_id = int(env_file_vars.get("AGENT_ID").strip())
             agent_bond = service_registry_token_utility_contract.functions.getAgentBond(
-                service_id, AGENT_ID
+                service_id, agent_id
             ).call()
             min_staking_deposit = (
-                service_staking_token_contract.functions.minStakingDeposit().call()
+                staking_token_contract.functions.minStakingDeposit().call()
             )
 
             # In the setting 1 agent instance as of now: minOwnerBond = minStakingDeposit
@@ -330,30 +350,30 @@ if __name__ == "__main__":
                 f"{wei_to_olas(agent_bond)} {_warning_message(agent_bond, min_staking_deposit)}",
             )
 
-            service_info = service_staking_token_contract.functions.mapServiceInfo(
+            service_info = staking_token_contract.functions.mapServiceInfo(
                 service_id
             ).call()
             rewards = service_info[3]
             _print_status("Accrued rewards", f"{wei_to_olas(rewards)}")
 
             liveness_ratio = (
-                service_staking_token_contract.functions.livenessRatio().call()
+                activity_checker_contract.functions.livenessRatio().call()
             )
             mech_requests_24h_threshold = math.ceil(
                 (liveness_ratio * 60 * 60 * 24) / 10**18
             )
 
             next_checkpoint_ts = (
-                service_staking_token_contract.functions.getNextRewardCheckpointTimestamp().call()
+                staking_token_contract.functions.getNextRewardCheckpointTimestamp().call()
             )
             liveness_period = (
-                service_staking_token_contract.functions.livenessPeriod().call()
+                staking_token_contract.functions.livenessPeriod().call()
             )
             last_checkpoint_ts = next_checkpoint_ts - liveness_period
 
             mech_request_count = mech_contract.functions.getRequestsCount(safe_address).call()
             mech_request_count_on_last_checkpoint = (
-                service_staking_token_contract.functions.getServiceInfo(service_id).call()
+                staking_token_contract.functions.getServiceInfo(service_id).call()
             )[2][1]
             mech_requests_since_last_cp = mech_request_count - mech_request_count_on_last_checkpoint
             # mech_requests_current_epoch = _get_mech_requests_count(
