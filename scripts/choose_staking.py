@@ -34,6 +34,7 @@ STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
 DOTENV_PATH = Path(STORE_PATH, ".env")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
 
+IPFS_ADDRESS = "https://gateway.autonolas.tech/ipfs/f01701220{}"
 NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
 NEVERMINED_AGENT_REGISTRY_ADDRESS = "0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 NEVERMINED_MECH_REQUEST_PRICE = "0"
@@ -172,7 +173,7 @@ def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
     abi = _get_abi(staking_token_address)
     staking_token_contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
 
-    agent_id = staking_token_contract.functions.agentIds(0).call()
+    agent_id = 14 # staking_token_contract.functions.agentIds(0).call()
     service_registry = staking_token_contract.functions.serviceRegistry().call()
     staking_token = staking_token_contract.functions.stakingToken().call()
     service_registry_token_utility = staking_token_contract.functions.serviceRegistryTokenUtility().call()

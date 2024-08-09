@@ -195,8 +195,6 @@ def _try_stake_service(
 
 def main() -> None:
     try:
-        staking_program = "Coastal"
-        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
 
         parser = argparse.ArgumentParser(
             description="Stake or unstake the service based on the state."
@@ -230,6 +228,10 @@ def main() -> None:
         )
         parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
+
+        staking_program = args.staking_contract_address
+        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
+
         ledger_api = EthereumApi(address=args.rpc)
         owner_crypto = EthereumCrypto(
             private_key_path=args.owner_private_key_path, password=args.password
