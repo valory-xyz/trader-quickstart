@@ -273,6 +273,13 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+get_on_chain_agent_ids() {
+    local service_id="$1"
+    local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
+    local agent_ids="$(echo "$service_info" | awk '/Cannonical Agents/ {sub(/\|[ \t]*Cannonical Agents[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
+    echo "$agent_ids"
+}
+
 # Move a file if it exists
 move_if_exists() {
   local source_file="$1"
@@ -875,16 +882,19 @@ packages="packages/packages.json"
 local_service_hash="$(grep 'service/valory/trader' $packages | awk -F: '{print $2}' | tr -d '", ' | head -n 1)"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
+on_chain_agent_id=$(get_on_chain_agent_ids "$service_id")
 
-if [ "$local_service_hash" != "$remote_service_hash" ]; then
+if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ]; then
     echo ""
     echo "WARNING: Your on-chain service configuration is out-of-date"
     echo "-----------------------------------------------------------"
-    echo "Your currently minted on-chain service (id $service_id) mismatches the local trader service ($service_version):"
+    echo "Your currently minted on-chain service (id $service_id) mismatches the local configuration:"
     echo "  - Local service hash ($service_version): $local_service_hash"
-    echo "  - On-chain service hash (id $service_id): $remote_service_hash"
+    echo "  - On-chain service hash: $remote_service_hash"
+    echo "  - Local agent id: $AGENT_ID"
+    echo "  - On-chain agent id: $on_chain_agent_id"
     echo ""
-    echo "This is most likely caused due to an update of the trader service code."
+    echo "This is most likely caused due to an update of the trader service code or agent id."
     echo "The script will proceed now to update the on-chain service."
     echo "The operator and agent addresses need to have enough funds to complete the process."
     echo ""
