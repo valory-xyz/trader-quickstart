@@ -77,14 +77,6 @@ STAKING_PROGRAMS = {
             "stakingTokenInstanceAddress": "0x5344B7DD311e5d3DdDd46A4f71481bD7b05AAA3e"
         }
     },
-    "quickstart_alpha_coastal": {
-        "name": "Quickstart Alpha - Coastal",
-        "description": "The Quickstart Alpha - Coastal offers 100 slots for operators running Olas Predict agents with the quickstart. It requires 20 OLAS for staking.",
-        "deployment": {
-            "stakingTokenAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
-            "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
-        }
-    }
 }
 
 DEPRECATED_STAKING_PROGRAMS = {
@@ -102,6 +94,14 @@ DEPRECATED_STAKING_PROGRAMS = {
         "deployment": {
             "stakingTokenAddress": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
             "stakingTokenInstanceAddress": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326"
+        }
+    },
+    "quickstart_alpha_coastal": {
+        "name": "Quickstart Alpha - Coastal",
+        "description": "The Quickstart Alpha - Coastal offers 100 slots for operators running Olas Predict agents with the quickstart. It requires 20 OLAS for staking.",
+        "deployment": {
+            "stakingTokenAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
+            "stakingTokenInstanceAddress": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237"
         }
     }
 }
@@ -173,7 +173,7 @@ def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
     abi = _get_abi(staking_token_address)
     staking_token_contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
 
-    agent_id = 14 # staking_token_contract.functions.agentIds(0).call()
+    agent_id = staking_token_contract.functions.agentIds(0).call()
     service_registry = staking_token_contract.functions.serviceRegistry().call()
     staking_token = staking_token_contract.functions.stakingToken().call()
     service_registry_token_utility = staking_token_contract.functions.serviceRegistryTokenUtility().call()
