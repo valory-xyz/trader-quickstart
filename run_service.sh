@@ -503,10 +503,12 @@ dotenv_set_key() {
 export_dotenv() {
     local dotenv_path="$1"
     unamestr=$(uname)
-    if [ "$unamestr" = 'Linux' ]; then
-        export $(grep -v '^#' $dotenv_path | xargs -d '\n')
-    elif [ "$unamestr" = 'FreeBSD' ] || [ "$unamestr" = 'Darwin' ]; then
+    # Mac
+    if [ "$unamestr" = 'FreeBSD' ] || [ "$unamestr" = 'Darwin' ]; then
         export $(grep -v '^#' $dotenv_path | xargs -0)
+    # Linux, WSL, MinGW
+    else
+        export $(grep -v '^#' $dotenv_path | xargs -d '\n')
     fi
 }
 
