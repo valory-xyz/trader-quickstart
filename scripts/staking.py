@@ -46,6 +46,10 @@ from utils import (
     send_tx_and_wait_for_receipt,
 )
 
+SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+DOTENV_PATH = Path(STORE_PATH, ".env")
+
 
 def _format_duration(duration_seconds: int) -> str:
     days, remainder = divmod(duration_seconds, 86400)
@@ -153,19 +157,12 @@ def _check_unstaking_availability(
     return True
 
 
-def _try_unstake_service(
-    ledger_api: EthereumApi,
-    service_id: int,
-    owner_crypto: EthereumCrypto,
-    service_registry_address: str,
-) -> None:
-
+def _get_current_staking_program(ledger_api, service_id):
     all_staking_programs = STAKING_PROGRAMS.copy()
     all_staking_programs.update(DEPRECATED_STAKING_PROGRAMS)
     del all_staking_programs["no_staking"]
-    del all_staking_programs["quickstart_alpha_everest"]  # Very old program, not used likely - causes issues on "is_service_staked"
-
-    # Determine the staking contract address
+    del all_staking_programs["quickstart_alpha_everest"]  # Very old program, not used likely - causes issues on "is_service_staked"  
+    
     staking_program = None
     staking_contract_address = None
     for program, data in all_staking_programs.items():
@@ -178,6 +175,17 @@ def _try_unstake_service(
             print(f"Service {service_id} is staked on {program}.")
         else:
             print(f"Service {service_id} is not staked on {program}.")
+    return staking_contract_address, staking_program
+
+
+def _try_unstake_service(
+    ledger_api: EthereumApi,
+    service_id: int,
+    owner_crypto: EthereumCrypto,
+    service_registry_address: str,
+) -> None:
+
+    staking_contract_address, staking_program = _get_current_staking_program(ledger_api, service_id)
 
     # Exit if not staked
     if staking_contract_address is None:
@@ -356,6 +364,22 @@ def main() -> None:
         if is_service_staked(
             ledger_api, args.service_id, args.staking_contract_address
         ):
+
+            _, current_program = _get_current_staking_program(ledger_api, args.service_id)
+            env_file_vars = dotenv_values(DOTENV_PATH)
+            target_program = env_file_vars.get("STAKING_PROGRAM")
+
+            if current_program != target_program:
+                print(
+                    f"WARNING: Service {args.service_id} is staked on {current_program}, but target program is {target_program}. Unstaking..."
+                )
+                _try_unstake_service(
+                    ledger_api=ledger_api,
+                    service_id=args.service_id,
+                    owner_crypto=owner_crypto,
+                    service_registry_address=args.service_registry_address,
+                )              
+
             if is_service_evicted(
                 ledger_api, args.service_id, args.staking_contract_address
             ):

@@ -90,6 +90,13 @@ Services can become staked by invoking the `stake()` contract method, where serv
 - Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
 - Services are evicted after accumulating 2 consecutive checkpoints without meeting the activity threshold.  
 - Currently, the minimum staking time is approximately 3 days. In particular, a service cannot be unstaked during the minimum staking period.
+- Once a staking program is selected, you can reset your preference by running the command
+
+  ``` bash
+  cd trader; poetry run python ../scripts/choose_staking.py --reset; cd ..
+  ```
+
+  Keep in mind that your service must stay for `minStakingDuration` in a staking program (typically 3 days) before you can change to a new program.
 
 ### Service is Running
 
