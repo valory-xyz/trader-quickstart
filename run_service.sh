@@ -897,7 +897,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
 
     response="y"
     if [ "${USE_STAKING}" = true ]; then
-      echo "Your service is in a staking program. Updating your on-chain service requires that it is first unstaked."
+      echo "If your service is in a staking program, updating your on-chain service requires that it is first unstaked."
       echo "Unstaking your service will retrieve the accrued staking rewards."
       echo ""
       echo "Do you want to continue updating your service? (yes/no)"
@@ -909,9 +909,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
         echo "Skipping on-chain service update."
     else
       # unstake the service
-      if [ "${USE_STAKING}" = true ]; then
-          perform_staking_ops true
-      fi
+      perform_staking_ops true
 
       # Check balances
       suggested_amount=$suggested_top_up_default
