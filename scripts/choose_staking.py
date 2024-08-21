@@ -229,14 +229,14 @@ def _get_nevermined_env_variables() -> Dict[str, str]:
         use_nevermined = True
 
     if use_nevermined:
-        print("A Nevermined subscription will be used to pay for the mech requests.")
+        print("  - A Nevermined subscription will be used to pay for the mech requests.")
         return {
             "MECH_CONTRACT_ADDRESS": NEVERMINED_MECH_CONTRACT_ADDRESS,
             "AGENT_REGISTRY_ADDRESS": NEVERMINED_AGENT_REGISTRY_ADDRESS,
             "MECH_REQUEST_PRICE": NEVERMINED_MECH_REQUEST_PRICE
         }
     else:
-        print("No Nevermined subscription set.")
+        print("  - No Nevermined subscription set.")
         return {
             "AGENT_REGISTRY_ADDRESS": "",
             "MECH_REQUEST_PRICE": ""
@@ -249,24 +249,35 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.reset:
+        env_file_vars = dotenv_values(DOTENV_PATH)
+        staking_program = env_file_vars.get("STAKING_PROGRAM")
+        print("=====================================")
+        print("Reset your staking program preference")
+        print("=====================================")
+        print("")
+        print(f"Your current staking program is set to '{staking_program}'")
+        response = input("Do you want to reset your staking program preference? (yes/no): ").strip().lower()
+        if response not in ['yes', 'y']:
+            return
+
+        print("")
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="USE_STAKING")
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="STAKING_PROGRAM")
         print(f"Environment variables USE_STAKING and STAKING_PROGRAM have been reset in '{DOTENV_PATH}'.")
-        print("You can now execute './run_service.sh' and select a different staking program.")
         print("")
-        return
 
     program_id = _prompt_select_staking_program()
 
-    print("Populating staking program variables in the .env file")
-    print("")
+    print(" - Populating staking program variables in the .env file")
     staking_env_variables = _get_staking_env_variables(program_id)
     _set_dotenv_file_variables(staking_env_variables)
 
-    print("Populating Nevermined variables in the .env file")
+    print(" - Populating Nevermined variables in the .env file")
     print("")
     nevermined_env_variables = _get_nevermined_env_variables()
     _set_dotenv_file_variables(nevermined_env_variables)
+    print("")
+    print("Finished populating the .env file.")
 
 
 if __name__ == "__main__":

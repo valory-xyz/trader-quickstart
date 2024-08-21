@@ -48,7 +48,7 @@ Do you want to use staking in this service? (yes/no): n
 > Using this code could potentially lead to loss of funds, compromised data, or asset risk.
 > Exercise caution and use this code at your own risk. Please refer to the [LICENSE](./LICENSE) file for details about the terms and conditions.
 
-Before you proceed, ensure you have at least 20 OLAS on Gnosis Chain. For more information on staking, checkout the following [blogpost](https://www.valory.xyz/post/alpine).
+Each staking program has different OLAS requirements. The script will check that your owner address meets the minimum required OLAS on the Gnosis Chain.
 
 Clone this repository locally and execute:
 
@@ -57,23 +57,46 @@ chmod +x run_service.sh
 ./run_service.sh
 ```
 
-Answer 'Yes' when prompted:
+Select your preferred staking program when prompted:
 
 ```text
-Do you want to use staking in this service? (yes/no): y
+Please, select your staking program preference
+----------------------------------------------
+1) No staking
+   Your Olas Predict agent will still actively participate in prediction
+   markets, but it will not be staked within any staking program.
+
+2) Quickstart Beta - Hobbyist
+   The Quickstart Beta - Hobbyist staking contract offers 100 slots for
+   operators running Olas Predict agents with the quickstart. It is designed as
+   a step up from Coastal Staker Expeditions, requiring 100 OLAS for staking.
+   The rewards are also more attractive than with Coastal Staker Expeditions.
+
+3) Quickstart Beta - Expert
+   The Quickstart Beta - Expert staking contract offers 20 slots for operators
+   running Olas Predict agents with the quickstart. It is designed for
+   professional agent operators, requiring 1000 OLAS for staking. The rewards
+   are proportional to the Quickstart Beta - Hobbyist.
 ```
 
-Find below a diagram of the possible status a service can be in the **Alpine staking** program:
+Find below a diagram of the possible status a service can be in the staking program:
 
-![Alpine staking FSM](images/alpine_staking_fsm.svg)
+![Staking FSM](images/staking_fsm.svg)
 
-Services can become staked by invoking the `stake()` contract method, where service parameters and deposit amounts are verified. Staked services can call the `checkpoint()` method at regular intervals, ensuring liveness checks and calculating staking incentives. In case a service remains inactive beyond the specified `maxAllowedInactivity` time, it faces eviction from the staking program, ceasing to accrue additional rewards. Staked or evicted services can unstaked by calling the `unstake()` contract method. They can do so after `minStakingDuration` has passed or if no more staking rewards are available.
+Services can become staked by invoking the `stake()` contract method, where service parameters and deposit amounts are verified. Staked services can call the `checkpoint()` method at regular intervals, ensuring liveness checks and calculating staking rewards. In case a service remains inactive beyond the specified `maxAllowedInactivity` time, it faces eviction from the staking program, ceasing to accrue additional rewards. Staked or evicted services can be unstaked by calling the `unstake()` contract method. They can do so after `minStakingDuration` has passed or if no more staking rewards are available.
 
  __Notes__:
 
 - Staking is currently in a testing phase, so the number of trader agents that can be staked might be limited.
-- In the [Alpine staking program](https://www.valory.xyz/post/alpine) services are evicted after accumulating 2 consecutive checkpoints without meeting the activity threshold.  
+- Services are evicted after accumulating 2 consecutive checkpoints without meeting the activity threshold.  
 - Currently, the minimum staking time is approximately 3 days. In particular, a service cannot be unstaked during the minimum staking period.
+- Once a staking program is selected, you can reset your preference by stopping your agent by running ./stop_service.sh and then running the command
+
+  ``` bash
+  cd trader; poetry run python ../scripts/choose_staking.py --reset; cd ..
+  ```
+
+  Keep in mind that your service must stay for `minStakingDuration` in a staking program (typically 3 days) before you can change to a new program.
 
 ### Service is Running
 

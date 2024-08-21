@@ -897,7 +897,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
 
     response="y"
     if [ "${USE_STAKING}" = true ]; then
-      echo "Your service is in a staking program. Updating your on-chain service requires that it is first unstaked."
+      echo "If your service is in a staking program, updating your on-chain service requires that it is first unstaked."
       echo "Unstaking your service will retrieve the accrued staking rewards."
       echo ""
       echo "Do you want to continue updating your service? (yes/no)"
@@ -909,9 +909,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
         echo "Skipping on-chain service update."
     else
       # unstake the service
-      if [ "${USE_STAKING}" = true ]; then
-          perform_staking_ops true
-      fi
+      perform_staking_ops true
 
       # Check balances
       suggested_amount=$suggested_top_up_default
@@ -1133,7 +1131,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmexjVcbhh7sMAKmRtxLbgZiiGKdGpHHMYAWecVq7riAD1
+export TOOLS_ACCURACY_HASH=QmZnwodYVedKYChEUtGVVCCw2FCYP9xPQFYK3yL7VHXkid
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
