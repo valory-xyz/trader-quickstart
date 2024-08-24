@@ -280,14 +280,6 @@ get_on_chain_agent_ids() {
     echo "$agent_ids"
 }
 
-get_on_chain_agent_bond() {
-    local service_id="$1"
-    local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
-    local on_chain_deposit="$(echo "$service_info" | awk '/Security Deposit/ {sub(/\|[ \t]*Security Deposit[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
-    on_chain_agent_bond=$($PYTHON_CMD -c "print(int(float('$on_chain_deposit')))")
-    echo "$on_chain_agent_bond"
-}
-
 # Move a file if it exists
 move_if_exists() {
   local source_file="$1"
@@ -887,7 +879,9 @@ local_service_hash="$(grep 'service/valory/trader' $packages | awk -F: '{print $
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
 on_chain_agent_id=$(get_on_chain_agent_ids "$service_id")
-on_chain_agent_bond=$(get_on_chain_agent_bond "$service_id")
+
+# On-chain agent bond for the expected agent ID ($AGENT_ID)
+on_chain_agent_bond=$(poetry run python "../scripts/get_agent_bond.py" "$CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS" "$service_id" "$AGENT_ID" "$rpc")
 
 if [ "${USE_STAKING}" = true ]; then
     cost_of_bonding=$MIN_STAKING_BOND_OLAS

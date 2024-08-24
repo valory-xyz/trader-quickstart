@@ -27,7 +27,6 @@ from dotenv import dotenv_values, set_key, unset_key
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from web3 import Web3
-from eth_utils import keccak
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
@@ -41,6 +40,11 @@ NEVERMINED_MECH_REQUEST_PRICE = "0"
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DEPRECATED_TEXT = "(DEPRECATED)"
 NO_STAKING_PROGRAM_ID = "no_staking"
+NO_STAKING_PROGRAM_METADATA = {
+    "name": "No staking",
+    "description": "Your Olas Predict agent will still actively participate in prediction\
+        markets, but it will not be staked within any staking program.",
+}
 NO_STAKING_PROGRAM_ENV_VARIABLES = {
     "USE_STAKING": "false",
     "STAKING_PROGRAM": NO_STAKING_PROGRAM_ID,
@@ -61,12 +65,12 @@ STAKING_PROGRAMS = {
     NO_STAKING_PROGRAM_ID: ZERO_ADDRESS,
     "quickstart_beta_hobbyist": "0x389B46c259631Acd6a69Bde8B6cEe218230bAE8C",
     "quickstart_beta_expert": "0x5344B7DD311e5d3DdDd46A4f71481bD7b05AAA3e",
-    "quickstart_alpha_coastal": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
 }
 
 DEPRECATED_STAKING_PROGRAMS = {
     "quickstart_alpha_everest": "0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C",
     "quickstart_alpha_alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
+    "quickstart_alpha_coastal": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
 }
 
 
@@ -88,7 +92,9 @@ def _prompt_select_staking_program() -> str:
         print("----------------------------------------------")
         ids = list(STAKING_PROGRAMS.keys())
         for index, key in enumerate(ids):
-            name, description = _get_staking_name_description(program_id=key)
+            metadata = _get_staking_contract_metadata(program_id=key)
+            name = metadata["name"]
+            description = metadata["description"]
             wrapped_description = textwrap.fill(description, width=80, initial_indent='   ', subsequent_indent='   ')
             print(f"{index + 1}) {name}\n{wrapped_description}\n")
 
@@ -124,7 +130,13 @@ def _get_abi(contract_address: str) -> List:
     return abi if abi else []
 
 
+contracts_cache: Dict[str, Any] = {}
+
+
 def _get_staking_token_contract(program_id: str) -> Any:
+    if program_id in contracts_cache:
+        return contracts_cache[program_id]
+
     with open(RPC_PATH, 'r', encoding="utf-8") as file:
         rpc = file.read().strip()
 
@@ -139,18 +151,14 @@ def _get_staking_token_contract(program_id: str) -> Any:
         abi = _get_abi(implementation_address)
         contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
 
+    contracts_cache[program_id] = contract
     return contract
 
 
-def _get_staking_name_description(program_id: str) -> Tuple[str, str]:
-
+def _get_staking_contract_metadata(program_id: str) -> Dict[str, str]:
     try:
         if program_id == NO_STAKING_PROGRAM_ID:
-            return (
-                "No staking",
-                "Your Olas Predict agent will still actively participate in prediction\
-                markets, but it will not be staked within any staking program."
-            )
+            return NO_STAKING_PROGRAM_METADATA
 
         staking_token_contract = _get_staking_token_contract(program_id=program_id)
         metadata_hash = staking_token_contract.functions.metadataHash().call()
@@ -158,12 +166,14 @@ def _get_staking_name_description(program_id: str) -> Tuple[str, str]:
         response = requests.get(ipfs_address)
 
         if response.status_code == 200:
-            json_data = response.json()
-            return (json_data["name"], json_data["description"])
+            return response.json()
 
         raise Exception(f"Failed to fetch data from {ipfs_address}: {response.status_code}")
     except Exception:
-        return (program_id, program_id)
+        return {
+            "name": program_id,
+            "description": program_id,
+        }
 
 
 def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
