@@ -880,7 +880,7 @@ remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
 on_chain_agent_id=$(get_on_chain_agent_ids "$service_id")
 
-if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ]; then
+if [ "$local_service_hash" == "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ]; then
     echo ""
     echo "WARNING: Your on-chain service configuration is out-of-date"
     echo "-----------------------------------------------------------"
@@ -974,6 +974,10 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
           export cmd=""
           if [ "${USE_STAKING}" = true ]; then
               cost_of_bonding=$MIN_STAKING_BOND_OLAS
+
+
+              echo "$cost_of_bonding"
+              echo "......................"
               poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc" $password_argument
           else
               cost_of_bonding=$MIN_STAKING_BOND_XDAI

@@ -269,6 +269,9 @@ def main() -> None:
         args = parser.parse_args()
 
         staking_program = args.staking_contract_address
+        env_file_vars = dotenv_values(DOTENV_PATH)
+        target_program = env_file_vars.get("STAKING_PROGRAM")
+
         print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
 
         ledger_api = EthereumApi(address=args.rpc)
@@ -276,9 +279,7 @@ def main() -> None:
             private_key_path=args.owner_private_key_path, password=args.password
         )
 
-        available_rewards = get_available_rewards(
-            ledger_api, args.staking_contract_address
-        )
+
 
         # --------------
         # Unstaking flow
@@ -296,8 +297,7 @@ def main() -> None:
         # --------------
         current_staking_contract_address, current_program = _get_current_staking_program(ledger_api, args.service_id)
         is_staked = current_program != "no_staking"
-        env_file_vars = dotenv_values(DOTENV_PATH)
-        target_program = env_file_vars.get("STAKING_PROGRAM")
+
 
         if is_staked and current_program != target_program:
             print(
@@ -334,7 +334,7 @@ def main() -> None:
                 owner_crypto=owner_crypto,
             )
             is_staked = False
-        else:
+        elif is_staked:
             print(
                 f"There are rewards available. The service {args.service_id} should remain staked."
             )
@@ -357,10 +357,6 @@ def main() -> None:
     except Exception as e:  # pylint: disable=broad-except
         print(f"An error occurred while executing {Path(__file__).name}: {str(e)}")
         traceback.print_exc()
-        dotenv.unset_key("../.trader_runner/.env", "USE_STAKING")
-        print(
-            "\nPlease confirm whether your service is participating in a staking program, and then retry running the script."
-        )
         sys.exit(1)
 
 
