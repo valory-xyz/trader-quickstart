@@ -280,6 +280,14 @@ get_on_chain_agent_ids() {
     echo "$agent_ids"
 }
 
+get_on_chain_agent_bond() {
+    local service_id="$1"
+    local service_info=$(poetry run autonomy service --use-custom-chain info "$service_id")
+    local on_chain_deposit="$(echo "$service_info" | awk '/Security Deposit/ {sub(/\|[ \t]*Security Deposit[ \t]*\|[ \t]*/, ""); sub(/[ \t]*\|[ \t]*/, ""); print}')"
+    on_chain_agent_bond=$($PYTHON_CMD -c "print(int(float('$on_chain_deposit')))")
+    echo "$on_chain_agent_bond"
+}
+
 # Move a file if it exists
 move_if_exists() {
   local source_file="$1"
@@ -879,16 +887,25 @@ local_service_hash="$(grep 'service/valory/trader' $packages | awk -F: '{print $
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
 on_chain_agent_id=$(get_on_chain_agent_ids "$service_id")
+on_chain_agent_bond=$(get_on_chain_agent_bond "$service_id")
 
-if [ "$local_service_hash" == "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ]; then
+if [ "${USE_STAKING}" = true ]; then
+    cost_of_bonding=$MIN_STAKING_BOND_OLAS
+else
+    cost_of_bonding=$MIN_STAKING_BOND_XDAI
+fi
+
+if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ] || [ "$on_chain_agent_bond" != "$cost_of_bonding" ]; then
     echo ""
     echo "WARNING: Your on-chain service configuration is out-of-date"
     echo "-----------------------------------------------------------"
     echo "Your currently minted on-chain service (id $service_id) mismatches the local configuration:"
     echo "  - Local service hash ($service_version): $local_service_hash"
     echo "  - On-chain service hash: $remote_service_hash"
-    echo "  - Local agent id: $AGENT_ID"
+    echo "  - Expected agent id: $AGENT_ID"
     echo "  - On-chain agent id: $on_chain_agent_id"
+    echo "  - Expected agent bond: $cost_of_bonding"
+    echo "  - On-chain agent bond: $on_chain_agent_bond"
     echo ""
     echo "This is most likely caused due to an update of the trader service code or agent id."
     echo "The script will proceed now to update the on-chain service."
@@ -971,29 +988,26 @@ if [ "$local_service_hash" == "$remote_service_hash" ] || [ "$on_chain_agent_id"
           verify_staking_slots
 
           nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-          export cmd=""
+          cmd="poetry run autonomy mint \
+              --retries $RPC_RETRIES \
+              --timeout $RPC_TIMEOUT_SECONDS \
+              --use-custom-chain \
+              service packages/valory/services/trader/ \
+              --key \"../$operator_pkey_path\" $password_argument \
+              --nft $nft \
+              -a $AGENT_ID \
+              -n $n_agents \
+              --threshold $n_agents \
+              --update \"$service_id\""
+
           if [ "${USE_STAKING}" = true ]; then
               cost_of_bonding=$MIN_STAKING_BOND_OLAS
-
-
-              echo "$cost_of_bonding"
-              echo "......................"
-              poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc" $password_argument
+              cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
           else
               cost_of_bonding=$MIN_STAKING_BOND_XDAI
-              cmd="poetry run autonomy mint \
-                  --retries $RPC_RETRIES \
-                  --timeout $RPC_TIMEOUT_SECONDS \
-                  --use-custom-chain \
-                  service packages/valory/services/trader/ \
-                  --key \"../$operator_pkey_path\" $password_argument \
-                  --nft $nft \
-                  -a $AGENT_ID \
-                  -n $n_agents \
-                  -c $cost_of_bonding \
-                  --threshold $n_agents \
-                  --update \"$service_id\""
+              cmd+=" -c $cost_of_bonding"
           fi
+
           eval "$cmd"
         
           # Updating a service does not change the on-chain service state.
@@ -1075,9 +1089,7 @@ fi
 # perform staking operations
 # the following will stake the service in case it is not staked, and there are available rewards
 # if the service is already staked, and there are no available rewards, it will unstake the service
-if [ "${USE_STAKING}" = true ]; then
-  perform_staking_ops
-fi
+perform_staking_ops
 
 
 # ensure Safe owner is agent

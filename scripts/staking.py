@@ -91,11 +91,10 @@ def _get_current_staking_program(ledger_api, service_id):
     all_staking_programs.update(DEPRECATED_STAKING_PROGRAMS)
     del all_staking_programs["no_staking"]
     del all_staking_programs["quickstart_alpha_everest"]  # Very old program, not used likely - causes issues on "is_service_staked"  
-    
+
     staking_program = "no_staking"
     staking_contract_address = None
-    for program, data in all_staking_programs.items():
-        address = data["deployment"]["stakingTokenInstanceAddress"]
+    for program, address in all_staking_programs.items():
         if is_service_staked(
             ledger_api, service_id, address
         ):
@@ -207,8 +206,10 @@ def _try_stake_service(
         available_rewards = get_available_rewards(ledger_api, staking_contract_address)
         if available_rewards == 0:
             # no rewards available, do nothing
-            print(f"No rewards available on the {current_program} staking program. Service {service_id} cannot be staked.")
-            sys.exit(0)
+            print(f"No rewards available on the {staking_program} staking program. Service {service_id} cannot be staked.")
+            print("Please choose another staking program.")
+            print("Terminating script.")
+            sys.exit(1)
 
         print(
             f"Rewards available: {available_rewards/10**18:.2f} OLAS. Staking service {service_id}..."
@@ -268,18 +269,15 @@ def main() -> None:
         parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
 
-        staking_program = args.staking_contract_address
         env_file_vars = dotenv_values(DOTENV_PATH)
         target_program = env_file_vars.get("STAKING_PROGRAM")
 
-        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
+        print(f"Starting {Path(__file__).name} script ({target_program})...\n")
 
         ledger_api = EthereumApi(address=args.rpc)
         owner_crypto = EthereumCrypto(
             private_key_path=args.owner_private_key_path, password=args.password
         )
-
-
 
         # --------------
         # Unstaking flow
@@ -290,7 +288,7 @@ def main() -> None:
                 service_id=args.service_id,
                 owner_crypto=owner_crypto,
             )
-            sys.exit(0)
+            return
 
         # --------------
         # Staking flow
@@ -341,7 +339,7 @@ def main() -> None:
 
         if is_staked:
             print(
-                f"Service {args.service_id} is already staked on {staking_program}. "
+                f"Service {args.service_id} is already staked on {target_program}. "
                 f"Checking if the staking contract has any rewards..."
             )
         else:
@@ -351,7 +349,7 @@ def main() -> None:
                 owner_crypto=owner_crypto,
                 service_registry_address=args.service_registry_address,
                 staking_contract_address=args.staking_contract_address,
-                staking_program=staking_program,
+                staking_program=target_program,
             )
 
     except Exception as e:  # pylint: disable=broad-except
