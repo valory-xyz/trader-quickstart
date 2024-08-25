@@ -61,7 +61,6 @@ DEFAULT_ON_CHAIN_INTERACT_RETRIES = 10
 DEFAULT_ON_CHAIN_INTERACT_SLEEP = 6.0
 
 
-ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 ZERO_ETH = 0
 
 ContractType = typing.TypeVar("ContractType")
@@ -69,7 +68,7 @@ ContractType = typing.TypeVar("ContractType")
 GAS_PARAMS = {
     "maxFeePerGas": 30_000_000_000,
     "maxPriorityFeePerGas": 3_000_000_000,
-    "gas": 5_000_000,
+    "gas": 500_000,
 }
 
 def load_contract(ctype: ContractType) -> ContractType:

@@ -30,7 +30,11 @@ from pathlib import Path
 
 import dotenv
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
-from choose_staking import STAKING_PROGRAMS, DEPRECATED_STAKING_PROGRAMS
+from choose_staking import (
+    STAKING_PROGRAMS,
+    DEPRECATED_STAKING_PROGRAMS,
+    NO_STAKING_PROGRAM_ID,
+)
 from utils import (
     get_available_rewards,
     get_available_staking_slots,
@@ -89,10 +93,10 @@ def _check_unstaking_availability(
 def _get_current_staking_program(ledger_api, service_id):
     all_staking_programs = STAKING_PROGRAMS.copy()
     all_staking_programs.update(DEPRECATED_STAKING_PROGRAMS)
-    del all_staking_programs["no_staking"]
+    del all_staking_programs[NO_STAKING_PROGRAM_ID]
     del all_staking_programs["quickstart_alpha_everest"]  # Very old program, not used likely - causes issues on "is_service_staked"  
 
-    staking_program = "no_staking"
+    staking_program = NO_STAKING_PROGRAM_ID
     staking_contract_address = None
     for program, address in all_staking_programs.items():
         if is_service_staked(
@@ -294,8 +298,7 @@ def main() -> None:
         # Staking flow
         # --------------
         current_staking_contract_address, current_program = _get_current_staking_program(ledger_api, args.service_id)
-        is_staked = current_program != "no_staking"
-
+        is_staked = current_program != NO_STAKING_PROGRAM_ID
 
         if is_staked and current_program != target_program:
             print(
