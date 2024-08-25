@@ -20,12 +20,13 @@
 
 """This script prints the wxDAI balance of an address in WEI."""
 
+import json
 import sys
 
 from web3 import Web3, HTTPProvider
 
 WXDAI_CONTRACT_ADDRESS = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-WXDAI_ABI_PATH = "../contracts/wxdai.json"
+WXDAI_ABI_PATH = "../trader/packages/valory/contracts/erc20/build/ERC20.json"
 
 
 def get_balance() -> int:
@@ -38,7 +39,9 @@ def get_balance() -> int:
 def read_abi() -> str:
     """Read and return the wxDAI contract's ABI."""
     with open(WXDAI_ABI_PATH) as f:
-        return f.read()
+        data = json.loads(f.read())
+
+    return data.get('abi', [])
 
 
 if __name__ == "__main__":
