@@ -216,7 +216,7 @@ def _try_stake_service(
             sys.exit(1)
 
         print(
-            f"Rewards available: {available_rewards/10**18:.2f} OLAS. Staking service {service_id}..."
+            f"Rewards available on {staking_program}: {available_rewards/10**18:.2f} OLAS. Staking service {service_id}..."
         )
         stake_txs = get_stake_txs(
             ledger_api,
