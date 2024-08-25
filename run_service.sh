@@ -78,7 +78,7 @@ ensure_minimum_balance() {
             if [ "$cycle_count" -eq 100 ]; then
                 balance_hex=$(get_balance "$address")
                 balance=$(hex_to_decimal "$balance_hex")
-                balance=$((erc20_balance+balance))
+                balance=$($PYTHON_CMD -c "print(int($balance) + int($erc20_balance))")
                 cycle_count=0
             fi
         done
