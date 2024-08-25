@@ -346,6 +346,16 @@ def main() -> None:
                 f"Checking if the staking contract has any rewards..."
             )
         else:
+
+            # At this point must be ensured all these conditions
+            #
+            # USE_STAKING==True
+            # staking_state==Unstaked
+            # available_slots > 0
+            # available_rewards > 0
+            # staking params==OK
+            # state==DEPLOYED
+
             _try_stake_service(
                 ledger_api=ledger_api,
                 service_id=args.service_id,
