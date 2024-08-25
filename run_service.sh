@@ -673,6 +673,12 @@ echo ""
 echo "This script will assist you in setting up and running the Trader service ($service_repo)."
 echo ""
 
+# Display information of the Git repository
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+latest_commit_hash=$(git rev-parse HEAD)
+echo "Current branch: $current_branch"
+echo "Commit hash: $latest_commit_hash"
+
 # Check the command-line arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
