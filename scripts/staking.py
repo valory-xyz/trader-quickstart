@@ -30,7 +30,11 @@ from pathlib import Path
 
 import dotenv
 from aea_ledger_ethereum.ethereum import EthereumApi, EthereumCrypto
-from choose_staking import STAKING_PROGRAMS, DEPRECATED_STAKING_PROGRAMS
+from choose_staking import (
+    STAKING_PROGRAMS,
+    DEPRECATED_STAKING_PROGRAMS,
+    NO_STAKING_PROGRAM_ID,
+)
 from utils import (
     get_available_rewards,
     get_available_staking_slots,
@@ -57,77 +61,6 @@ def _format_duration(duration_seconds: int) -> str:
     minutes, _ = divmod(remainder, 60)
     formatted_duration = f"{days}D {hours}h {minutes}m"
     return formatted_duration
-
-
-def _unstake_old_program(
-    ledger_api: EthereumApi,
-    service_id: int,
-    staking_contract_address: str,
-    staking_program: str,
-    owner_crypto: EthereumCrypto,
-) -> None:
-    print(f"Checking if service is staked on {staking_program}...")
-
-    # Check if service is staked
-    if staking_program.startswith("quickstart_alpha_everest"):
-        if service_id not in get_service_ids(ledger_api, staking_contract_address):
-            print(f"Service {service_id} is not staked on {staking_program}.")
-            return
-    else:
-        if not is_service_staked(
-            ledger_api, service_id, staking_contract_address
-        ):
-            print(f"Service {service_id} is not staked on {staking_program}..")
-            return
-
-        can_unstake = _check_unstaking_availability(
-            ledger_api,
-            service_id,
-            staking_contract_address,
-            staking_program,
-        )
-        if not can_unstake:
-            print(
-                "\n"
-                "WARNING: Service cannot be unstaked yet\n"
-                "---------------------------------------\n"
-                f"Service {service_id} cannot be unstaked from {staking_program} at this time.\n"
-                f"You can still run your service, but it will stay staked in {staking_program}.\n"
-                "Please, try re-running this script again at a later time to try stake on a new program.\n"
-            )
-            input("Press Enter to continue...")
-            sys.exit(0)
-
-    print(
-        f"Service {service_id} is staked on {staking_program}. To continue in a new staking program, first, it must be unstaked from {staking_program}."
-    )
-    user_input = input(
-        f"Do you want to continue unstaking service {service_id} from {staking_program}? (yes/no)\n"
-    ).lower()
-    print()
-
-    if user_input not in ["yes", "y"]:
-        print("Terminating script.")
-        sys.exit(1)
-
-    print(f"Unstaking service {service_id} from {staking_program}...")
-    unstake_txs = get_unstake_txs(ledger_api, service_id, staking_contract_address)
-    for tx in unstake_txs:
-        send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-    print(f"Successfully unstaked service {service_id} from {staking_program}.")
-
-
-def _unstake_all_old_programs(
-    ledger_api: EthereumApi,
-    service_id: int,
-    owner_crypto: EthereumCrypto,
-    current_staking_contract_address: str
-) -> None:
-    print("Unstaking from old programs...")
-    for program_id, details in DEPRECATED_STAKING_PROGRAMS.items():
-        staking_token_instance_address = details['deployment']['stakingTokenInstanceAddress']
-        if staking_token_instance_address != current_staking_contract_address:
-            _unstake_old_program(ledger_api, service_id, staking_token_instance_address, program_id, owner_crypto)
 
 
 def _check_unstaking_availability(
@@ -160,13 +93,12 @@ def _check_unstaking_availability(
 def _get_current_staking_program(ledger_api, service_id):
     all_staking_programs = STAKING_PROGRAMS.copy()
     all_staking_programs.update(DEPRECATED_STAKING_PROGRAMS)
-    del all_staking_programs["no_staking"]
+    del all_staking_programs[NO_STAKING_PROGRAM_ID]
     del all_staking_programs["quickstart_alpha_everest"]  # Very old program, not used likely - causes issues on "is_service_staked"  
-    
-    staking_program = None
+
+    staking_program = NO_STAKING_PROGRAM_ID
     staking_contract_address = None
-    for program, data in all_staking_programs.items():
-        address = data["deployment"]["stakingTokenInstanceAddress"]
+    for program, address in all_staking_programs.items():
         if is_service_staked(
             ledger_api, service_id, address
         ):
@@ -182,14 +114,15 @@ def _try_unstake_service(
     ledger_api: EthereumApi,
     service_id: int,
     owner_crypto: EthereumCrypto,
-    service_registry_address: str,
+    warn_if_checkpoint_unavailable: bool = True,
 ) -> None:
 
     staking_contract_address, staking_program = _get_current_staking_program(ledger_api, service_id)
 
     # Exit if not staked
     if staking_contract_address is None:
-        sys.exit(0)
+        print(f"Service {service_id} is not staked in any active program.")
+        return
 
     # Collect information
     next_ts = get_next_checkpoint_ts(ledger_api, staking_contract_address)
@@ -216,7 +149,7 @@ def _try_unstake_service(
         print("Terminating script.")
         sys.exit(1)
 
-    if now < next_ts:
+    if warn_if_checkpoint_unavailable and (now < next_ts):
         formatted_last_ts = datetime.utcfromtimestamp(last_ts).strftime(
             "%Y-%m-%d %H:%M:%S UTC"
         )
@@ -264,6 +197,12 @@ def _try_stake_service(
     staking_contract_address: str,
     staking_program: str,
 ) -> None:
+
+    print(f"Service {service_id} has set {staking_program} staking program.")
+
+    if staking_program == "no_staking":
+        return
+
     if get_available_staking_slots(ledger_api, staking_contract_address) > 0:
         print(
             f"Service {service_id} is not staked on {staking_program}. Checking for available rewards..."
@@ -271,11 +210,13 @@ def _try_stake_service(
         available_rewards = get_available_rewards(ledger_api, staking_contract_address)
         if available_rewards == 0:
             # no rewards available, do nothing
-            print(f"No rewards available. Service {service_id} cannot be staked.")
-            sys.exit(0)
+            print(f"No rewards available on the {staking_program} staking program. Service {service_id} cannot be staked.")
+            print("Please choose another staking program.")
+            print("Terminating script.")
+            sys.exit(1)
 
         print(
-            f"Rewards available: {available_rewards/10**18:.2f} OLAS. Staking service {service_id}..."
+            f"Rewards available on {staking_program}: {available_rewards/10**18:.2f} OLAS. Staking service {service_id}..."
         )
         stake_txs = get_stake_txs(
             ledger_api,
@@ -332,132 +273,101 @@ def main() -> None:
         parser.add_argument("--password", type=str, help="Private key password")
         args = parser.parse_args()
 
-        staking_program = args.staking_contract_address
-        print(f"Starting {Path(__file__).name} script ({staking_program})...\n")
+        env_file_vars = dotenv_values(DOTENV_PATH)
+        target_program = env_file_vars.get("STAKING_PROGRAM")
+
+        print(f"Starting {Path(__file__).name} script ({target_program})...\n")
 
         ledger_api = EthereumApi(address=args.rpc)
         owner_crypto = EthereumCrypto(
             private_key_path=args.owner_private_key_path, password=args.password
         )
 
-        # No need to execute this instruction here, as the user can choose the staking program
-        #
-        # _unstake_all_old_programs(
-        #     ledger_api=ledger_api,
-        #     service_id=args.service_id,
-        #     owner_crypto=owner_crypto,
-        #     current_staking_contract_address=args.staking_contract_address
-        # )
-
-        available_rewards = get_available_rewards(
-            ledger_api, args.staking_contract_address
-        )
-
+        # --------------
+        # Unstaking flow
+        # --------------
         if args.unstake:
             _try_unstake_service(
                 ledger_api=ledger_api,
                 service_id=args.service_id,
                 owner_crypto=owner_crypto,
-                service_registry_address=args.service_registry_address,
             )
+            return
 
-        if is_service_staked(
-            ledger_api, args.service_id, args.staking_contract_address
-        ):
+        # --------------
+        # Staking flow
+        # --------------
+        current_staking_contract_address, current_program = _get_current_staking_program(ledger_api, args.service_id)
+        is_staked = current_program != NO_STAKING_PROGRAM_ID
 
-            _, current_program = _get_current_staking_program(ledger_api, args.service_id)
-            env_file_vars = dotenv_values(DOTENV_PATH)
-            target_program = env_file_vars.get("STAKING_PROGRAM")
-
-            if current_program != target_program:
-                print(
-                    f"WARNING: Service {args.service_id} is staked on {current_program}, but target program is {target_program}. Unstaking..."
-                )
-                _try_unstake_service(
-                    ledger_api=ledger_api,
-                    service_id=args.service_id,
-                    owner_crypto=owner_crypto,
-                    service_registry_address=args.service_registry_address,
-                )              
-
-            if is_service_evicted(
-                ledger_api, args.service_id, args.staking_contract_address
-            ):
-                print(
-                    f"Service {args.service_id} has been evicted from the {staking_program} staking program due to inactivity. Unstaking..."
-                )
-
-                can_unstake = _check_unstaking_availability(
-                    ledger_api,
-                    args.service_id,
-                    args.staking_contract_address,
-                    staking_program,
-                )
-
-                if not can_unstake:
-                    print("Terminating script.")
-                    sys.exit(1)
-
-                unstake_txs = get_unstake_txs(
-                    ledger_api, args.service_id, args.staking_contract_address
-                )
-                for tx in unstake_txs:
-                    send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
-
-                print(
-                    f"Successfully unstaked service {args.service_id} from {staking_program}."
-                )
-
-                _try_stake_service(
-                    ledger_api=ledger_api,
-                    service_id=args.service_id,
-                    owner_crypto=owner_crypto,
-                    service_registry_address=args.service_registry_address,
-                    staking_contract_address=args.staking_contract_address,
-                    staking_program=staking_program,
-                )
-                sys.exit(0)
-
+        if is_staked and current_program != target_program:
             print(
-                f"Service {args.service_id} is already staked on {staking_program}. "
-                f"Checking if the staking contract has any rewards..."
+                f"WARNING: Service {args.service_id} is staked on {current_program}, but target program is {target_program}. Unstaking..."
             )
-            available_rewards = get_available_rewards(
-                ledger_api, args.staking_contract_address
+            _try_unstake_service(
+                ledger_api=ledger_api,
+                service_id=args.service_id,
+                owner_crypto=owner_crypto,
             )
-            if available_rewards == 0:
-                print(
-                    f"No rewards available. Unstaking service {args.service_id} from {staking_program}..."
-                )
-                _try_unstake_service(
-                    ledger_api=ledger_api,
-                    service_id=args.service_id,
-                    owner_crypto=owner_crypto,
-                    service_registry_address=args.service_registry_address,
-                )
-                sys.exit(0)
+            is_staked = False
+        
+        if is_staked and is_service_evicted(
+            ledger_api, args.service_id, current_staking_contract_address
+        ):
+            print(
+                f"Service {args.service_id} has been evicted from the {current_program} staking program due to inactivity. Unstaking..."
+            )
+            _try_unstake_service(
+                ledger_api=ledger_api,
+                service_id=args.service_id,
+                owner_crypto=owner_crypto,
+                warn_if_checkpoint_unavailable=False,
+            )
+            is_staked = False
 
+        if is_staked and get_available_rewards(ledger_api, current_staking_contract_address) == 0:
+            print(
+                f"No rewards available on the {current_program} staking program. Unstaking service {args.service_id} from {current_program}..."
+            )
+            _try_unstake_service(
+                ledger_api=ledger_api,
+                service_id=args.service_id,
+                owner_crypto=owner_crypto,
+            )
+            is_staked = False
+        elif is_staked:
             print(
                 f"There are rewards available. The service {args.service_id} should remain staked."
             )
-            sys.exit(0)
+
+        if is_staked:
+            print(
+                f"Service {args.service_id} is already staked on {target_program}. "
+                f"Checking if the staking contract has any rewards..."
+            )
         else:
+
+            # At this point must be ensured all these conditions
+            #
+            # USE_STAKING==True
+            # staking_state==Unstaked
+            # available_slots > 0
+            # available_rewards > 0
+            # staking params==OK
+            # state==DEPLOYED
+
             _try_stake_service(
                 ledger_api=ledger_api,
                 service_id=args.service_id,
                 owner_crypto=owner_crypto,
                 service_registry_address=args.service_registry_address,
                 staking_contract_address=args.staking_contract_address,
-                staking_program=staking_program,
+                staking_program=target_program,
             )
 
     except Exception as e:  # pylint: disable=broad-except
         print(f"An error occurred while executing {Path(__file__).name}: {str(e)}")
         traceback.print_exc()
-        dotenv.unset_key("../.trader_runner/.env", "USE_STAKING")
-        print(
-            "\nPlease confirm whether your service is participating in a staking program, and then retry running the script."
-        )
         sys.exit(1)
 
 

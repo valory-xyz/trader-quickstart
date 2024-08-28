@@ -22,13 +22,19 @@
 
 import json
 from typing import List
+from pathlib import Path
 
 import requests
 from web3 import Web3, HTTPProvider
 
-RPC_PATH = "../.trader_runner/rpc.txt"
-SERVICE_ID_PATH = "../.trader_runner/service_id.txt"
-REGISTRY_JSON = "../contracts/ServiceRegistryL2.json"
+SCRIPT_PATH = Path(__file__).resolve().parent
+STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+DOTENV_PATH = Path(STORE_PATH, ".env")
+RPC_PATH = Path(STORE_PATH, "rpc.txt")
+SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
+PACKAGES_PATH = Path(SCRIPT_PATH, "..", "trader", "packages")
+
+REGISTRY_JSON = PACKAGES_PATH / "valory" / "contracts" / "service_registry" / "build" / "ServiceRegistryL2.json"
 REGISTRY_ADDRESS = "0x9338b5153AE39BB89f50468E608eD9d764B755fD"
 AUTONOLAS_GATEWAY = "https://gateway.autonolas.tech/ipfs/"
 URI_HASH_POSITION = 7
