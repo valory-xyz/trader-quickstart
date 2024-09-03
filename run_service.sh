@@ -63,7 +63,7 @@ ensure_minimum_balance() {
 
     if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
         echo ""
-        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance") DAI."
+        echo "    Please, ensure address $address has at least $(wei_to_dai "$minimum_balance") DAI."
 
         local spin='-\|/'
         local i=0
@@ -112,7 +112,7 @@ ensure_erc20_balance() {
 
     if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
         echo ""
-        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance") $token_name."
+        echo "    Please, ensure address $address has at least $(wei_to_dai "$minimum_balance") $token_name."
 
         local spin='-\|/'
         local i=0
