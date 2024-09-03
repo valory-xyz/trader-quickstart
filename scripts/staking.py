@@ -118,11 +118,19 @@ def _try_unstake_service(
 ) -> None:
 
     staking_contract_address, staking_program = _get_current_staking_program(ledger_api, service_id)
+    print("")
 
     # Exit if not staked
     if staking_contract_address is None:
         print(f"Service {service_id} is not staked in any active program.")
         return
+    else:
+        print(f"Service {service_id} is staked on {staking_program}.")
+
+    env_file_vars = dotenv_values(DOTENV_PATH)
+    target_program = env_file_vars.get("STAKING_PROGRAM")
+    print(f"Target program is set to {target_program}.")
+    print("")
 
     # Collect information
     next_ts = get_next_checkpoint_ts(ledger_api, staking_contract_address)

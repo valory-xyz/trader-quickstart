@@ -63,7 +63,7 @@ ensure_minimum_balance() {
 
     if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
         echo ""
-        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance") DAI."
+        echo "    Please, ensure address $address has at least $(wei_to_dai "$minimum_balance") DAI."
 
         local spin='-\|/'
         local i=0
@@ -112,7 +112,7 @@ ensure_erc20_balance() {
 
     if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
         echo ""
-        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance") $token_name."
+        echo "    Please, ensure address $address has at least $(wei_to_dai "$minimum_balance") $token_name."
 
         local spin='-\|/'
         local i=0
@@ -644,7 +644,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.18.0"
+service_version="v0.18.2"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
