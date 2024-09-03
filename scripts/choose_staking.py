@@ -59,12 +59,13 @@ NO_STAKING_PROGRAM_ENV_VARIABLES = {
     "MIN_STAKING_DEPOSIT_OLAS": "0",
 }
 
-# Information stored in the "deployment" key is used only to retrieve "stakingTokenInstanceAddress" (proxy)
-# and "stakingTokenAddress" (implementation). The rest of the parameters are read on-chain.
 STAKING_PROGRAMS = {
     NO_STAKING_PROGRAM_ID: ZERO_ADDRESS,
     "quickstart_beta_hobbyist": "0x389B46c259631Acd6a69Bde8B6cEe218230bAE8C",
+    "quickstart_beta_hobbyist_2": "0x238EB6993b90a978ec6AAD7530d6429c949C08DA",
     "quickstart_beta_expert": "0x5344B7DD311e5d3DdDd46A4f71481bD7b05AAA3e",
+    "quickstart_beta_expert_2": "0xb964e44c126410df341ae04B13aB10A985fE3513",
+    "quickstart_beta_expert_3": "0x80faD33Cadb5F53f9D29F02Db97D682E8b101618",
 }
 
 DEPRECATED_STAKING_PROGRAMS = {
@@ -264,7 +265,9 @@ def main() -> None:
         print("Reset your staking program preference")
         print("=====================================")
         print("")
-        print(f"Your current staking program is set to '{staking_program}'")
+        print(f"Your current staking program preference is set to '{staking_program}'")
+        print("You can reset your preference. However, your trader might not be able to switch between staking contracts until it has been staked for a minimum staking period in the current program.")
+        print("")
         response = input("Do you want to reset your staking program preference? (yes/no): ").strip().lower()
         if response not in ['yes', 'y']:
             return
@@ -287,7 +290,6 @@ def main() -> None:
     _set_dotenv_file_variables(nevermined_env_variables)
     print("")
     print("Finished populating the .env file.")
-
 
 if __name__ == "__main__":
     main()
