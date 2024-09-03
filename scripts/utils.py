@@ -71,7 +71,6 @@ GAS_PARAMS = {
     "gas": 500_000,
 }
 
-
 def load_contract(ctype: ContractType) -> ContractType:
     """Load contract."""
     *parts, _ = ctype.__module__.split(".")

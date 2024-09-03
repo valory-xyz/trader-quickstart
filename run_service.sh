@@ -895,7 +895,6 @@ else
     cost_of_bonding=$MIN_STAKING_BOND_XDAI
 fi
 
-
 if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ] || [ "$on_chain_agent_bond" != "$cost_of_bonding" ]; then
     echo ""
     echo "WARNING: Your on-chain service configuration is out-of-date"
