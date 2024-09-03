@@ -93,7 +93,7 @@ Services can become staked by invoking the `stake()` contract method, where serv
 - Once a staking program is selected, you can reset your preference by stopping your agent by running ./stop_service.sh and then running the command
 
   ``` bash
-  cd trader; poetry run python ../scripts/choose_staking.py --reset; cd ..
+  ./reset_staking.sh
   ```
 
   Keep in mind that your service must stay for `minStakingDuration` in a staking program (typically 3 days) before you can change to a new program.

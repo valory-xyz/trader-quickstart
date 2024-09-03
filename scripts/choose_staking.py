@@ -265,7 +265,7 @@ def main() -> None:
         print("Reset your staking program preference")
         print("=====================================")
         print("")
-        print(f"Your current staking program preference is set to '{staking_program}'")
+        print(f"Your current staking program preference is set to '{staking_program}'.")
         print("You can reset your preference. However, your trader might not be able to switch between staking contracts until it has been staked for a minimum staking period in the current program.")
         print("")
         response = input("Do you want to reset your staking program preference? (yes/no): ").strip().lower()
