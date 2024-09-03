@@ -68,8 +68,9 @@ ContractType = typing.TypeVar("ContractType")
 GAS_PARAMS = {
     "maxFeePerGas": 30_000_000_000,
     "maxPriorityFeePerGas": 3_000_000_000,
-    "gas": 10_000_000,
+    "gas": 500_000,
 }
+
 
 def load_contract(ctype: ContractType) -> ContractType:
     """Load contract."""
