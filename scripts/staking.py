@@ -70,6 +70,11 @@ def _check_unstaking_availability(
     staking_program: str,
 ) -> bool:
 
+    if is_service_evicted(
+        ledger_api, service_id, staking_contract_address
+    ):
+        return True
+
     now = time.time()
     ts_start = get_service_info(
         ledger_api, service_id, staking_contract_address
