@@ -25,6 +25,8 @@ import sys
 from typing import List
 from web3 import Web3
 
+ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
 
 def _get_abi(contract_address: str) -> List:
     contract_abi_url = "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
@@ -45,23 +47,34 @@ def _get_abi(contract_address: str) -> List:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Get agent bond from service registry token utility contract.")
-    parser.add_argument('contract_address', type=str, help='Service registry token utility contract address')
+    parser.add_argument('service_registry', type=str, help='Service registry contract address')
+    parser.add_argument('service_registry_token_utility', type=str, help='Service registry token utility contract address')
     parser.add_argument('service_id', type=int, help='Service ID')
     parser.add_argument('agent_id', type=int, help='Agent ID')
     parser.add_argument('rpc', type=str, help='RPC')
     args = parser.parse_args()
 
-    contract_address = args.contract_address
+    service_registry = args.service_registry
+    service_registry_token_utility = args.service_registry_token_utility
     service_id = args.service_id
     agent_id = args.agent_id
     rpc = args.rpc
 
     w3 = Web3(Web3.HTTPProvider(rpc))
-    abi = _get_abi(contract_address)
-    contract = w3.eth.contract(address=contract_address, abi=abi)
-    agent_bond = contract.functions.getAgentBond(service_id, agent_id).call()
+    abi = _get_abi(service_registry_token_utility)
+    contract = w3.eth.contract(address=service_registry_token_utility, abi=abi)
+    token = contract.functions.mapServiceIdTokenDeposit(service_id).call()[0]
 
-    print(agent_bond)
+    # If service is token-secured, retrieve bond from Service Registry Token Utility
+    if token != ZERO_ADDRESS:
+        agent_bond = contract.functions.getAgentBond(service_id, agent_id).call()
+        print(agent_bond)
+    # Otherwise, retrieve bond from Service Registry
+    else:
+        abi = _get_abi(service_registry)
+        contract = w3.eth.contract(address=service_registry, abi=abi)
+        agent_bond = contract.functions.getService(service_id).call()[0]
+        print(agent_bond)
 
 
 if __name__ == "__main__":
