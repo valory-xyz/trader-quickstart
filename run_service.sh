@@ -887,13 +887,16 @@ operator_address=$(get_address "../$operator_keys_file")
 on_chain_agent_id=$(get_on_chain_agent_ids "$service_id")
 
 # On-chain agent bond for the expected agent ID ($AGENT_ID)
-on_chain_agent_bond=$(poetry run python "../scripts/get_agent_bond.py" "$CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS" "$service_id" "$AGENT_ID" "$rpc")
+on_chain_agent_bond=$(poetry run python "../scripts/get_agent_bond.py" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS" "$service_id" "$AGENT_ID" "$rpc")
 
 if [ "${USE_STAKING}" = true ]; then
     cost_of_bonding=$MIN_STAKING_BOND_OLAS
 else
     cost_of_bonding=$MIN_STAKING_BOND_XDAI
 fi
+
+# TODO Also compare if service-secured token matches. Currently this check is implicit due to the
+# difference between bonds forn on-staking services (0.01 XDAI) and staking services (> 10 XDAI).
 
 if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id" != "$AGENT_ID" ] || [ "$on_chain_agent_bond" != "$cost_of_bonding" ]; then
     echo ""

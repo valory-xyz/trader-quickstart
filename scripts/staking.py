@@ -194,7 +194,6 @@ def _try_unstake_service(
     print(
         f"Successfully unstaked service {service_id} from {staking_program}."
     )
-    sys.exit(0)
 
 
 def _try_stake_service(
@@ -236,7 +235,6 @@ def _try_stake_service(
             send_tx_and_wait_for_receipt(ledger_api, owner_crypto, tx)
 
         print(f"Service {service_id} staked successfully on {staking_program}.")
-        sys.exit(0)
     else:
         print(
             f"All staking slots for contract {staking_contract_address} are taken. Service {service_id} cannot be staked."
