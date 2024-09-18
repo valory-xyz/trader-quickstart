@@ -69,11 +69,11 @@ def _check_unstaking_availability(
     staking_contract_address: str,
     staking_program: str,
 ) -> bool:
-
-    if is_service_evicted(
-        ledger_api, service_id, staking_contract_address
-    ):
-        return True
+    """Service can only be unstaked if one of these conditions occur:
+    - No rewards available
+    - Staked for longer than > minimum_staking_durtion.
+    A service can NOT be unstaked if evicted but has been staked for < minimum_staking_duration
+    """
 
     now = time.time()
     ts_start = get_service_info(
