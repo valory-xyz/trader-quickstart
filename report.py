@@ -101,12 +101,14 @@ MECH_CONTRACT_JSON_PATH = Path(
     "build",
     "mech.json",
 )
+BETS_JSON_PATH = Path(STORE_PATH, "bets.json")
 
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
 MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
+REBETS_LOOKBACK_DAYS = 3
 
 OUTPUT_WIDTH = 80
 
@@ -157,6 +159,34 @@ def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     markets_count = len(unique_markets)
     return f"{trades_count} trades on {markets_count} markets"
 
+
+def _rebets_since_message(bets_json: Path, trades_json: dict[str, Any], utc_ts: float = 0) -> str:
+
+    # get the unique markets in the last time period
+    filtered_trades = [
+        trade
+        for trade in trades_json.get("data", {}).get("fpmmTrades", [])
+        if float(trade["creationTimestamp"]) >= utc_ts
+    ]
+    unique_markets = set(trade["fpmm"]["id"] for trade in filtered_trades)
+
+    # load bets data which contains n_rebets
+    with open(f'{bets_json}', 'r') as bets_file:
+        bets_data = json.load(bets_file)
+
+    # get the markets on which the trader has placed a rebet
+    rebet_markets = [
+        bet
+        for bet in bets_data
+        if
+        int(bet["n_bets"]) > 0
+        and
+        bet["id"] in unique_markets
+    ]
+
+    markets_count = len(rebet_markets)
+    unique_markets_count = len(unique_markets)
+    return f"{markets_count} of total {unique_markets_count} markets"
 
 def _get_mech_requests_count(
     mech_requests: dict[str, Any], timestamp: float = 0
@@ -400,6 +430,11 @@ if __name__ == "__main__":
         f"Trades on last {TRADES_LOOKBACK_DAYS} days",
         _trades_since_message(trades_json, since_ts),
     )
+
+    #Multi bet strategy
+    _print_subsection_header(f"Markets with multiple bets in previous {REBETS_LOOKBACK_DAYS} days")
+    rebets_since_ts = time.time() - 60 * 60 * 24 * REBETS_LOOKBACK_DAYS
+    _print_status(f"Multi-bet markets", _rebets_since_message(BETS_JSON_PATH, trades_json, rebets_since_ts))
 
     # Service
     _print_section_header("Service")
