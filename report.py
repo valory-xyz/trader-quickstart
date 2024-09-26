@@ -25,6 +25,8 @@ import math
 import time
 import traceback
 from argparse import ArgumentParser
+from collections import Counter
+
 from dotenv import dotenv_values
 from enum import Enum
 from pathlib import Path
@@ -101,7 +103,6 @@ MECH_CONTRACT_JSON_PATH = Path(
     "build",
     "mech.json",
 )
-BETS_JSON_PATH = Path(STORE_PATH, "bets.json")
 
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
@@ -109,6 +110,7 @@ OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
 MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
 REBETS_LOOKBACK_DAYS = 3
+DAY_IN_UNIX = 60 * 60 * 24
 
 OUTPUT_WIDTH = 80
 
@@ -160,33 +162,21 @@ def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     return f"{trades_count} trades on {markets_count} markets"
 
 
-def _rebets_since_message(bets_json: Path, trades_json: dict[str, Any], utc_ts: float = 0) -> str:
-
-    # get the unique markets in the last time period
-    filtered_trades = [
-        trade
+def _rebets_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str:
+    filtered_trades = Counter((
+        trade.get("fpmm", {}).get("id", None)
         for trade in trades_json.get("data", {}).get("fpmmTrades", [])
-        if float(trade["creationTimestamp"]) >= utc_ts
-    ]
-    unique_markets = set(trade["fpmm"]["id"] for trade in filtered_trades)
+        if float(trade.get("creationTimestamp", 0)) >= utc_ts
+    ))
 
-    # load bets data which contains n_rebets
-    with open(f'{bets_json}', 'r') as bets_file:
-        bets_data = json.load(bets_file)
+    if None in filtered_trades:
+        raise ValueError(f"Unexpected format in trades_json: {filtered_trades[None]} trades have no associated market ID.")
 
-    # get the markets on which the trader has placed a rebet
-    rebet_markets = [
-        bet
-        for bet in bets_data
-        if
-        int(bet["n_bets"]) > 0
-        and
-        bet["id"] in unique_markets
-    ]
-
-    markets_count = len(rebet_markets)
-    unique_markets_count = len(unique_markets)
-    return f"{markets_count} of total {unique_markets_count} markets"
+    unique_markets = set(filtered_trades)
+    n_unique_markets = len(unique_markets)
+    n_bets = sum(filtered_trades.values())
+    n_rebets = sum(n_bets - 1 for n_bets in filtered_trades.values() if n_bets > 1)
+    return f"{n_rebets} rebets of total {n_bets} bets in {n_unique_markets} markets."
 
 def _get_mech_requests_count(
     mech_requests: dict[str, Any], timestamp: float = 0
@@ -425,16 +415,20 @@ if __name__ == "__main__":
         _color_percent(statistics_table[MarketAttribute.ROI][MarketState.CLOSED]),
     )
 
-    since_ts = time.time() - 60 * 60 * 24 * TRADES_LOOKBACK_DAYS
+    since_ts = time.time() - DAY_IN_UNIX * TRADES_LOOKBACK_DAYS
     _print_status(
         f"Trades on last {TRADES_LOOKBACK_DAYS} days",
         _trades_since_message(trades_json, since_ts),
     )
 
-    #Multi bet strategy
-    _print_subsection_header(f"Markets with multiple bets in previous {REBETS_LOOKBACK_DAYS} days")
-    rebets_since_ts = time.time() - 60 * 60 * 24 * REBETS_LOOKBACK_DAYS
-    _print_status(f"Multi-bet markets", _rebets_since_message(BETS_JSON_PATH, trades_json, rebets_since_ts))
+    try:
+        #Multi bet strategy
+        _print_subsection_header(f"Markets with multiple bets in previous {REBETS_LOOKBACK_DAYS} days")
+        rebets_since_ts = time.time() - DAY_IN_UNIX * REBETS_LOOKBACK_DAYS
+        _print_status(f"Multi-bet markets", _rebets_since_message(trades_json, rebets_since_ts))
+
+    except Exception:
+        print("An error occurred while calculating rebets.")
 
     # Service
     _print_section_header("Service")
