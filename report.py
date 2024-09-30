@@ -162,7 +162,7 @@ def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     return f"{trades_count} trades on {markets_count} markets"
 
 
-def _rebets_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str:
+def _calculate_rebets_since(trades_json: dict[str, Any], utc_ts: float = 0) -> tuple[Counter[Any], int, int, int]:
     filtered_trades = Counter((
         trade.get("fpmm", {}).get("id", None)
         for trade in trades_json.get("data", {}).get("fpmmTrades", [])
@@ -170,13 +170,35 @@ def _rebets_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     ))
 
     if None in filtered_trades:
-        raise ValueError(f"Unexpected format in trades_json: {filtered_trades[None]} trades have no associated market ID.")
+        raise ValueError(
+            f"Unexpected format in trades_json: {filtered_trades[None]} trades have no associated market ID.")
 
     unique_markets = set(filtered_trades)
     n_unique_markets = len(unique_markets)
     n_bets = sum(filtered_trades.values())
     n_rebets = sum(n_bets - 1 for n_bets in filtered_trades.values() if n_bets > 1)
-    return f"{n_rebets} rebets of total {n_bets} bets in {n_unique_markets} markets."
+
+    return filtered_trades, n_unique_markets, n_bets, n_rebets
+
+def _rebets_since_message(n_unique_markets: int, n_bets: int, n_rebets: int) -> str:
+    return f"{n_rebets} rebets of total {n_bets} bets in {n_unique_markets} markets"
+
+def _average_bets_since_message(n_bets: int, n_markets: int) -> str:
+    if n_markets == 0:
+        average_bets = 0
+    else:
+        average_bets = round(n_bets / n_markets, 2)
+
+    return f"{average_bets} bets per market"
+
+def _max_bets_since_message(filtered_trades: Counter[Any]) -> str:
+    if filtered_trades == Counter():
+        max_bets = 0
+    else:
+        max_bets = max(filtered_trades.values())
+
+    return f"{max_bets} bets per market"
+
 
 def _get_mech_requests_count(
     mech_requests: dict[str, Any], timestamp: float = 0
@@ -421,14 +443,13 @@ if __name__ == "__main__":
         _trades_since_message(trades_json, since_ts),
     )
 
-    try:
-        #Multi bet strategy
-        _print_subsection_header(f"Markets with multiple bets in previous {REBETS_LOOKBACK_DAYS} days")
-        rebets_since_ts = time.time() - DAY_IN_UNIX * REBETS_LOOKBACK_DAYS
-        _print_status(f"Multi-bet markets", _rebets_since_message(trades_json, rebets_since_ts))
-
-    except Exception:
-        print("An error occurred while calculating rebets.")
+    #Multi bet strategy
+    rebets_since_ts = time.time() - DAY_IN_UNIX * REBETS_LOOKBACK_DAYS
+    filtered_trades, n_unique_markets, n_bets, n_rebets = _calculate_rebets_since(trades_json, rebets_since_ts)
+    _print_subsection_header(f"Multi-bet markets in previous {REBETS_LOOKBACK_DAYS} days")
+    _print_status(f"Multi-bet markets", _rebets_since_message(n_unique_markets, n_bets, n_rebets))
+    _print_status(f"Average bets per market", _average_bets_since_message(n_bets, n_unique_markets))
+    _print_status(f"Max bets per market", _max_bets_since_message(filtered_trades))
 
     # Service
     _print_section_header("Service")
