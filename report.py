@@ -30,9 +30,7 @@ from collections import Counter
 from dotenv import dotenv_values
 from enum import Enum
 from pathlib import Path
-import requests
-import sys
-from typing import Any, List
+from typing import Any
 
 import docker
 import trades
@@ -109,8 +107,8 @@ AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
 MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
-REBETS_LOOKBACK_DAYS = 3
-DAY_IN_UNIX = 60 * 60 * 24
+MULTI_TRADE_LOOKBACK_DAYS = TRADES_LOOKBACK_DAYS
+SECONDS_PER_DAY = 60 * 60 * 24
 
 OUTPUT_WIDTH = 80
 
@@ -162,7 +160,7 @@ def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     return f"{trades_count} trades on {markets_count} markets"
 
 
-def _calculate_rebets_since(trades_json: dict[str, Any], utc_ts: float = 0) -> tuple[Counter[Any], int, int, int]:
+def _calculate_retrades_since(trades_json: dict[str, Any], utc_ts: float = 0) -> tuple[Counter[Any], int, int, int]:
     filtered_trades = Counter((
         trade.get("fpmm", {}).get("id", None)
         for trade in trades_json.get("data", {}).get("fpmmTrades", [])
@@ -175,29 +173,29 @@ def _calculate_rebets_since(trades_json: dict[str, Any], utc_ts: float = 0) -> t
 
     unique_markets = set(filtered_trades)
     n_unique_markets = len(unique_markets)
-    n_bets = sum(filtered_trades.values())
-    n_rebets = sum(n_bets - 1 for n_bets in filtered_trades.values() if n_bets > 1)
+    n_trades = sum(filtered_trades.values())
+    n_retrades = sum(n_bets - 1 for n_bets in filtered_trades.values() if n_bets > 1)
 
-    return filtered_trades, n_unique_markets, n_bets, n_rebets
+    return filtered_trades, n_unique_markets, n_trades, n_retrades
 
-def _rebets_since_message(n_unique_markets: int, n_bets: int, n_rebets: int) -> str:
-    return f"{n_rebets} rebets on total {n_bets} bets in {n_unique_markets} markets"
+def _retrades_since_message(n_unique_markets: int, n_trades: int, n_retrades: int) -> str:
+    return f"{n_retrades} re-trades on total {n_trades} trades in {n_unique_markets} markets"
 
-def _average_bets_since_message(n_bets: int, n_markets: int) -> str:
-    if n_markets == 0:
-        average_bets = 0
+def _average_trades_since_message(n_trades: int, n_markets: int) -> str:
+    if not n_markets:
+        average_trades = 0
     else:
-        average_bets = round(n_bets / n_markets, 2)
+        average_trades = round(n_trades / n_markets, 2)
 
-    return f"{average_bets} bets per market"
+    return f"{average_trades} trades per market"
 
-def _max_bets_since_message(filtered_trades: Counter[Any]) -> str:
-    if filtered_trades == Counter():
-        max_bets = 0
+def _max_trades_per_market_since_message(filtered_trades: Counter[Any]) -> str:
+    if not filtered_trades:
+        max_trades = 0
     else:
-        max_bets = max(filtered_trades.values())
+        max_trades = max(filtered_trades.values())
 
-    return f"{max_bets} bets per market"
+    return f"{max_trades} trades per market"
 
 
 def _get_mech_requests_count(
@@ -437,19 +435,19 @@ if __name__ == "__main__":
         _color_percent(statistics_table[MarketAttribute.ROI][MarketState.CLOSED]),
     )
 
-    since_ts = time.time() - DAY_IN_UNIX * TRADES_LOOKBACK_DAYS
+    since_ts = time.time() - SECONDS_PER_DAY * TRADES_LOOKBACK_DAYS
     _print_status(
         f"Trades on last {TRADES_LOOKBACK_DAYS} days",
         _trades_since_message(trades_json, since_ts),
     )
 
-    #Multi bet strategy
-    rebets_since_ts = time.time() - DAY_IN_UNIX * REBETS_LOOKBACK_DAYS
-    filtered_trades, n_unique_markets, n_bets, n_rebets = _calculate_rebets_since(trades_json, rebets_since_ts)
-    _print_subsection_header(f"Multi-bet markets in previous {REBETS_LOOKBACK_DAYS} days")
-    _print_status(f"Multi-bet markets", _rebets_since_message(n_unique_markets, n_bets, n_rebets))
-    _print_status(f"Average bets per market", _average_bets_since_message(n_bets, n_unique_markets))
-    _print_status(f"Max bets per market", _max_bets_since_message(filtered_trades))
+    #Multi trade strategy
+    retrades_since_ts = time.time() - SECONDS_PER_DAY * MULTI_TRADE_LOOKBACK_DAYS
+    filtered_trades, n_unique_markets, n_trades, n_retrades = _calculate_retrades_since(trades_json, retrades_since_ts)
+    _print_subsection_header(f"Multi-trade markets in previous {MULTI_TRADE_LOOKBACK_DAYS} days")
+    _print_status(f"Multi-trade markets", _retrades_since_message(n_unique_markets, n_trades, n_retrades))
+    _print_status(f"Average trades per market", _average_trades_since_message(n_trades, n_unique_markets))
+    _print_status(f"Max trades per market", _max_trades_per_market_since_message(filtered_trades))
 
     # Service
     _print_section_header("Service")
