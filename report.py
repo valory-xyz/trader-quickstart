@@ -181,7 +181,7 @@ def _calculate_rebets_since(trades_json: dict[str, Any], utc_ts: float = 0) -> t
     return filtered_trades, n_unique_markets, n_bets, n_rebets
 
 def _rebets_since_message(n_unique_markets: int, n_bets: int, n_rebets: int) -> str:
-    return f"{n_rebets} rebets of total {n_bets} bets in {n_unique_markets} markets"
+    return f"{n_rebets} rebets on total {n_bets} bets in {n_unique_markets} markets"
 
 def _average_bets_since_message(n_bets: int, n_markets: int) -> str:
     if n_markets == 0:
