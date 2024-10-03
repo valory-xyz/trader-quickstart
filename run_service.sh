@@ -680,6 +680,7 @@ echo "Current branch: $current_branch"
 echo "Commit hash: $latest_commit_hash"
 
 # Check the command-line arguments
+build_only=false
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --with-staking)
@@ -689,6 +690,10 @@ while [[ "$#" -gt 0 ]]; do
             read -n 1 -s -r -p "Press any key to continue..."
             echo ""
             echo ""
+            ;;
+        --build-only)
+            echo "Build-only flag selected."
+            build_only=true
             ;;
         *) echo "Unknown parameter: $1" ;;
     esac
@@ -1162,13 +1167,8 @@ fi
 
 service_dir="trader_service"
 build_dir="abci_build"
+build_dir_k8s="abci_build_k8s"
 directory="$service_dir/$build_dir"
-
-suggested_amount=$suggested_top_up_default
-ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
-
-suggested_amount=$suggested_safe_top_up_default
-ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
 then
@@ -1196,8 +1196,23 @@ else
     poetry run autonomy build-image
 fi
 
-# Build the deployment with a single agent
+# Build the deployment with a single agent (Docker Compose and Kubernetes)
+if [[ -d "$build_dir" ]]; then
+    echo "You may need to provide sudo password in order for the script to delete part of the build artifacts."
+    sudo rm -rf "$build_dir"
+    echo "Directory removed: $build_dir"
+fi
+if [[ -d "$build_dir_k8s" ]]; then
+    echo "You may need to provide sudo password in order for the script to delete part of the build artifacts."
+    sudo rm -rf "$build_dir_k8s"
+    echo "Directory removed: $build_dir"
+fi
+export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build --kubernetes "../../$keys_json_path" --n $n_agents -ltm
+mv $build_dir $build_dir_k8s
+echo "Kubernetes deployment built on ./trader/$service_dir/$build_dir_k8s"
+
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
+echo "Docker Compose deployment built on ./trader/$service_dir/$build_dir"
 
 cd ..
 
@@ -1207,5 +1222,17 @@ cd ..
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
 sudo chown -R $(whoami) "$path_to_store"
 
+if [[ "$build_only" == true ]]; then
+    echo ""
+    echo "Build-only done."
+    exit 0
+fi
+
 # Run the deployment
+suggested_amount=$suggested_top_up_default
+ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
+
+suggested_amount=$suggested_safe_top_up_default
+ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
+
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy run --build-dir "$directory" --detach
