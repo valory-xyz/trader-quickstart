@@ -35,10 +35,10 @@ chmod +x run_service.sh
 ./run_service.sh
 ```
 
-Answer 'No' when prompted:
+Answer `1) No staking` when prompted:
 
 ```text
-Do you want to use staking in this service? (yes/no): n
+Please, select your staking program preference
 ```
 
 ### For Stakers
@@ -77,6 +77,8 @@ Please, select your staking program preference
    running Olas Predict agents with the quickstart. It is designed for
    professional agent operators, requiring 1000 OLAS for staking. The rewards
    are proportional to the Quickstart Beta - Hobbyist.
+
+...
 ```
 
 Find below a diagram of the possible status a service can be in the staking program:
