@@ -346,4 +346,8 @@ Error: Service terminatation failed with following error; ChainInteractionError(
 
 ## Build deployments without executing the service
 
-The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build`) and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). Then, by default, the script will launch the local Docker Compose deployment. If you just want to build the deployment without executing the service (for example, if you are deploying to a custom Kubernetes cluster), then use the flag `--build-only`.
+The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build`) and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). Then, by default, the script will launch the local Docker Compose deployment. If you just want to build the deployment without executing the service (for example, if you are deploying to a custom Kubernetes cluster), then execute the script as
+
+```bash
+    ./run_service.sh --build-only
+```
