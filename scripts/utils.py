@@ -51,10 +51,19 @@ from dotenv import dotenv_values
 from choose_staking import ZERO_ADDRESS
 from packages.valory.skills.staking_abci.rounds import StakingState
 from pathlib import Path
+import os
 
-SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
-DOTENV_PATH = Path(STORE_PATH, ".env")
+# Set absolute paths
+BASE_PATH = Path(os.getcwd()).parent.resolve()  # ../trader == /app
+SCRIPT_PATH = BASE_PATH / "scripts"
+print(f"[utils::main] SCRIPT_PATH: {SCRIPT_PATH}")
+
+STORE_PATH = BASE_PATH / ".trader_runner"
+DOTENV_PATH = STORE_PATH / ".env"
+
+# SCRIPT_PATH = Path(__file__).resolve().parent
+# STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+# DOTENV_PATH = Path(STORE_PATH, ".env")
 
 DEFAULT_ON_CHAIN_INTERACT_TIMEOUT = 120.0
 DEFAULT_ON_CHAIN_INTERACT_RETRIES = 10

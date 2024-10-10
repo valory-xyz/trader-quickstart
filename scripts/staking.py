@@ -49,11 +49,26 @@ from utils import (
     is_service_staked,
     send_tx_and_wait_for_receipt,
 )
+import os
 
-SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
-DOTENV_PATH = Path(STORE_PATH, ".env")
+# SCRIPT_PATH = Path(__file__).resolve().parent
+# STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+# DOTENV_PATH = Path(STORE_PATH, ".env")
 
+# Set absolute paths
+BASE_PATH = Path(os.getcwd()).parent.resolve()
+SCRIPT_PATH = BASE_PATH / "scripts"
+STORE_PATH = BASE_PATH / ".trader_runner"
+DOTENV_PATH = STORE_PATH / ".env"
+
+print(f"[choose_staking::main] Contents of {DOTENV_PATH}:")
+try:
+    with open(DOTENV_PATH, 'r') as env_file:
+        print(env_file.read())
+except FileNotFoundError:
+    print(f"[choose_staking::main] {DOTENV_PATH} not found.")
+except IOError:
+    print(f"[choose_staking::main] Error reading {DOTENV_PATH}.")
 
 def _format_duration(duration_seconds: int) -> str:
     days, remainder = divmod(duration_seconds, 86400)

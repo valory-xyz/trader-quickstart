@@ -26,13 +26,31 @@ from pathlib import Path
 
 import requests
 from web3 import Web3, HTTPProvider
+import os
 
-SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
-DOTENV_PATH = Path(STORE_PATH, ".env")
-RPC_PATH = Path(STORE_PATH, "rpc.txt")
-SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
-PACKAGES_PATH = Path(SCRIPT_PATH, "..", "trader", "packages")
+# SCRIPT_PATH = Path(__file__).resolve().parent
+# STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
+# DOTENV_PATH = Path(STORE_PATH, ".env")
+# RPC_PATH = Path(STORE_PATH, "rpc.txt")
+# SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
+# PACKAGES_PATH = Path(SCRIPT_PATH, "..", "trader", "packages")
+
+# Set absolute paths
+BASE_PATH = Path(os.getcwd()).parent.resolve()  # ../trader == /app
+SCRIPT_PATH = BASE_PATH / "scripts"
+# print(f"[service_hash::main] SCRIPT_PATH: {SCRIPT_PATH}")
+
+STORE_PATH = BASE_PATH / ".trader_runner"
+DOTENV_PATH = STORE_PATH / ".env"
+RPC_PATH = STORE_PATH / "rpc.txt"
+SERVICE_ID_PATH = STORE_PATH / "service_id.txt"
+PACKAGES_PATH = BASE_PATH / "trader/packages"
+
+# print(f"[service_hash::main] STORE_PATH: {STORE_PATH}")
+# print(f"[service_hash::main] DOTENV_PATH: {DOTENV_PATH}")
+# print(f"[service_hash::main] RPC_PATH: {RPC_PATH}")
+# print(f"[service_hash::main] SERVICE_ID_PATH: {SERVICE_ID_PATH}")
+# print(f"[service_hash::main] PACKAGES_PATH: {PACKAGES_PATH}")
 
 REGISTRY_JSON = PACKAGES_PATH / "valory" / "contracts" / "service_registry" / "build" / "ServiceRegistryL2.json"
 REGISTRY_ADDRESS = "0x9338b5153AE39BB89f50468E608eD9d764B755fD"

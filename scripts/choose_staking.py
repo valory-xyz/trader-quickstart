@@ -27,11 +27,27 @@ from dotenv import dotenv_values, set_key, unset_key
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from web3 import Web3
+import os
 
-SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
-DOTENV_PATH = Path(STORE_PATH, ".env")
-RPC_PATH = Path(STORE_PATH, "rpc.txt")
+# Set absolute paths
+BASE_PATH = Path(os.getcwd()).parent.resolve()
+SCRIPT_PATH = BASE_PATH / "scripts"
+print(f"[choose_staking::main] SCRIPT_PATH: {SCRIPT_PATH}")
+
+STORE_PATH = BASE_PATH / ".trader_runner"
+DOTENV_PATH = STORE_PATH / ".env"
+RPC_PATH = STORE_PATH / "rpc.txt"
+
+print(f"[choose_staking::main] STORE_PATH: {STORE_PATH}")
+print(f"[choose_staking::main] DOTENV_PATH: {DOTENV_PATH}")
+print(f"[choose_staking::main] Contents of {DOTENV_PATH}:")
+try:
+    with open(DOTENV_PATH, 'r') as env_file:
+        print(env_file.read())
+except FileNotFoundError:
+    print(f"[choose_staking::main] {DOTENV_PATH} not found.")
+except IOError:
+    print(f"[choose_staking::main] Error reading {DOTENV_PATH}.")
 
 IPFS_ADDRESS = "https://gateway.autonolas.tech/ipfs/f01701220{hash}"
 NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
@@ -66,8 +82,6 @@ STAKING_PROGRAMS = {
     "quickstart_beta_expert": "0x5344B7DD311e5d3DdDd46A4f71481bD7b05AAA3e",
     "quickstart_beta_expert_2": "0xb964e44c126410df341ae04B13aB10A985fE3513",
     "quickstart_beta_expert_3": "0x80faD33Cadb5F53f9D29F02Db97D682E8b101618",
-    "quickstart_beta_expert_4": "0xaD9d891134443B443D7F30013c7e14Fe27F2E029",
-    "quickstart_beta_expert_5": "0xE56dF1E563De1B10715cB313D514af350D207212",
 }
 
 DEPRECATED_STAKING_PROGRAMS = {
@@ -228,6 +242,11 @@ def _set_dotenv_file_variables(env_vars: Dict[str, str]) -> None:
         else:
             unset_key(dotenv_path=DOTENV_PATH, key_to_unset=key)
 
+    print(f"Contents of {os.path.abspath(DOTENV_PATH)} file after setting:")
+    print("----------------------------------------")
+    with open(DOTENV_PATH, 'r') as env_file:
+        print(env_file.read())
+    print("----------------------------------------")
 
 def _get_nevermined_env_variables() -> Dict[str, str]:
     env_file_vars = dotenv_values(DOTENV_PATH)
