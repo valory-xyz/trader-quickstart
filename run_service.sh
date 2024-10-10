@@ -1077,6 +1077,7 @@ elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
 
     # ensure Safe owner is operator
     # (This may occur if update flow was interrupted)
+    service_safe_address=$(<"../$service_safe_address_path")
     current_safe_owners=$(poetry run python "../scripts/get_safe_owners.py" "$service_safe_address" "../$agent_pkey_path" "$rpc" $password_argument | awk '{gsub(/"/, "\047", $0); print $0}')
 
     if [[ "$current_safe_owners" == "['$agent_address']" ]]; then
