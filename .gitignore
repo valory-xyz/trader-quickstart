@@ -1,3 +1,8 @@
+result*
+venv*
+agent-nix-build*
+.env
+test/.env
 .trader_runner*
 .operate*
 trader

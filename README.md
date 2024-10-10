@@ -22,7 +22,7 @@ Ensure your machine satisfies the requirements:
 
 - You need xDAI on Gnosis Chain in one of your wallets.
 - You need an RPC for your agent instance. We recommend [Nodies RPC](https://www.nodies.app/).
-- (From release v0.16.0 onwards) You will need a Subgraph API key that can be obtained at [The Graph](https://thegraph.com/studio/apikeys/).
+- (From release v0.16.0 onwards) You may need a Subgraph API key that can be obtained at [The Graph](https://thegraph.com/studio/apikeys/). If you do not have such an API key you can optionally press 'Enter' directly (with no input) when prompted by the CLI.
 
 ## Run the Service
 
@@ -35,10 +35,10 @@ chmod +x run_service.sh
 ./run_service.sh
 ```
 
-Answer `1) No staking` when prompted:
+Answer 'No' when prompted:
 
 ```text
-Please, select your staking program preference
+Do you want to use staking in this service? (yes/no): n
 ```
 
 ### For Stakers
@@ -77,8 +77,6 @@ Please, select your staking program preference
    running Olas Predict agents with the quickstart. It is designed for
    professional agent operators, requiring 1000 OLAS for staking. The rewards
    are proportional to the Quickstart Beta - Hobbyist.
-
-...
 ```
 
 Find below a diagram of the possible status a service can be in the staking program:
