@@ -644,7 +644,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.19.0"
+service_version="v0.18.2"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1074,6 +1074,17 @@ if ( [ "$first_run" = "true" ] || [ "$multisig_address" == "$zero_address" ] ) &
     echo "[Service owner] Deploying on-chain service $service_id..."
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument
 elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
+
+    # ensure Safe owner is operator
+    # (This may occur if update flow was interrupted)
+    service_safe_address=$(<"../$service_safe_address_path")
+    current_safe_owners=$(poetry run python "../scripts/get_safe_owners.py" "$service_safe_address" "../$agent_pkey_path" "$rpc" $password_argument | awk '{gsub(/"/, "\047", $0); print $0}')
+
+    if [[ "$current_safe_owners" == "['$agent_address']" ]]; then
+        echo "[Agent instance] Swapping Safe owner..."
+        poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc" $password_argument
+    fi
+
     echo "[Service owner] Deploying on-chain service $service_id..."
     poetry run autonomy service --retries $RPC_RETRIES --timeout $RPC_TIMEOUT_SECONDS --use-custom-chain deploy "$service_id" --key "../$operator_pkey_path" $password_argument --reuse-multisig
 fi
