@@ -216,7 +216,7 @@ warm_start() {
 }
 
 # Function to add a volume to a service in a Docker Compose file
-add_volume_to_service() {
+add_volume_to_service_docker_compose() {
     local compose_file="$1"
     local service_name="$2"
     local volume_name="$3"
@@ -264,6 +264,57 @@ add_volume_to_service() {
 
     mv temp_compose_file "$compose_file"
 }
+
+# add a volume to a service in a Docker Compose file
+add_volume_to_service_k8s() {
+    local deployment_file="$1"
+
+# Define the PVC YAML content
+    local pvc_yaml="
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trader-data
+spec:
+  storageClassName: nfs-ephemeral
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1000M
+"
+
+# Append the PVC YAML to the deployment file
+echo "$pvc_yaml" >> "$deployment_file"
+
+# Add the new volume to the volumes section
+sed -i '0,/^[[:space:]]*volumes:/s//&\
+\      - name: trader-data\
+\        persistentVolumeClaim:\
+\          claimName: trader-data/' "$deployment_file"
+
+# Find the line number where the container named 'aea' is defined
+container_line=$(awk '/containers:/ {flag=1} flag && /name: aea/ {print NR; exit}' "$deployment_file")
+
+if [ -z "$container_line" ]; then
+  echo "Error: Container named 'aea' not found in $deployment_file."
+  exit 1
+fi
+
+# Check if the container 'aea' already has a volumeMounts section
+volume_mounts_line=$(awk -v start="$container_line" 'NR>start && /^[[:space:]]*volumeMounts:/ {print NR; exit}' "$deployment_file")
+
+if [ -z "$volume_mounts_line" ]; then
+  # No volumeMounts section; add it
+  sed -i "$((container_line+1)) i \      volumeMounts:\n\        - name: trader-data\n\          mountPath: /data/" "$deployment_file"
+else
+  # volumeMounts section exists; append to it
+  sed -i "$((volume_mounts_line+1)) i \        - name: trader-data\n\          mountPath: /data/" "$deployment_file"
+fi
+
+}
+
 
 # Function to retrieve on-chain service state (requires env variables set to use --use-custom-chain)
 get_on_chain_service_state() {
@@ -1230,7 +1281,8 @@ cd ..
 # warm start is disabled as no global weights are provided to calibrate the tools' weights
 # warm_start
 
-add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
+add_volume_to_service_docker_compose "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
+add_volume_to_service_k8s "$PWD/trader_service/abci_build_k8s/build.yaml"
 sudo chown -R $(whoami) "$path_to_store"
 
 if [[ "$build_only" == true ]]; then
