@@ -265,7 +265,7 @@ add_volume_to_service_docker_compose() {
     mv temp_compose_file "$compose_file"
 }
 
-# add a volume to a service in a Docker Compose file
+# Function to add a volume to a service in a Kubernetes deployment file
 add_volume_to_service_k8s() {
     local deployment_file="$1"
 
