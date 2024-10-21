@@ -1217,7 +1217,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmcZW6b3YsCzm5z55YyiTQPkZoeKQYtg92NDr8gMD2s1vY
+export TOOLS_ACCURACY_HASH=QmS8VZXgzYyx2oUfKp3EEd7D2ZrkCDqTkydipgjaeMyLZ6
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
