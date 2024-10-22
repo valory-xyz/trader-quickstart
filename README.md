@@ -118,6 +118,10 @@ To stop your agent, use:
 
 Agent runners are recommended to create a [backup](https://github.com/valory-xyz/trader-quickstart#backup-and-recovery) of the relevant secret key material.
 
+### Skip user prompts
+
+You can optionally pass `--unattended` or export the environment variable `ATTENDED=false` to skip asking for inputs from the user.
+
 ## Observe your agents
 
 1. Use the `trades` command to display information about placed trades by a given address:
