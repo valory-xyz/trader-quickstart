@@ -1,12 +1,11 @@
 #!/bin/bash
 
 # Check if --unattended flag is passed
-attended=true
+export ATTENDED=true
 for arg in "$@"; do
   if [ "$arg" = "--unattended" ]; then
-    attended=false
+    export ATTENDED=false
   fi
 done
-export ATTENDED=$attended
 
 cd trader; poetry run python ../scripts/choose_staking.py --reset; cd ..

@@ -136,10 +136,10 @@ export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
 # Check if --unattended flag is passed
-attended=true
+export ATTENDED=true
 for arg in "$@"; do
   if [ "$arg" = "--unattended" ]; then
-    attended=false
+    export ATTENDED=false
   fi
 done
 
