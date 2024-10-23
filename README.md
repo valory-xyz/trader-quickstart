@@ -120,7 +120,7 @@ Agent runners are recommended to create a [backup](https://github.com/valory-xyz
 
 ### Skip user prompts
 
-You can optionally pass `--unattended` or export the environment variable `ATTENDED=false` to skip asking for inputs from the user.
+You can optionally pass `--attended=false` or export the environment variable `ATTENDED=false` to skip asking for inputs from the user.
 
 ## Observe your agents
 

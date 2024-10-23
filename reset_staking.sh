@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Check if --unattended flag is passed
+# Check if --attended flag is passed
 export ATTENDED=true
 for arg in "$@"; do
-  if [ "$arg" = "--unattended" ]; then
+  if [ "$arg" = "--attended=false" ]; then
     export ATTENDED=false
   fi
 done

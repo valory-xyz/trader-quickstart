@@ -135,10 +135,10 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
-# Check if --unattended flag is passed
+# Check if --attended flag is passed
 export ATTENDED=true
 for arg in "$@"; do
-  if [ "$arg" = "--unattended" ]; then
+  if [ "$arg" = "--attended=false" ]; then
     export ATTENDED=false
   fi
 done

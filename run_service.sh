@@ -754,7 +754,7 @@ while [[ "$#" -gt 0 ]]; do
             echo "Build-only flag selected."
             build_only=true
             ;;
-        --unattended)
+        --attended=false)
             export ATTENDED=false
             ;;
         *) echo "Unknown parameter: $1" ;;
