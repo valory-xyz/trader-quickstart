@@ -305,7 +305,7 @@ You may customize the agent's behaviour by setting these trader-specific environ
 | --- | --- | --- | --- |
 | `ON_CHAIN_SERVICE_ID` | `int` | `null` | The ID of the on-chain service. |
 | `OMEN_CREATORS` | `list` | `["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]` | The addresses of the market creator(s) that the service will track. |
-| `OPENING_MARGIN` | `int` | `300` | Extra seconds after which the questions created will be fetched. |
+| `OPENING_MARGIN` | `int` | `300` | The markets opening before this margin will not be fetched. |
 | `LANGUAGES` | `list` | `["en_US"]` | Filter questions by languages. |
 | `SAMPLE_BETS_CLOSING_DAYS` | `int` | `10` | Sample the bets that are closed within this number of days. |
 | `TRADING_STRATEGY` | `str` | `kelly_criterion_no_conf` | Trading strategy to use. |
