@@ -19,6 +19,7 @@
 # ------------------------------------------------------------------------------
 
 import argparse
+import os
 import requests
 import sys
 import textwrap
@@ -91,6 +92,10 @@ def _prompt_select_staking_program() -> str:
             program_id = None
 
     if not program_id:
+        if os.environ.get("ATTENDED") == "false":
+            print("No staking program set in environment variable STAKING_PROGRAM. Defaulting to 'no_staking'.")
+            return NO_STAKING_PROGRAM_ID
+
         print("Please, select your staking program preference")
         print("----------------------------------------------")
         ids = list(STAKING_PROGRAMS.keys())
@@ -270,9 +275,10 @@ def main() -> None:
         print(f"Your current staking program preference is set to '{staking_program}'.")
         print("You can reset your preference. However, your trader might not be able to switch between staking contracts until it has been staked for a minimum staking period in the current program.")
         print("")
-        response = input("Do you want to reset your staking program preference? (yes/no): ").strip().lower()
-        if response not in ['yes', 'y']:
-            return
+        if os.environ.get("ATTENDED") == "true":
+            response = input("Do you want to reset your staking program preference? (yes/no): ").strip().lower()
+            if response not in ['yes', 'y']:
+                return
 
         print("")
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="USE_STAKING")

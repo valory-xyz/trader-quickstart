@@ -392,7 +392,7 @@ ask_confirm_password() {
     echo "Use a password?"
     echo "---------------"
     echo "You can use a password to encrypt the generated key files. You will be asked for the password each time the script is run."
-    while true; do
+    while [ "$ATTENDED" = true ]; do
         read -p "Do you want to use a password? (yes/no): " use_password
         case "$use_password" in
             [Yy]|[Yy][Ee][Ss])
@@ -589,7 +589,14 @@ create_storage() {
 
     ask_confirm_password
 
-    prompt_subgraph_api_key
+    if [ "$ATTENDED" = true ]; then
+        prompt_subgraph_api_key
+    else # if SUBGRAPH_API_KEY is not set then fail
+        if [ -z "${SUBGRAPH_API_KEY}" ]; then
+            echo "Please set the SUBGRAPH_API_KEY environment variable."
+            exit 1
+        fi
+    fi
     verify_staking_slots
 
     mkdir "../$store"
@@ -713,6 +720,7 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 export OPEN_AUTONOMY_SUBGRAPH_URL="https://subgraph.autonolas.tech/subgraphs/name/autonolas-staging"
+export ATTENDED=true
 
 sleep_duration=12
 
@@ -745,6 +753,9 @@ while [[ "$#" -gt 0 ]]; do
         --build-only)
             echo "Build-only flag selected."
             build_only=true
+            ;;
+        --attended=false)
+            export ATTENDED=false
             ;;
         *) echo "Unknown parameter: $1" ;;
     esac
@@ -793,11 +804,20 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
 
 try_read_storage
 
-# Prompt for RPC
-[[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
+if [ "$ATTENDED" = true ]; then
+    # Prompt for RPC
+    [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
+else
+    if [ -z "${GNOSIS_CHAIN_RPC}" ]; then
+        echo "Error: RPC cannot be empty. Please set the GNOSIS_CHAIN_RPC environment variable."
+        exit 1
+    else
+        rpc="$GNOSIS_CHAIN_RPC"
+    fi
+fi
 
 # Check the RPC
-echo "Checking the provided RCP..."
+echo "Checking the provided RPC: $rpc..."
 
 rcp_response=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
@@ -972,7 +992,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
     echo ""
 
     response="y"
-    if [ "${USE_STAKING}" = true ]; then
+    if [ "${USE_STAKING}" = true ] && [ "$ATTENDED" = true ]; then
       echo "If your service is in a staking program, updating your on-chain service requires that it is first unstaked."
       echo "Unstaking your service will retrieve the accrued staking rewards."
       echo ""

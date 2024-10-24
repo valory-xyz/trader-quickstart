@@ -21,6 +21,7 @@
 """This script performs staking related operations."""
 
 import argparse
+import os
 import sys
 import time
 import traceback
@@ -149,7 +150,8 @@ def _try_unstake_service(
         print(
             f"WARNING: Service {service_id} has been evicted from the {staking_program} staking program due to inactivity."
         )
-        input("Press Enter to continue...")
+        if os.environ.get("ATTENDED") == "true":
+            input("Press Enter to continue...")
 
     can_unstake = _check_unstaking_availability(
         ledger_api,
@@ -181,10 +183,12 @@ def _try_unstake_service(
             "(Note: To maximize agent work eligible for rewards, the recommended practice is to unstake shortly after a checkpoint has been called and stake again immediately after.)\n"
         )
 
-        user_input = input(
-            f"Do you want to continue unstaking service {service_id} from {staking_program}? (yes/no)\n"
-        ).lower()
-        print()
+        user_input = "y"
+        if os.environ.get("ATTENDED") == "true":
+            user_input = input(
+                f"Do you want to continue unstaking service {service_id} from {staking_program}? (yes/no)\n"
+            ).lower()
+            print()
 
         if user_input not in ["yes", "y"]:
             print("Terminating script.")
