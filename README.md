@@ -297,6 +297,27 @@ and can be overriden by setting it anywhere in the `run_service.sh` script with 
 IRRELEVANT_TOOLS=["some-misbehaving-tool", "openai-text-davinci-002", "openai-text-davinci-003", "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1"]
 ```
 
+##### Checking agents' health
+
+You may check the health of the agents by querying the `/healthcheck` endpoint. For example:
+
+```shell
+curl -sL localhost:8716/healthcheck | jq -C
+```
+
+This will return a JSON output with the following fields:
+
+| Field | Type | Criteria |
+| --- | --- | --- |
+| `seconds_since_last_transition` | float | The number of seconds passed since the last transition in the FSM. |
+| `is_tm_healthy` | bool | `false` if more than `BLOCKS_STALL_TOLERANCE` (60) seconds have passed since the last begin block request received from the tendermint node. `true` otherwise. |
+| `period` | int | The number of full cycles completed in the FSM. |
+| `reset_pause_duration` | int | The number of seconds to wait before starting the next FSM cycle. |
+| `rounds` | list | The last rounds (upto 25) in the FSM that happened including the current one. |
+| `is_transitioning_fast` | bool | `true` if `is_tm_healthy` is `true` and `seconds_since_last_transition` is less than twice the `reset_pause_duration`. `false` otherwise. |
+
+So, you can usually use `is_transitioning_fast` as a rule to check if an agent is healthly. To add a more strict check, you can also tune a threshold for the `seconds_since_last_transition` and rate of change of `period`, but that will require some monitoring to fine tune it.
+
 ## Backup and Recovery
 
 When executed for the first time, the `run_service.sh` script creates a number of Gnosis chain accounts:
