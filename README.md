@@ -324,7 +324,7 @@ You may customize the agent's behaviour by setting these trader-specific environ
 | `USE_NEVERMINED` | `bool` | `false` | Whether to use Nevermined. |
 | `SUBSCRIPTION_PARAMS` | `list` | `[["base_url", "https://marketplace-api.gnosis.nevermined.app/api/v1/metadata/assets/ddo"],["did", "did:nv:01706149da2f9f3f67cf79ec86c37d63cec87fc148f5633b12bf6695653d5b3c"],["escrow_payment_condition_address", "0x31B2D187d674C9ACBD2b25f6EDce3d2Db2B7f446"],["lock_payment_condition_address", "0x2749DDEd394196835199471027713773736bffF2"],["transfer_nft_condition_address", "0x659fCA7436936e9fe8383831b65B8B442eFc8Ea8"],["token_address", "0x1b5DeaD7309b56ca7663b3301A503e077Be18cba"], ["order_address","0x72201948087aE83f8Eac22cf7A9f2139e4cFA829"], ["nft_amount", "100"], ["payment_token","0x0000000000000000000000000000000000000000"], ["order_address", "0x72201948087aE83f8Eac22cf7A9f2139e4cFA829"],["price", "1000000000000000000"]]` | Parameters for the Nevermined subscription. |
 
-The rest of the common environment variables are present in the [service.yaml](https://github.com/valory-xyz/trader/blob/main/packages/valory/services/trader/service.yaml), which are customizable too.
+The rest of the common environment variables are present in the [service.yaml](https://github.com/valory-xyz/trader/blob/v0.18.2/packages/valory/services/trader/service.yaml), which are customizable too.
 
 ##### Checking agents' health
 
