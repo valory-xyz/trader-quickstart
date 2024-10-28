@@ -702,7 +702,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.18.2"
+service_version="v0.19.1"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1237,7 +1237,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmS8VZXgzYyx2oUfKp3EEd7D2ZrkCDqTkydipgjaeMyLZ6
+export TOOLS_ACCURACY_HASH=QmZwTCjPcdb5NAScP8A7XT73W3xKqDyoZi5hvvAWr6s1Hg
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
