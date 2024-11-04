@@ -135,6 +135,14 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 
+# Check if --attended flag is passed
+export ATTENDED=true
+for arg in "$@"; do
+  if [ "$arg" = "--attended=false" ]; then
+    export ATTENDED=false
+  fi
+done
+
 export_dotenv "$env_file_path"
 
 set -e  # Exit script on first error
@@ -146,10 +154,13 @@ echo "This script will terminate and unbond your on-chain service (id $service_i
 echo "If your service is staked, you will receive the staking funds to the owner/operator address:"
 echo "$operator_address"
 echo 
-echo "Please, ensure that your service is stopped (./stop_service.sh) before proceeding."
-echo "Do you want to continue? (yes/no)"
-read -r response
-echo ""
+response="y"
+if [ "$attended" = true ]; then
+    echo "Please, ensure that your service is stopped (./stop_service.sh) before proceeding."
+    echo "Do you want to continue? (yes/no)"
+    read -r response
+    echo ""
+fi
 
 if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo "Cancelled."

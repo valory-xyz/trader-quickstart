@@ -216,7 +216,7 @@ warm_start() {
 }
 
 # Function to add a volume to a service in a Docker Compose file
-add_volume_to_service() {
+add_volume_to_service_docker_compose() {
     local compose_file="$1"
     local service_name="$2"
     local volume_name="$3"
@@ -264,6 +264,57 @@ add_volume_to_service() {
 
     mv temp_compose_file "$compose_file"
 }
+
+# Function to add a volume to a service in a Kubernetes deployment file
+add_volume_to_service_k8s() {
+    local deployment_file="$1"
+
+# Define the PVC YAML content
+    local pvc_yaml="
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trader-data
+spec:
+  storageClassName: nfs-ephemeral
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1000M
+"
+
+# Append the PVC YAML to the deployment file
+echo "$pvc_yaml" >> "$deployment_file"
+
+# Add the new volume to the volumes section
+sed -i '0,/^[[:space:]]*volumes:/s//&\
+\      - name: trader-data\
+\        persistentVolumeClaim:\
+\          claimName: trader-data/' "$deployment_file"
+
+# Find the line number where the container named 'aea' is defined
+container_line=$(awk '/containers:/ {flag=1} flag && /name: aea/ {print NR; exit}' "$deployment_file")
+
+if [ -z "$container_line" ]; then
+  echo "Error: Container named 'aea' not found in $deployment_file."
+  exit 1
+fi
+
+# Check if the container 'aea' already has a volumeMounts section
+volume_mounts_line=$(awk -v start="$container_line" 'NR>start && /^[[:space:]]*volumeMounts:/ {print NR; exit}' "$deployment_file")
+
+if [ -z "$volume_mounts_line" ]; then
+  # No volumeMounts section; add it
+  sed -i "$((container_line+1)) i \      volumeMounts:\n\        - name: trader-data\n\          mountPath: /data/" "$deployment_file"
+else
+  # volumeMounts section exists; append to it
+  sed -i "$((volume_mounts_line+1)) i \        - name: trader-data\n\          mountPath: /data/" "$deployment_file"
+fi
+
+}
+
 
 # Function to retrieve on-chain service state (requires env variables set to use --use-custom-chain)
 get_on_chain_service_state() {
@@ -341,7 +392,7 @@ ask_confirm_password() {
     echo "Use a password?"
     echo "---------------"
     echo "You can use a password to encrypt the generated key files. You will be asked for the password each time the script is run."
-    while true; do
+    while [ "$ATTENDED" = true ]; do
         read -p "Do you want to use a password? (yes/no): " use_password
         case "$use_password" in
             [Yy]|[Yy][Ee][Ss])
@@ -538,7 +589,14 @@ create_storage() {
 
     ask_confirm_password
 
-    prompt_subgraph_api_key
+    if [ "$ATTENDED" = true ]; then
+        prompt_subgraph_api_key
+    else # if SUBGRAPH_API_KEY is not set then fail
+        if [ -z "${SUBGRAPH_API_KEY}" ]; then
+            echo "Please set the SUBGRAPH_API_KEY environment variable."
+            exit 1
+        fi
+    fi
     verify_staking_slots
 
     mkdir "../$store"
@@ -662,6 +720,7 @@ export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
 export OPEN_AUTONOMY_SUBGRAPH_URL="https://subgraph.autonolas.tech/subgraphs/name/autonolas-staging"
+export ATTENDED=true
 
 sleep_duration=12
 
@@ -680,6 +739,7 @@ echo "Current branch: $current_branch"
 echo "Commit hash: $latest_commit_hash"
 
 # Check the command-line arguments
+build_only=false
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --with-staking)
@@ -689,6 +749,13 @@ while [[ "$#" -gt 0 ]]; do
             read -n 1 -s -r -p "Press any key to continue..."
             echo ""
             echo ""
+            ;;
+        --build-only)
+            echo "Build-only flag selected."
+            build_only=true
+            ;;
+        --attended=false)
+            export ATTENDED=false
             ;;
         *) echo "Unknown parameter: $1" ;;
     esac
@@ -737,11 +804,20 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
 
 try_read_storage
 
-# Prompt for RPC
-[[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
+if [ "$ATTENDED" = true ]; then
+    # Prompt for RPC
+    [[ -z "${rpc}" ]] && read -rsp "Enter a Gnosis RPC that supports eth_newFilter [hidden input]: " rpc && echo || rpc="${rpc}"
+else
+    if [ -z "${GNOSIS_CHAIN_RPC}" ]; then
+        echo "Error: RPC cannot be empty. Please set the GNOSIS_CHAIN_RPC environment variable."
+        exit 1
+    else
+        rpc="$GNOSIS_CHAIN_RPC"
+    fi
+fi
 
 # Check the RPC
-echo "Checking the provided RCP..."
+echo "Checking the provided RPC: $rpc..."
 
 rcp_response=$(curl -s -S -X POST \
   -H "Content-Type: application/json" \
@@ -916,7 +992,7 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
     echo ""
 
     response="y"
-    if [ "${USE_STAKING}" = true ]; then
+    if [ "${USE_STAKING}" = true ] && [ "$ATTENDED" = true ]; then
       echo "If your service is in a staking program, updating your on-chain service requires that it is first unstaked."
       echo "Unstaking your service will retrieve the accrued staking rewards."
       echo ""
@@ -1161,7 +1237,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmcZW6b3YsCzm5z55YyiTQPkZoeKQYtg92NDr8gMD2s1vY
+export TOOLS_ACCURACY_HASH=QmZwTCjPcdb5NAScP8A7XT73W3xKqDyoZi5hvvAWr6s1Hg
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
@@ -1173,13 +1249,8 @@ fi
 
 service_dir="trader_service"
 build_dir="abci_build"
+build_dir_k8s="abci_build_k8s"
 directory="$service_dir/$build_dir"
-
-suggested_amount=$suggested_top_up_default
-ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
-
-suggested_amount=$suggested_safe_top_up_default
-ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
 then
@@ -1207,16 +1278,44 @@ else
     poetry run autonomy build-image
 fi
 
-# Build the deployment with a single agent
+# Build the deployment with a single agent (Docker Compose and Kubernetes)
+if [[ -d "$build_dir" ]]; then
+    echo "You may need to provide sudo password in order for the script to delete part of the build artifacts."
+    sudo rm -rf "$build_dir"
+    echo "Directory removed: $build_dir"
+fi
+if [[ -d "$build_dir_k8s" ]]; then
+    echo "You may need to provide sudo password in order for the script to delete part of the build artifacts."
+    sudo rm -rf "$build_dir_k8s"
+    echo "Directory removed: $build_dir"
+fi
+export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build --kubernetes "../../$keys_json_path" --n $n_agents -ltm
+mv $build_dir $build_dir_k8s
+echo "Kubernetes deployment built on ./trader/$service_dir/$build_dir_k8s"
+
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
+echo "Docker Compose deployment built on ./trader/$service_dir/$build_dir"
 
 cd ..
 
 # warm start is disabled as no global weights are provided to calibrate the tools' weights
 # warm_start
 
-add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
+add_volume_to_service_docker_compose "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
+add_volume_to_service_k8s "$PWD/trader_service/abci_build_k8s/build.yaml"
 sudo chown -R $(whoami) "$path_to_store"
 
+if [[ "$build_only" == true ]]; then
+    echo ""
+    echo "Build-only done."
+    exit 0
+fi
+
 # Run the deployment
+suggested_amount=$suggested_top_up_default
+ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
+
+suggested_amount=$suggested_safe_top_up_default
+ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
+
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy run --build-dir "$directory" --detach
