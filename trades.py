@@ -674,7 +674,7 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     creator: str,
     creator_trades_json: Dict[str, Any],
     mech_statistics: Dict[str, Any],
-) -> tuple:
+) -> Tuple[str, Dict[Any, Any]]:
     """Parse the trades from the response."""
 
     _mech_statistics = dict(mech_statistics)
