@@ -160,7 +160,7 @@ def _trades_since_message(trades_json: Dict[str, Any], utc_ts: float = 0) -> str
     return f"{trades_count} trades on {markets_count} markets"
 
 
-def _calculate_retrades_since(trades_json: Dict[str, Any], utc_ts: float = 0) -> tuple:
+def _calculate_retrades_since(trades_json: Dict[str, Any], utc_ts: float = 0) -> Tuple[Counter, int, int, int]:
     filtered_trades = Counter((
         trade.get("fpmm", {}).get("id", None)
         for trade in trades_json.get("data", {}).get("fpmmTrades", [])
