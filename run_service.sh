@@ -289,10 +289,18 @@ spec:
 echo "$pvc_yaml" >> "$deployment_file"
 
 # Add the new volume to the volumes section
-sed -i '0,/^[[:space:]]*volumes:/s//&\
-\      - name: trader-data\
-\        persistentVolumeClaim:\
-\          claimName: trader-data/' "$deployment_file"
+temp_file=$(mktemp)
+entered_volumes=false
+while IFS= read -r line; do
+    echo "$line" >> "$temp_file"
+    if [[ "$line" == *"volumes:"* && "$entered_volumes" != true ]]; then
+        echo "      - name: trader-data" >> "$temp_file"
+        echo "        persistentVolumeClaim:" >> "$temp_file"
+        echo "          claimName: trader-data" >> "$temp_file"
+        entered_volumes=true
+    fi
+done < "$deployment_file"
+mv "$temp_file" "$deployment_file"
 
 # Find the line number where the container named 'aea' is defined
 container_line=$(awk '/containers:/ {flag=1} flag && /name: aea/ {print NR; exit}' "$deployment_file")
@@ -305,13 +313,36 @@ fi
 # Check if the container 'aea' already has a volumeMounts section
 volume_mounts_line=$(awk -v start="$container_line" 'NR>start && /^[[:space:]]*volumeMounts:/ {print NR; exit}' "$deployment_file")
 
+temp_file=$(mktemp)
+line_number=0
+entered_volume_mounts=false
 if [ -z "$volume_mounts_line" ]; then
   # No volumeMounts section; add it
-  sed -i "$((container_line+1)) i \      volumeMounts:\n\        - name: trader-data\n\          mountPath: /data/" "$deployment_file"
+  search_after_line=$((container_line - 1))
+  while IFS= read -r line; do
+      echo "$line" >> "$temp_file"
+      line_number=$((line_number + 1))
+      if [[ "$line" == *"name: aea"* && "$line_number" -gt "$search_after_line" && "$entered_volume_mounts" != true ]]; then
+          echo "      volumeMounts:" >> "$temp_file"
+          echo "        - name: trader-data" >> "$temp_file"
+          echo "          mountPath: /data/" >> "$temp_file"
+          entered_volume_mounts=true
+      fi
+  done < "$deployment_file"
 else
   # volumeMounts section exists; append to it
-  sed -i "$((volume_mounts_line+1)) i \        - name: trader-data\n\          mountPath: /data/" "$deployment_file"
+  search_after_line=$((volume_mounts_line - 1))
+  while IFS= read -r line; do
+      echo "$line" >> "$temp_file"
+      line_number=$((line_number + 1))
+      if [[ "$line" == *"volumeMounts:"* && "$line_number" -gt "$search_after_line" && "$entered_volume_mounts" != true ]]; then
+          echo "        - name: trader-data" >> "$temp_file"
+          echo "          mountPath: /data/" >> "$temp_file"
+          entered_volume_mounts=true
+      fi
+  done < "$deployment_file"
 fi
+mv "$temp_file" "$deployment_file"
 
 }
 
