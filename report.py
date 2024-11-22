@@ -30,7 +30,7 @@ from collections import Counter
 from dotenv import dotenv_values
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import docker
 import trades
