@@ -27,7 +27,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar, Dict, Type
 
 import requests
 from tqdm import tqdm
@@ -193,8 +193,8 @@ def _write_mech_events_data_to_file(
 
 
 def _query_mech_events_subgraph(
-    sender: str, event_cls: type[MechBaseEvent]
-) -> dict[str, Any]:
+    sender: str, event_cls: Type[MechBaseEvent]
+) -> Dict[str, Any]:
     """Query the subgraph."""
 
     subgraph_event_set_name = f"{event_cls.subgraph_event_name}s"
@@ -228,7 +228,7 @@ def _query_mech_events_subgraph(
 # pylint: disable=too-many-locals
 def _update_mech_events_db(
     sender: str,
-    event_cls: type[MechBaseEvent],
+    event_cls: Type[MechBaseEvent],
 ) -> None:
     """Get the mech Events database."""
 
@@ -290,7 +290,7 @@ def _update_mech_events_db(
     print("")
 
 
-def _get_mech_events(sender: str, event_cls: type[MechBaseEvent]) -> Dict[str, Any]:
+def _get_mech_events(sender: str, event_cls: Type[MechBaseEvent]) -> Dict[str, Any]:
     """Updates the local database of Mech events and returns the Mech events."""
 
     _update_mech_events_db(sender, event_cls)

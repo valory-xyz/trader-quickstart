@@ -30,7 +30,7 @@ from collections import Counter
 from dotenv import dotenv_values
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 import docker
 import trades
@@ -148,7 +148,7 @@ def _color_percent(p: float, multiplier: float = 100, symbol: str = "%") -> str:
     return _color_string(f"{p*multiplier:.2f} {symbol}", ColorCode.RED)
 
 
-def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str:
+def _trades_since_message(trades_json: Dict[str, Any], utc_ts: float = 0) -> str:
     filtered_trades = [
         trade
         for trade in trades_json.get("data", {}).get("fpmmTrades", [])
@@ -160,7 +160,7 @@ def _trades_since_message(trades_json: dict[str, Any], utc_ts: float = 0) -> str
     return f"{trades_count} trades on {markets_count} markets"
 
 
-def _calculate_retrades_since(trades_json: dict[str, Any], utc_ts: float = 0) -> tuple[Counter[Any], int, int, int]:
+def _calculate_retrades_since(trades_json: Dict[str, Any], utc_ts: float = 0) -> tuple:
     filtered_trades = Counter((
         trade.get("fpmm", {}).get("id", None)
         for trade in trades_json.get("data", {}).get("fpmmTrades", [])
@@ -189,7 +189,7 @@ def _average_trades_since_message(n_trades: int, n_markets: int) -> str:
 
     return f"{average_trades} trades per market"
 
-def _max_trades_per_market_since_message(filtered_trades: Counter[Any]) -> str:
+def _max_trades_per_market_since_message(filtered_trades: Counter) -> str:
     if not filtered_trades:
         max_trades = 0
     else:
@@ -199,7 +199,7 @@ def _max_trades_per_market_since_message(filtered_trades: Counter[Any]) -> str:
 
 
 def _get_mech_requests_count(
-    mech_requests: dict[str, Any], timestamp: float = 0
+    mech_requests: Dict[str, Any], timestamp: float = 0
 ) -> int:
     return sum(
         1
