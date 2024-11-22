@@ -18,6 +18,10 @@
 #
 # ------------------------------------------------------------------------------
 
+# force utf mode for python, cause sometimes there are issues with local codepages
+export PYTHONUTF8=1
+
+
 # Convert Hex to Dec
 hex_to_decimal() {
     $PYTHON_CMD -c "print(int('$1', 16))"
