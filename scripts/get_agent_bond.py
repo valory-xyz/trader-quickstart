@@ -29,7 +29,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 
 def _get_abi(contract_address: str) -> List:
-    contract_abi_url = "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
+    contract_abi_url = "https://api.gnosisscan.io/api?module=contract&action=getabi&address={contract_address}&apikey=YOUR_API_KEY"
     response = requests.get(contract_abi_url.format(contract_address=contract_address)).json()
 
     if "result" in response:
