@@ -33,6 +33,9 @@ SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
 DOTENV_PATH = Path(STORE_PATH, ".env")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
+STAKING_TOKEN_INSTANCE_ABI_PATH = Path(SCRIPT_PATH, "..", "trader", "packages", "valory", "contracts", "staking_token", "build", "StakingToken.json")
+STAKING_TOKEN_IMPLEMENTATION_ABI_PATH = STAKING_TOKEN_INSTANCE_ABI_PATH
+ACTIVITY_CHECKER_ABI_PATH = Path(SCRIPT_PATH, "..", "trader", "packages", "valory", "contracts", "mech_activity", "build", "MechActivity.json")
 
 IPFS_ADDRESS = "https://gateway.autonolas.tech/ipfs/f01701220{hash}"
 NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
@@ -140,10 +143,21 @@ def _get_abi(contract_address: str) -> List:
     return abi if abi else []
 
 
+def _load_abi_from_file(path: Path) -> Dict[str, Any]:
+    if not os.path.exists(path):
+        print("Error: Contract airtfacts not found. Please execute 'run_service.sh' before executing this script.")
+        sys.exit(1)
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    return data.get("abi")
+
+
 contracts_cache: Dict[str, Any] = {}
 
 
-def _get_staking_token_contract(program_id: str) -> Any:
+def _get_staking_token_contract(program_id: str, use_blockscout: bool = False) -> Any:
     if program_id in contracts_cache:
         return contracts_cache[program_id]
 
@@ -152,25 +166,31 @@ def _get_staking_token_contract(program_id: str) -> Any:
 
     w3 = Web3(Web3.HTTPProvider(rpc))
     staking_token_instance_address = STAKING_PROGRAMS.get(program_id)
-    abi = _get_abi(staking_token_instance_address)
+    if use_blockscout:
+        abi = _get_abi(staking_token_instance_address)
+    else:
+        abi = _load_abi_from_file(STAKING_TOKEN_INSTANCE_ABI_PATH)
     contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
 
     if 'getImplementation' in [func.fn_name for func in contract.all_functions()]:
         # It is a proxy contract
         implementation_address = contract.functions.getImplementation().call()
-        abi = _get_abi(implementation_address)
+        if use_blockscout:
+            abi = _get_abi(implementation_address)
+        else:
+            abi = _load_abi_from_file(STAKING_TOKEN_IMPLEMENTATION_ABI_PATH)
         contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
 
     contracts_cache[program_id] = contract
     return contract
 
 
-def _get_staking_contract_metadata(program_id: str) -> Dict[str, str]:
+def _get_staking_contract_metadata(program_id: str, use_blockscout: bool = False) -> Dict[str, str]:
     try:
         if program_id == NO_STAKING_PROGRAM_ID:
             return NO_STAKING_PROGRAM_METADATA
 
-        staking_token_contract = _get_staking_token_contract(program_id=program_id)
+        staking_token_contract = _get_staking_token_contract(program_id=program_id, use_blockscout=use_blockscout)
         metadata_hash = staking_token_contract.functions.metadataHash().call()
         ipfs_address = IPFS_ADDRESS.format(hash=metadata_hash.hex())
         response = requests.get(ipfs_address)
@@ -186,12 +206,12 @@ def _get_staking_contract_metadata(program_id: str) -> Dict[str, str]:
         }
 
 
-def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
+def _get_staking_env_variables(program_id: str, use_blockscout: bool = False) -> Dict[str, str]:
     if program_id == NO_STAKING_PROGRAM_ID:
         return NO_STAKING_PROGRAM_ENV_VARIABLES
 
     staking_token_instance_address = STAKING_PROGRAMS.get(program_id)
-    staking_token_contract = _get_staking_token_contract(program_id=program_id)
+    staking_token_contract = _get_staking_token_contract(program_id=program_id, use_blockscout=use_blockscout)
     agent_id = staking_token_contract.functions.agentIds(0).call()
     service_registry = staking_token_contract.functions.serviceRegistry().call()
     staking_token = staking_token_contract.functions.stakingToken().call()
@@ -201,7 +221,11 @@ def _get_staking_env_variables(program_id: str) -> Dict[str, str]:
 
     if 'activityChecker' in [func.fn_name for func in staking_token_contract.all_functions()]:
         activity_checker = staking_token_contract.functions.activityChecker().call()
-        abi = _get_abi(activity_checker)
+
+        if use_blockscout:
+            abi = _get_abi(activity_checker)
+        else:
+            abi = _load_abi_from_file(ACTIVITY_CHECKER_ABI_PATH)
 
         with open(RPC_PATH, 'r', encoding="utf-8") as file:
             rpc = file.read().strip()
@@ -265,6 +289,7 @@ def _get_nevermined_env_variables() -> Dict[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Set up staking configuration.")
     parser.add_argument("--reset", action="store_true", help="Reset USE_STAKING and STAKING_PROGRAM in .env file")
+    parser.add_argument("--use_blockscout", action="store_true", help="Use Blockscout to retrieve contract data.")
     args = parser.parse_args()
 
     if args.reset:
@@ -291,7 +316,7 @@ def main() -> None:
     program_id = _prompt_select_staking_program()
 
     print("  - Populating staking program variables in the .env file")
-    staking_env_variables = _get_staking_env_variables(program_id)
+    staking_env_variables = _get_staking_env_variables(program_id, use_blockscout=args.use_blockscout)
     _set_dotenv_file_variables(staking_env_variables)
 
     print("  - Populating Nevermined variables in the .env file")
