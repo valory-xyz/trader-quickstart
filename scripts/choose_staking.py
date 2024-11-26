@@ -18,24 +18,48 @@
 #
 # ------------------------------------------------------------------------------
 
+"""Choose staking program."""
+
 import argparse
+import json
 import os
-import requests
 import sys
 import textwrap
-import json
-from dotenv import dotenv_values, set_key, unset_key
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
+
+import requests
+from dotenv import dotenv_values, set_key, unset_key
 from web3 import Web3
+
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
 DOTENV_PATH = Path(STORE_PATH, ".env")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
-STAKING_TOKEN_INSTANCE_ABI_PATH = Path(SCRIPT_PATH, "..", "trader", "packages", "valory", "contracts", "staking_token", "build", "StakingToken.json")
+STAKING_TOKEN_INSTANCE_ABI_PATH = Path(
+    SCRIPT_PATH,
+    "..",
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "staking_token",
+    "build",
+    "StakingToken.json",
+)
 STAKING_TOKEN_IMPLEMENTATION_ABI_PATH = STAKING_TOKEN_INSTANCE_ABI_PATH
-ACTIVITY_CHECKER_ABI_PATH = Path(SCRIPT_PATH, "..", "trader", "packages", "valory", "contracts", "mech_activity", "build", "MechActivity.json")
+ACTIVITY_CHECKER_ABI_PATH = Path(
+    SCRIPT_PATH,
+    "..",
+    "trader",
+    "packages",
+    "valory",
+    "contracts",
+    "mech_activity",
+    "build",
+    "MechActivity.json",
+)
 
 IPFS_ADDRESS = "https://gateway.autonolas.tech/ipfs/f01701220{hash}"
 NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
@@ -87,10 +111,10 @@ def _prompt_select_staking_program() -> str:
     env_file_vars = dotenv_values(DOTENV_PATH)
 
     program_id = None
-    if 'STAKING_PROGRAM' in env_file_vars:
+    if "STAKING_PROGRAM" in env_file_vars:
         print("The staking program is already selected.")
 
-        program_id = env_file_vars.get('STAKING_PROGRAM')
+        program_id = env_file_vars.get("STAKING_PROGRAM")
         if program_id not in STAKING_PROGRAMS:
             print(f"WARNING: Selected staking program {program_id} is unknown.")
             print("")
@@ -98,7 +122,9 @@ def _prompt_select_staking_program() -> str:
 
     if not program_id:
         if os.environ.get("ATTENDED") == "false":
-            print("No staking program set in environment variable STAKING_PROGRAM. Defaulting to 'no_staking'.")
+            print(
+                "No staking program set in environment variable STAKING_PROGRAM. Defaulting to 'no_staking'."
+            )
             return NO_STAKING_PROGRAM_ID
 
         print("Please, select your staking program preference")
@@ -108,7 +134,9 @@ def _prompt_select_staking_program() -> str:
             metadata = _get_staking_contract_metadata(program_id=key)
             name = metadata["name"]
             description = metadata["description"]
-            wrapped_description = textwrap.fill(description, width=80, initial_indent='   ', subsequent_indent='   ')
+            wrapped_description = textwrap.fill(
+                description, width=80, initial_indent="   ", subsequent_indent="   "
+            )
             print(f"{index + 1}) {name}\n{wrapped_description}\n")
 
         while True:
@@ -127,8 +155,12 @@ def _prompt_select_staking_program() -> str:
 
 
 def _get_abi(contract_address: str) -> List:
-    contract_abi_url = "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
-    response = requests.get(contract_abi_url.format(contract_address=contract_address)).json()
+    contract_abi_url = (
+        "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
+    )
+    response = requests.get(
+        contract_abi_url.format(contract_address=contract_address)
+    ).json()
 
     if "result" in response:
         result = response["result"]
@@ -145,7 +177,9 @@ def _get_abi(contract_address: str) -> List:
 
 def _load_abi_from_file(path: Path) -> Dict[str, Any]:
     if not os.path.exists(path):
-        print("Error: Contract airtfacts not found. Please execute 'run_service.sh' before executing this script.")
+        print(
+            "Error: Contract airtfacts not found. Please execute 'run_service.sh' before executing this script."
+        )
         sys.exit(1)
 
     with open(path, "r", encoding="utf-8") as f:
@@ -161,7 +195,7 @@ def _get_staking_token_contract(program_id: str, use_blockscout: bool = False) -
     if program_id in contracts_cache:
         return contracts_cache[program_id]
 
-    with open(RPC_PATH, 'r', encoding="utf-8") as file:
+    with open(RPC_PATH, "r", encoding="utf-8") as file:
         rpc = file.read().strip()
 
     w3 = Web3(Web3.HTTPProvider(rpc))
@@ -172,7 +206,7 @@ def _get_staking_token_contract(program_id: str, use_blockscout: bool = False) -
         abi = _load_abi_from_file(STAKING_TOKEN_INSTANCE_ABI_PATH)
     contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
 
-    if 'getImplementation' in [func.fn_name for func in contract.all_functions()]:
+    if "getImplementation" in [func.fn_name for func in contract.all_functions()]:
         # It is a proxy contract
         implementation_address = contract.functions.getImplementation().call()
         if use_blockscout:
@@ -185,12 +219,16 @@ def _get_staking_token_contract(program_id: str, use_blockscout: bool = False) -
     return contract
 
 
-def _get_staking_contract_metadata(program_id: str, use_blockscout: bool = False) -> Dict[str, str]:
+def _get_staking_contract_metadata(
+    program_id: str, use_blockscout: bool = False
+) -> Dict[str, str]:
     try:
         if program_id == NO_STAKING_PROGRAM_ID:
             return NO_STAKING_PROGRAM_METADATA
 
-        staking_token_contract = _get_staking_token_contract(program_id=program_id, use_blockscout=use_blockscout)
+        staking_token_contract = _get_staking_token_contract(
+            program_id=program_id, use_blockscout=use_blockscout
+        )
         metadata_hash = staking_token_contract.functions.metadataHash().call()
         ipfs_address = IPFS_ADDRESS.format(hash=metadata_hash.hex())
         response = requests.get(ipfs_address)
@@ -198,28 +236,38 @@ def _get_staking_contract_metadata(program_id: str, use_blockscout: bool = False
         if response.status_code == 200:
             return response.json()
 
-        raise Exception(f"Failed to fetch data from {ipfs_address}: {response.status_code}")
-    except Exception:
+        raise Exception(  # pylint: disable=broad-except
+            f"Failed to fetch data from {ipfs_address}: {response.status_code}"
+        )
+    except Exception:  # pylint: disable=broad-except
         return {
             "name": program_id,
             "description": program_id,
         }
 
 
-def _get_staking_env_variables(program_id: str, use_blockscout: bool = False) -> Dict[str, str]:
+def _get_staking_env_variables(  # pylint: disable=too-many-locals
+    program_id: str, use_blockscout: bool = False
+) -> Dict[str, str]:
     if program_id == NO_STAKING_PROGRAM_ID:
         return NO_STAKING_PROGRAM_ENV_VARIABLES
 
     staking_token_instance_address = STAKING_PROGRAMS.get(program_id)
-    staking_token_contract = _get_staking_token_contract(program_id=program_id, use_blockscout=use_blockscout)
+    staking_token_contract = _get_staking_token_contract(
+        program_id=program_id, use_blockscout=use_blockscout
+    )
     agent_id = staking_token_contract.functions.agentIds(0).call()
     service_registry = staking_token_contract.functions.serviceRegistry().call()
     staking_token = staking_token_contract.functions.stakingToken().call()
-    service_registry_token_utility = staking_token_contract.functions.serviceRegistryTokenUtility().call()
+    service_registry_token_utility = (
+        staking_token_contract.functions.serviceRegistryTokenUtility().call()
+    )
     min_staking_deposit = staking_token_contract.functions.minStakingDeposit().call()
     min_staking_bond = min_staking_deposit
 
-    if 'activityChecker' in [func.fn_name for func in staking_token_contract.all_functions()]:
+    if "activityChecker" in [
+        func.fn_name for func in staking_token_contract.all_functions()
+    ]:
         activity_checker = staking_token_contract.functions.activityChecker().call()
 
         if use_blockscout:
@@ -227,7 +275,7 @@ def _get_staking_env_variables(program_id: str, use_blockscout: bool = False) ->
         else:
             abi = _load_abi_from_file(ACTIVITY_CHECKER_ABI_PATH)
 
-        with open(RPC_PATH, 'r', encoding="utf-8") as file:
+        with open(RPC_PATH, "r", encoding="utf-8") as file:
             rpc = file.read().strip()
 
         w3 = Web3(Web3.HTTPProvider(rpc))
@@ -255,7 +303,12 @@ def _get_staking_env_variables(program_id: str, use_blockscout: bool = False) ->
 def _set_dotenv_file_variables(env_vars: Dict[str, str]) -> None:
     for key, value in env_vars.items():
         if value:
-            set_key(dotenv_path=DOTENV_PATH, key_to_set=key, value_to_set=value, quote_mode="never")
+            set_key(
+                dotenv_path=DOTENV_PATH,
+                key_to_set=key,
+                value_to_set=value,
+                quote_mode="never",
+            )
         else:
             unset_key(dotenv_path=DOTENV_PATH, key_to_unset=key)
 
@@ -264,32 +317,50 @@ def _get_nevermined_env_variables() -> Dict[str, str]:
     env_file_vars = dotenv_values(DOTENV_PATH)
     use_nevermined = False
 
-    if 'USE_NEVERMINED' not in env_file_vars:
-        set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_NEVERMINED", value_to_set="false", quote_mode="never")
-    elif env_file_vars.get('USE_NEVERMINED').strip() not in ("True", "true"):
-        set_key(dotenv_path=DOTENV_PATH, key_to_set="USE_NEVERMINED", value_to_set="false", quote_mode="never")
+    if "USE_NEVERMINED" not in env_file_vars:
+        set_key(
+            dotenv_path=DOTENV_PATH,
+            key_to_set="USE_NEVERMINED",
+            value_to_set="false",
+            quote_mode="never",
+        )
+    elif env_file_vars.get("USE_NEVERMINED").strip() not in ("True", "true"):
+        set_key(
+            dotenv_path=DOTENV_PATH,
+            key_to_set="USE_NEVERMINED",
+            value_to_set="false",
+            quote_mode="never",
+        )
     else:
         use_nevermined = True
 
     if use_nevermined:
-        print("  - A Nevermined subscription will be used to pay for the mech requests.")
+        print(
+            "  - A Nevermined subscription will be used to pay for the mech requests."
+        )
         return {
             "MECH_CONTRACT_ADDRESS": NEVERMINED_MECH_CONTRACT_ADDRESS,
             "AGENT_REGISTRY_ADDRESS": NEVERMINED_AGENT_REGISTRY_ADDRESS,
-            "MECH_REQUEST_PRICE": NEVERMINED_MECH_REQUEST_PRICE
+            "MECH_REQUEST_PRICE": NEVERMINED_MECH_REQUEST_PRICE,
         }
     else:
         print("  - No Nevermined subscription set.")
-        return {
-            "AGENT_REGISTRY_ADDRESS": "",
-            "MECH_REQUEST_PRICE": ""
-        }
+        return {"AGENT_REGISTRY_ADDRESS": "", "MECH_REQUEST_PRICE": ""}
 
 
 def main() -> None:
+    """Main method"""
     parser = argparse.ArgumentParser(description="Set up staking configuration.")
-    parser.add_argument("--reset", action="store_true", help="Reset USE_STAKING and STAKING_PROGRAM in .env file")
-    parser.add_argument("--use_blockscout", action="store_true", help="Use Blockscout to retrieve contract data.")
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Reset USE_STAKING and STAKING_PROGRAM in .env file",
+    )
+    parser.add_argument(
+        "--use_blockscout",
+        action="store_true",
+        help="Use Blockscout to retrieve contract data.",
+    )
     args = parser.parse_args()
 
     if args.reset:
@@ -300,23 +371,35 @@ def main() -> None:
         print("=====================================")
         print("")
         print(f"Your current staking program preference is set to '{staking_program}'.")
-        print("You can reset your preference. However, your trader might not be able to switch between staking contracts until it has been staked for a minimum staking period in the current program.")
+        print(
+            "You can reset your preference. However, your trader might not be able to switch between staking contracts until it has been staked for a minimum staking period in the current program."
+        )
         print("")
         if os.environ.get("ATTENDED") == "true":
-            response = input("Do you want to reset your staking program preference? (yes/no): ").strip().lower()
-            if response not in ['yes', 'y']:
+            response = (
+                input(
+                    "Do you want to reset your staking program preference? (yes/no): "
+                )
+                .strip()
+                .lower()
+            )
+            if response not in ["yes", "y"]:
                 return
 
         print("")
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="USE_STAKING")
         unset_key(dotenv_path=DOTENV_PATH, key_to_unset="STAKING_PROGRAM")
-        print(f"Environment variables USE_STAKING and STAKING_PROGRAM have been reset in '{DOTENV_PATH}'.")
+        print(
+            f"Environment variables USE_STAKING and STAKING_PROGRAM have been reset in '{DOTENV_PATH}'."
+        )
         print("")
 
     program_id = _prompt_select_staking_program()
 
     print("  - Populating staking program variables in the .env file")
-    staking_env_variables = _get_staking_env_variables(program_id, use_blockscout=args.use_blockscout)
+    staking_env_variables = _get_staking_env_variables(
+        program_id, use_blockscout=args.use_blockscout
+    )
     _set_dotenv_file_variables(staking_env_variables)
 
     print("  - Populating Nevermined variables in the .env file")
@@ -325,6 +408,7 @@ def main() -> None:
     _set_dotenv_file_variables(nevermined_env_variables)
     print("")
     print("Finished populating the .env file.")
+
 
 if __name__ == "__main__":
     main()

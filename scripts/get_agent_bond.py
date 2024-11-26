@@ -18,23 +18,33 @@
 #
 # ------------------------------------------------------------------------------
 
+"""Get agent bond."""
+
 import argparse
-import requests
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any, Dict, List
+
+import requests
 from web3 import Web3
+
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 SCRIPT_PATH = Path(__file__).resolve().parent
-SERVICE_REGISTRY_TOKEN_UTILITY_ABI_PATH = Path(SCRIPT_PATH, "..", "contracts", "ServiceRegistryTokenUtility.json")
+SERVICE_REGISTRY_TOKEN_UTILITY_ABI_PATH = Path(
+    SCRIPT_PATH, "..", "contracts", "ServiceRegistryTokenUtility.json"
+)
 
 
 def _get_abi(contract_address: str) -> List:
-    contract_abi_url = "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
-    response = requests.get(contract_abi_url.format(contract_address=contract_address)).json()
+    contract_abi_url = (
+        "https://gnosis.blockscout.com/api/v2/smart-contracts/{contract_address}"
+    )
+    response = requests.get(
+        contract_abi_url.format(contract_address=contract_address)
+    ).json()
 
     if "result" in response:
         result = response["result"]
@@ -51,7 +61,9 @@ def _get_abi(contract_address: str) -> List:
 
 def _load_abi_from_file(path: Path) -> Dict[str, Any]:
     if not os.path.exists(path):
-        print("Error: Contract airtfacts not found. Please execute 'run_service.sh' before executing this script.")
+        print(
+            "Error: Contract airtfacts not found. Please execute 'run_service.sh' before executing this script."
+        )
         sys.exit(1)
 
     with open(path, "r", encoding="utf-8") as f:
@@ -61,13 +73,26 @@ def _load_abi_from_file(path: Path) -> Dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Get agent bond from service registry token utility contract.")
-    parser.add_argument('service_registry', type=str, help='Service registry contract address')
-    parser.add_argument('service_registry_token_utility', type=str, help='Service registry token utility contract address')
-    parser.add_argument('service_id', type=int, help='Service ID')
-    parser.add_argument('agent_id', type=int, help='Agent ID')
-    parser.add_argument('rpc', type=str, help='RPC')
-    parser.add_argument("--use_blockscout", action="store_true", help="Use Blockscout to retrieve contract data.")
+    """Main method"""
+    parser = argparse.ArgumentParser(
+        description="Get agent bond from service registry token utility contract."
+    )
+    parser.add_argument(
+        "service_registry", type=str, help="Service registry contract address"
+    )
+    parser.add_argument(
+        "service_registry_token_utility",
+        type=str,
+        help="Service registry token utility contract address",
+    )
+    parser.add_argument("service_id", type=int, help="Service ID")
+    parser.add_argument("agent_id", type=int, help="Agent ID")
+    parser.add_argument("rpc", type=str, help="RPC")
+    parser.add_argument(
+        "--use_blockscout",
+        action="store_true",
+        help="Use Blockscout to retrieve contract data.",
+    )
     args = parser.parse_args()
 
     service_registry = args.service_registry
