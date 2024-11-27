@@ -203,7 +203,6 @@ def _query_mech_events_subgraph(
     query = MECH_EVENTS_SUBGRAPH_QUERY_TEMPLATE.safe_substitute(subgraph_event_set_name=subgraph_event_set_name)
     id_gt = ""
     while True:
-        print("iteration")
         variables = {
             "sender": sender,
             "id_gt": id_gt,
