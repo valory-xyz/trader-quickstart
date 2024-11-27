@@ -277,10 +277,6 @@ def _update_mech_events_db(
         input("Press Enter to continue...")
     except Exception as e:  # pylint: disable=broad-except
         print(e)
-        import traceback
-
-        traceback.print_exc()
-
         print(
             "WARNING: An error occurred while updating the local Mech events database. "
             "Therefore, the Mech calls and costs might not be reflected accurately. "
