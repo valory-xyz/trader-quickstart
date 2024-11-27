@@ -30,6 +30,8 @@ from string import Template
 from typing import Any, ClassVar, Dict
 
 import requests
+from gql import Client, gql
+from gql.transport.requests import RequestsHTTPTransport
 from tqdm import tqdm
 from web3.datastructures import AttributeDict
 
@@ -51,15 +53,12 @@ SUBGRAPH_HEADERS = {
     "Content-Type": "application/json",
 }
 QUERY_BATCH_SIZE = 1000
-MECH_EVENTS_SUBGRAPH_QUERY = Template(
+MECH_EVENTS_SUBGRAPH_QUERY_TEMPLATE = Template(
     """
-    query {
+    query mech_events_subgraph_query($sender: Bytes, $id_gt: Bytes, $first: Int)  {
         ${subgraph_event_set_name}(
-            where: {
-                sender: "${sender}"
-                id_gt: "${id_gt}"
-            }
-            first: ${first}
+            where: {sender: $sender, id_gt: $id_gt}
+            first: $first
             orderBy: id
             orderDirection: asc
             ) {
@@ -74,7 +73,6 @@ MECH_EVENTS_SUBGRAPH_QUERY = Template(
     }
     """
 )
-
 
 @dataclass
 class MechBaseEvent:  # pylint: disable=too-many-instance-attributes
@@ -197,24 +195,22 @@ def _query_mech_events_subgraph(
 ) -> dict[str, Any]:
     """Query the subgraph."""
 
+    transport = RequestsHTTPTransport(url=MECH_SUBGRAPH_URL)
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+
     subgraph_event_set_name = f"{event_cls.subgraph_event_name}s"
     all_results: dict[str, Any] = {"data": {subgraph_event_set_name: []}}
+    query = MECH_EVENTS_SUBGRAPH_QUERY_TEMPLATE.safe_substitute(subgraph_event_set_name=subgraph_event_set_name)
     id_gt = ""
     while True:
-        query = MECH_EVENTS_SUBGRAPH_QUERY.substitute(
-            subgraph_event_set_name=subgraph_event_set_name,
-            sender=sender,
-            id_gt=id_gt,
-            first=QUERY_BATCH_SIZE,
-        )
-        response = requests.post(
-            MECH_SUBGRAPH_URL,
-            headers=SUBGRAPH_HEADERS,
-            json={"query": query},
-            timeout=300,
-        )
-        result_json = response.json()
-        events = result_json.get("data", {}).get(subgraph_event_set_name, [])
+        print("iteration")
+        variables = {
+            "sender": sender,
+            "id_gt": id_gt,
+            "first": QUERY_BATCH_SIZE,
+        }
+        response = client.execute(gql(query), variable_values=variables)
+        events = response.get(subgraph_event_set_name, [])
 
         if not events:
             break
@@ -279,7 +275,12 @@ def _update_mech_events_db(
             "You may attempt to rerun this script to retry synchronizing the database."
         )
         input("Press Enter to continue...")
-    except Exception:  # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
+        print(e)
+        import traceback
+
+        traceback.print_exc()
+
         print(
             "WARNING: An error occurred while updating the local Mech events database. "
             "Therefore, the Mech calls and costs might not be reflected accurately. "
