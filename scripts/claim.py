@@ -37,9 +37,12 @@ RPC_PATH = Path(STORE_PATH, "rpc.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
 SERVICE_SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
 OWNER_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
+DEFAULT_ENCODING = "utf-8"
 
 OLAS_TOKEN_ADDRESS_GNOSIS = "0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
 GNOSIS_CHAIN_ID = 100
+DEFAULT_GAS = 100000
+SAFE_WEBAPP_URL = "https://app.safe.global/home?safe=gno:"
 
 STAKING_TOKEN_INSTANCE_ABI_PATH = Path(
     SCRIPT_PATH,
@@ -74,7 +77,7 @@ def _load_abi_from_file(path: Path) -> Dict[str, Any]:
         )
         sys.exit(1)
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding=DEFAULT_ENCODING) as f:
         data = json.load(f)
 
     return data.get("abi")
@@ -84,32 +87,33 @@ def _erc20_balance(
     address: str,
     token_address: str = OLAS_TOKEN_ADDRESS_GNOSIS,
     token_name: str = "OLAS",
+    decimal_precision: int = 2
 ) -> str:
     """Get ERC20 balance"""
-    rpc = RPC_PATH.read_text(encoding="utf-8").strip()
+    rpc = RPC_PATH.read_text(encoding=DEFAULT_ENCODING).strip()
     w3 = Web3(Web3.HTTPProvider(rpc))
     abi = _load_abi_from_file(ERC20_ABI_PATH)
     contract = w3.eth.contract(address=token_address, abi=abi)
     balance = contract.functions.balanceOf(address).call()
-    return f"{balance / 10**18:.2f} {token_name}"
+    return f"{balance / 10**18:.{decimal_precision}f} {token_name}"
 
 
 def _claim_rewards() -> None:
-    service_safe_address = SERVICE_SAFE_ADDRESS_PATH.read_text(encoding="utf-8").strip()
+    service_safe_address = SERVICE_SAFE_ADDRESS_PATH.read_text(encoding=DEFAULT_ENCODING).strip()
     print(
         f"OLAS Balance on service Safe {service_safe_address}: {_erc20_balance(service_safe_address)}"
     )
 
     env_file_vars = dotenv_values(DOTENV_PATH)
     staking_token_address = env_file_vars["CUSTOM_STAKING_ADDRESS"]
-    service_id = int(SERVICE_ID_PATH.read_text(encoding="utf-8").strip())
+    service_id = int(SERVICE_ID_PATH.read_text(encoding=DEFAULT_ENCODING).strip())
 
-    rpc = RPC_PATH.read_text(encoding="utf-8").strip()
+    rpc = RPC_PATH.read_text(encoding=DEFAULT_ENCODING).strip()
     w3 = Web3(Web3.HTTPProvider(rpc))
     abi = _load_abi_from_file(STAKING_TOKEN_IMPLEMENTATION_ABI_PATH)
     staking_token_contract = w3.eth.contract(address=staking_token_address, abi=abi)
 
-    owner_private_key = json.loads(OWNER_KEYS_JSON_PATH.read_text(encoding="utf-8"))[0][
+    owner_private_key = json.loads(OWNER_KEYS_JSON_PATH.read_text(encoding=DEFAULT_ENCODING))[0][
         "private_key"
     ]
     owner_address = Web3.to_checksum_address(
@@ -120,7 +124,7 @@ def _claim_rewards() -> None:
     claim_transaction = function.build_transaction(
         {
             "chainId": GNOSIS_CHAIN_ID,
-            "gas": 100000,
+            "gas": DEFAULT_GAS,
             "gasPrice": w3.to_wei("3", "gwei"),
             "nonce": w3.eth.get_transaction_count(owner_address),
         }
@@ -141,7 +145,7 @@ def _claim_rewards() -> None:
         print(
             f"You can use your Owner/Operator wallet (address {owner_address}) to connect your Safe at"
         )
-        print(f"https://app.safe.global/home?safe=gno:{service_safe_address}")
+        print(f"{SAFE_WEBAPP_URL}{service_safe_address}")
 
 
 def main() -> None:
