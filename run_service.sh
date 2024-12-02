@@ -18,6 +18,10 @@
 #
 # ------------------------------------------------------------------------------
 
+# force utf mode for python, cause sometimes there are issues with local codepages
+export PYTHONUTF8=1
+
+
 # Convert Hex to Dec
 hex_to_decimal() {
     $PYTHON_CMD -c "print(int('$1', 16))"
@@ -733,7 +737,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.20.0"
+service_version="v0.21.0"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1268,7 +1272,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmXhah4pLENsc4pbDTdKmw22GLGb4Z1FSG3FiEsF9ayxxd
+export TOOLS_ACCURACY_HASH=QmWQhCeAF2ALcdsMdGz73S4Ke4uBxnUTt8v7eZQZLadekE
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"

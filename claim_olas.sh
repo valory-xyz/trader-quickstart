@@ -2,7 +2,7 @@
 
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2023 Valory AG
+#   Copyright 2023-2024 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,8 +18,4 @@
 #
 # ------------------------------------------------------------------------------
 
-# force utf mode for python, cause sometimes there are issues with local codepages
-export PYTHONUTF8=1
-
-
-cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd ..
+cd trader; poetry run python "../scripts/claim.py"; cd ..
