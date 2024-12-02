@@ -114,6 +114,16 @@ To stop your agent, use:
 ./stop_service.sh
 ```
 
+### Claim accrued OLAS
+
+If your service is staked, you can claim accrued OLAS through the script
+
+```bash
+./claim_olas.sh
+```
+
+The accrued OLAS will be transferred to your service Safe without having to unstake your service.
+
 ### Backups
 
 Agent runners are recommended to create a [backup](https://github.com/valory-xyz/trader-quickstart#backup-and-recovery) of the relevant secret key material.

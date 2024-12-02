@@ -18,6 +18,11 @@
 #
 # ------------------------------------------------------------------------------
 
+
+# force utf mode for python, cause sometimes there are issues with local codepages
+export PYTHONUTF8=1
+
+
 # Get the address from a keys.json file
 get_address() {
     local keys_json_path="$1"
