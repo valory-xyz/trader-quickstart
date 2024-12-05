@@ -70,6 +70,10 @@ STAKING_PROGRAMS = {
     "quickstart_beta_expert_5": "0xE56dF1E563De1B10715cB313D514af350D207212",
     "quickstart_beta_expert_6": "0x2546214aEE7eEa4bEE7689C81231017CA231Dc93",
     "quickstart_beta_expert_7": "0xD7A3C8b975f71030135f1a66e9e23164d54fF455",
+    "quickstart_beta_expert_9": "0x17dBAe44BC5618Cc254055b386A29576b4F87015",    
+    "quickstart_beta_expert_10": "0xB0ef657b8302bd2c74B6E6D9B2b4b39145b19c6f",    
+    "quickstart_beta_expert_11": "0x3112c1613eAC3dBAE3D4E38CeF023eb9E2C91CF7",    
+    "quickstart_beta_expert_12": "0xF4a75F476801B3fBB2e7093aCDcc3576593Cc1fc",
 }
 
 DEPRECATED_STAKING_PROGRAMS = {
