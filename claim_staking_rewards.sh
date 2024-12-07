@@ -18,4 +18,4 @@
 #
 # ------------------------------------------------------------------------------
 
-cd trader; poetry run python "../scripts/claim.py"; cd ..
+cd trader; poetry run python "../scripts/claim_staking_rewards.py"; cd ..
