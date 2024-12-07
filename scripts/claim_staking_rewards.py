@@ -23,12 +23,13 @@
 import json
 import os
 import sys
+from getpass import getpass
 from pathlib import Path
 from typing import Any, Dict
 
+from aea_ledger_ethereum.ethereum import EthereumCrypto
 from dotenv import dotenv_values
 from web3 import Web3
-
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
@@ -36,7 +37,7 @@ DOTENV_PATH = Path(STORE_PATH, ".env")
 RPC_PATH = Path(STORE_PATH, "rpc.txt")
 SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
 SERVICE_SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
-OWNER_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
+OPERATOR_PKEY_PATH = Path(STORE_PATH, "operator_pkey.txt")
 DEFAULT_ENCODING = "utf-8"
 
 OLAS_TOKEN_ADDRESS_GNOSIS = "0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
@@ -70,6 +71,15 @@ ERC20_ABI_PATH = Path(
 )
 
 
+def _is_keystore(pkeypath: Path):
+    try:
+        with open(pkeypath, 'r') as f:
+            json.load(f)
+        return True
+    except json.JSONDecodeError:
+        return False
+
+
 def _load_abi_from_file(path: Path) -> Dict[str, Any]:
     if not os.path.exists(path):
         print(
@@ -98,7 +108,7 @@ def _erc20_balance(
     return f"{balance / 10**18:.{decimal_precision}f} {token_name}"
 
 
-def _claim_rewards() -> None:
+def _claim_rewards(password: str =  None) -> None:
     service_safe_address = SERVICE_SAFE_ADDRESS_PATH.read_text(encoding=DEFAULT_ENCODING).strip()
     print(
         f"OLAS Balance on service Safe {service_safe_address}: {_erc20_balance(service_safe_address)}"
@@ -113,12 +123,16 @@ def _claim_rewards() -> None:
     abi = _load_abi_from_file(STAKING_TOKEN_IMPLEMENTATION_ABI_PATH)
     staking_token_contract = w3.eth.contract(address=staking_token_address, abi=abi)
 
-    owner_private_key = json.loads(OWNER_KEYS_JSON_PATH.read_text(encoding=DEFAULT_ENCODING))[0][
-        "private_key"
-    ]
-    owner_address = Web3.to_checksum_address(
-        w3.eth.account.from_key(owner_private_key).address
-    )
+    try:
+        ethereum_crypto = EthereumCrypto(OPERATOR_PKEY_PATH, password=password)
+        operator_address = ethereum_crypto.address
+        operator_pkey = ethereum_crypto.private_key
+    except DecryptError:
+        print(f"Could not decrypt key file at {OPERATOR_PKEY_PATH}. Please verify if your key file are password-protected, and if the provided password is correct (passwords are case-sensitive).")
+        raise
+    except KeyIsIncorrect:
+        print(f"Inccorect operator key at {OPERATOR_PKEY_PATH}. Please verify your key file.")
+        raise
 
     function = staking_token_contract.functions.claim(service_id)
     claim_transaction = function.build_transaction(
@@ -126,11 +140,11 @@ def _claim_rewards() -> None:
             "chainId": GNOSIS_CHAIN_ID,
             "gas": DEFAULT_GAS,
             "gasPrice": w3.to_wei("3", "gwei"),
-            "nonce": w3.eth.get_transaction_count(owner_address),
+            "nonce": w3.eth.get_transaction_count(operator_address),
         }
     )
 
-    signed_tx = w3.eth.account.sign_transaction(claim_transaction, owner_private_key)
+    signed_tx = w3.eth.account.sign_transaction(claim_transaction, operator_pkey)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
     tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     print(f"Claim transaction done. Hash: {tx_hash.hex()}")
@@ -143,21 +157,20 @@ def _claim_rewards() -> None:
         print("")
         print(f"Claimed OLAS transferred to your service Safe {service_safe_address}")
         print(
-            f"You can use your Owner/Operator wallet (address {owner_address}) to connect your Safe at"
+            f"You can use your Owner/Operator wallet (address {operator_address}) to connect your Safe at"
         )
         print(f"{SAFE_WEBAPP_URL}{service_safe_address}")
 
 
-def main() -> None:
-    "Main method"
-    print("This script will claim accrued OLAS on the current staking contract to your service Safe.")
-    response = input("Do you want to continue (yes/no)? ").strip().lower()
-
-    if response not in ("y", "yes"):
-        return
-
-    _claim_rewards()
-
-
 if __name__ == "__main__":
-    main()
+    print("This script will claim accrued OLAS on the current staking contract to your service Safe.")
+    _continue = input("Do you want to continue (yes/no)? ").strip().lower()
+
+    if _continue not in ("y", "yes"):
+        exit(0)
+   
+    password = None
+    if _is_keystore(OPERATOR_PKEY_PATH):
+        password = getpass(f"Your operator key file is protected with a password. Please, enter password:").strip()
+
+    _claim_rewards(password)

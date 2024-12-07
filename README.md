@@ -114,12 +114,12 @@ To stop your agent, use:
 ./stop_service.sh
 ```
 
-### Claim accrued OLAS
+### Claim accrued OLAS staking rewards
 
-If your service is staked, you can claim accrued OLAS through the script
+If your service is staked, you can claim accrued OLAS staking rewards through the script
 
 ```bash
-./claim_olas.sh
+./claim_staking_rewards.sh
 ```
 
 The accrued OLAS will be transferred to your service Safe without having to unstake your service.
