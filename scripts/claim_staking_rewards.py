@@ -71,7 +71,7 @@ ERC20_ABI_PATH = Path(
 )
 
 
-def _is_keystore(pkeypath: Path):
+def _is_keystore(pkeypath: Path) -> bool:
     try:
         with open(pkeypath, 'r') as f:
             json.load(f)
