@@ -1027,13 +1027,17 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
     echo ""
 
     response="y"
-    if [ "${USE_STAKING}" = true ] && [ "$ATTENDED" = true ]; then
+    if [ "${USE_STAKING}" = true ]; then
       echo "If your service is in a staking program, updating your on-chain service requires that it is first unstaked."
       echo "Unstaking your service will retrieve the accrued staking rewards."
       echo ""
-      echo "Do you want to continue updating your service? (yes/no)"
-      read -r response
-      echo ""
+      if [ "$ATTENDED" = true ]; then
+        echo "Do you want to continue updating your service? (yes/no)"
+        read -r response
+        echo ""
+      else
+        response="n"
+      fi
     fi
 
     if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
