@@ -131,7 +131,7 @@ Agent runners are recommended to create a [backup](https://github.com/valory-xyz
 ### Skip user prompts
 
 You can optionally pass `--attended=false` or export the environment variable `ATTENDED=false` to skip asking for inputs from the user.
-Note: In this case, if the service is staked then it will not update on-chain, to avoid unstaking.
+Note: In this case, if the service is staked, then it will not update the on-chain service, to avoid unstaking. If you choose a staking contract with different parameters (e.g., different bond), then you have to execute the attended mode of the script to update the on-chain service.
 
 ## Observe your agents
 
