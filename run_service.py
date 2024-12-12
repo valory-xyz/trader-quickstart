@@ -313,21 +313,20 @@ def get_service_template(config: TraderConfig) -> ServiceTemplate:
     return ServiceTemplate({
         "name": "Trader Agent",
         "hash": "bafybeifzqsbzidvhhiruhk7jf4v7tpxarvbatl72adq2omhxqgosul3uli",
-
         "description": "Trader agent for omen prediction markets",
         "image": "https://operate.olas.network/_next/image?url=%2Fimages%2Fprediction-agent.png&w=3840&q=75",
-        "service_version": 'v0.21.1',
+        "service_version": 'v0.18.7',
         "home_chain": config.principal_chain,
         "configurations": {
             config.principal_chain: ConfigurationTemplate({
                 "staking_program_id": config.staking_vars["STAKING_PROGRAM"],
                 "nft": "bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq",
                 "rpc": config.gnosis_rpc,
-                "agent_id": config.staking_vars["AGENT_ID"],
+                "agent_id": int(config.staking_vars["AGENT_ID"]),
                 "threshold": 1,
-                "use_staking": config.staking_vars["USE_STAKING"] == "true",
+                "use_staking": config.staking_vars["USE_STAKING"],
                 'use_mech_marketplace': config.use_mech_marketplace,
-                "cost_of_bond": config.staking_vars["MIN_STAKING_BOND_OLAS"],
+                "cost_of_bond": int(config.staking_vars["MIN_STAKING_BOND_OLAS"]),
                 "fund_requirements": FundRequirementsTemplate({
                     "agent": 100000000000000000,
                     "safe": 5000000000000000000,
@@ -439,7 +438,7 @@ def main(service_name: str) -> None:
     else:
         password = handle_password_migration(operate, config)
         while password is None:
-            password = getpass.getpass("\nEnter local user account password: ")
+            password = getpass.getpass("\nEnter local user account password [hidden input]: ")
             if operate.user_account.is_valid(password=password):
                 break
             password = None
@@ -493,7 +492,6 @@ def main(service_name: str) -> None:
         required_balance = operational_fund_req + agent_fund_requirement + safe_fund_requirement
         if required_balance > ledger_api.get_balance(wallet.crypto.address):
             required_balance += safety_margin
-            required_balance = (required_balance // 10**12) * 10**12
 
             print(
                 f"[{chain_name}] Please make sure main wallet {wallet.crypto.address} has at least {wei_to_token(required_balance, token)}",
