@@ -26,7 +26,7 @@ import os
 import sys
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, TypedDict
 
 import requests
 from dotenv import dotenv_values, set_key, unset_key
@@ -105,6 +105,20 @@ DEPRECATED_STAKING_PROGRAMS = {
     "quickstart_alpha_alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
     "quickstart_alpha_coastal": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
 }
+
+
+class StakingVariables(TypedDict):
+    USE_STAKING: str
+    STAKING_PROGRAM: str
+    AGENT_ID: str
+    CUSTOM_SERVICE_REGISTRY_ADDRESS: str
+    CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS: str
+    CUSTOM_OLAS_ADDRESS: str
+    CUSTOM_STAKING_ADDRESS: str
+    MECH_ACTIVITY_CHECKER_CONTRACT: str
+    MECH_CONTRACT_ADDRESS: str
+    MIN_STAKING_BOND_OLAS: str
+    MIN_STAKING_DEPOSIT_OLAS: str
 
 
 def _prompt_select_staking_program() -> str:
@@ -248,7 +262,7 @@ def _get_staking_contract_metadata(
 
 def get_staking_env_variables(  # pylint: disable=too-many-locals
     program_id: str, use_blockscout: bool = False
-) -> Dict[str, str]:
+) -> StakingVariables:
     if program_id == NO_STAKING_PROGRAM_ID:
         return NO_STAKING_PROGRAM_ENV_VARIABLES
 
@@ -285,7 +299,7 @@ def get_staking_env_variables(  # pylint: disable=too-many-locals
         activity_checker = ZERO_ADDRESS
         agent_mech = staking_token_contract.functions.agentMech().call()
 
-    return {
+    return StakingVariables({
         "USE_STAKING": "true",
         "STAKING_PROGRAM": program_id,
         "AGENT_ID": agent_id,
@@ -297,7 +311,7 @@ def get_staking_env_variables(  # pylint: disable=too-many-locals
         "MECH_CONTRACT_ADDRESS": agent_mech,
         "MIN_STAKING_BOND_OLAS": min_staking_bond,
         "MIN_STAKING_DEPOSIT_OLAS": min_staking_deposit,
-    }
+    })
 
 
 def _set_dotenv_file_variables(env_vars: Dict[str, str]) -> None:

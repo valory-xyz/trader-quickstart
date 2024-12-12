@@ -23,7 +23,6 @@ import warnings
 
 import requests
 
-from scripts.choose_staking import NO_STAKING_PROGRAM_ID, STAKING_PROGRAMS, _get_staking_contract_metadata, get_staking_env_variables, _prompt_select_staking_program
 warnings.filterwarnings("ignore", category=UserWarning)
 import sys
 import getpass
@@ -54,15 +53,18 @@ from operate.operate_types import (
     OnChainState,
     ServiceEnvProvisionType,
 )
+from scripts.choose_staking import (
+    STAKING_PROGRAMS,
+    _get_staking_contract_metadata,
+    get_staking_env_variables,
+    StakingVariables,
+)
 
 load_dotenv()
 
-SUGGESTED_TOP_UP_DEFAULT = 500_000_000_000_000_000
-COST_OF_BOND = 10_000_000_000_000_000
-MONTHLY_GAS_ESTIMATE = 10_000_000_000_000_000_000
+OPERATIONAL_FUND_REQUIREMENT = 500_000_000_000_000_000
 SAFETY_MARGIN = 100_000_000_000_000
 STAKED_BONDING_TOKEN = "OLAS"
-AGENT_ID = 14
 WARNING_ICON = colored('\u26A0', 'yellow')
 OPERATE_HOME = Path.cwd() / ".operate"
 DEFAULT_STAKING_CHAIN = "gnosis"
@@ -70,7 +72,7 @@ CHAIN_ID_TO_METADATA = {
     "gnosis": {
         "name": "Gnosis",
         "token": "xDAI",
-        "operationalFundReq": SUGGESTED_TOP_UP_DEFAULT,  # fund for master wallet
+        "operationalFundReq": OPERATIONAL_FUND_REQUIREMENT,  # fund for master wallet
         "gasParams": {
             # this means default values will be used
             "MAX_PRIORITY_FEE_PER_GAS": "",
@@ -79,6 +81,7 @@ CHAIN_ID_TO_METADATA = {
     },
 }
 
+
 @dataclass
 class TraderConfig(LocalResource):
     """Local configuration."""
@@ -86,7 +89,7 @@ class TraderConfig(LocalResource):
     path: Path
     gnosis_rpc: t.Optional[str] = None
     password_migrated: t.Optional[bool] = None
-    use_staking: t.Optional[bool] = None
+    staking_vars: t.Optional[StakingVariables] = None
     use_mech_marketplace: t.Optional[bool] = None
     principal_chain: t.Optional[str] = None
 
@@ -229,9 +232,8 @@ def configure_local_config() -> TraderConfig:
     if trader_config.password_migrated is None:
         trader_config.password_migrated = False
 
-    if trader_config.use_staking is None:
-        print("Please, select your staking program preference")
-        print("----------------------------------------------")
+    if trader_config.staking_vars is None:
+        print_section("Please, select your staking program preference")
         ids = list(STAKING_PROGRAMS.keys())
         for index, key in enumerate(ids):
             metadata = _get_staking_contract_metadata(program_id=key)
@@ -254,9 +256,7 @@ def configure_local_config() -> TraderConfig:
 
         print(f"Selected staking program: {program_id}")
         print()
-        trader_config.use_staking = program_id == NO_STAKING_PROGRAM_ID
-        for key, value in get_staking_env_variables(program_id).items():
-            os.environ[key] = value
+        trader_config.staking_vars = get_staking_env_variables(program_id)
 
     if trader_config.use_mech_marketplace is None:
         trader_config.use_mech_marketplace = True
@@ -320,15 +320,14 @@ def get_service_template(config: TraderConfig) -> ServiceTemplate:
         "home_chain": config.principal_chain,
         "configurations": {
             config.principal_chain: ConfigurationTemplate({
-                "staking_program_id": NO_STAKING_PROGRAM_ID,  # will be overwritten by user response
+                "staking_program_id": config.staking_vars["STAKING_PROGRAM"],
                 "nft": "bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq",
                 "rpc": config.gnosis_rpc,
-                "agent_id": AGENT_ID,
+                "agent_id": config.staking_vars["AGENT_ID"],
                 "threshold": 1,
-                "use_staking": config.use_staking,
+                "use_staking": config.staking_vars["USE_STAKING"] == "true",
                 'use_mech_marketplace': config.use_mech_marketplace,
-                "cost_of_bond": COST_OF_BOND,
-                'monthly_gas_estimate': MONTHLY_GAS_ESTIMATE,
+                "cost_of_bond": config.staking_vars["MIN_STAKING_BOND_OLAS"],
                 "fund_requirements": FundRequirementsTemplate({
                     "agent": 100000000000000000,
                     "safe": 5000000000000000000,
@@ -440,7 +439,7 @@ def main(service_name: str) -> None:
     else:
         password = handle_password_migration(operate, config)
         while password is None:
-            password = getpass.getpass("Enter local user account password: ")
+            password = getpass.getpass("\nEnter local user account password: ")
             if operate.user_account.is_valid(password=password):
                 break
             password = None
@@ -468,7 +467,7 @@ def main(service_name: str) -> None:
             os.environ["CUSTOM_CHAIN_RPC"] = chain_config.ledger_config.rpc
             os.environ["OPEN_AUTONOMY_SUBGRAPH_URL"] = "https://subgraph.autonolas.tech/subgraphs/name/autonolas-staging"
 
-        service_exists = manager._get_on_chain_state(service, chain_name) != OnChainState.NON_EXISTENT
+        service_state: OnChainState = manager._get_on_chain_state(service, chain_name)
 
         chain = chain_config.ledger_config.chain
         ledger_api = wallet.ledger_api(
@@ -484,9 +483,8 @@ def main(service_name: str) -> None:
         agent_fund_requirement = chain_config.chain_data.user_params.fund_requirements.agent
         safe_fund_requirement = chain_config.chain_data.user_params.fund_requirements.safe
         operational_fund_req = chain_metadata.get("operationalFundReq")
-        safety_margin = 0 if service_exists else 100_000_000_000_000
+        safety_margin = SAFETY_MARGIN if service_state == OnChainState.NON_EXISTENT else 0
 
-        operational_fund_req -= ledger_api.get_balance(wallet.crypto.address)
         if chain_config.chain_data.multisig != DUMMY_MULTISIG:
             safe_fund_requirement -= ledger_api.get_balance(chain_config.chain_data.multisig)
         if len(service.keys) > 0:
@@ -531,10 +529,10 @@ def main(service_name: str) -> None:
 
         if top_up > 0:
             print(
-                f"[{chain_name}] Please make sure address {safe_address} has at least {wei_to_token(top_up, token)}."
+                f"[{chain_name}] Ensuring address {safe_address} has at least {wei_to_token(top_up, token)}."
             )
             spinner = Halo(
-                text=f"[{chain_name}] Waiting for {wei_to_token(top_up - ledger_api.get_balance(safe_address), token)}...",
+                text=f"[{chain_name}] Transfering {wei_to_token(top_up - ledger_api.get_balance(safe_address), token)} to safe...",
                 spinner="dots",
             )
             spinner.start()
@@ -543,7 +541,7 @@ def main(service_name: str) -> None:
                 print(f"[{chain_name}] Funding Safe")
                 wallet.transfer(
                     to=t.cast(str, wallet.safes[chain]),
-                    amount=int(top_up),
+                    amount=int(top_up - ledger_api.get_balance(safe_address)),
                     chain=chain,
                     from_safe=False,
                     rpc=chain_config.ledger_config.rpc,
@@ -552,27 +550,38 @@ def main(service_name: str) -> None:
 
             spinner.succeed(f"[{chain_name}] Safe updated balance: {wei_to_token(ledger_api.get_balance(safe_address), token)}.")
 
-        if chain_config.chain_data.user_params.use_staking and not service_exists:
-            print(f"[{chain_name}] Please make sure address {safe_address} has at least {wei_to_token(COST_OF_BOND, STAKED_BONDING_TOKEN)}")
+        if chain_config.chain_data.user_params.use_staking:
+            olas_address = config.staking_vars["CUSTOM_OLAS_ADDRESS"]
+            if service_state in (
+                OnChainState.NON_EXISTENT,
+                OnChainState.PRE_REGISTRATION,
+            ):
+                required_olas = (
+                    config.staking_vars["MIN_STAKING_BOND_OLAS"]
+                    + config.staking_vars["MIN_STAKING_BOND_OLAS"]
+                )
+            elif service_state == OnChainState.ACTIVE_REGISTRATION:
+                required_olas = config.staking_vars["MIN_STAKING_BOND_OLAS"]
+            else:
+                required_olas = 0
 
-            spinner = Halo(
-                text=f"[{chain_name}] Waiting for {STAKED_BONDING_TOKEN}...",
-                spinner="dots",
-            )
-            spinner.start()
-            olas_address = OLAS[chain]
-            while get_erc20_balance(ledger_api, olas_address, safe_address) < COST_OF_BOND:
-                time.sleep(1)
+            if required_olas > 0:
+                print(f"[{chain_name}] Please make sure address {safe_address} has at least {wei_to_token(required_olas, STAKED_BONDING_TOKEN)}")
 
-            balance = get_erc20_balance(ledger_api, olas_address, safe_address) / 10 ** 18
-            spinner.succeed(f"[{chain_name}] Safe updated balance: {balance} {STAKED_BONDING_TOKEN}")
+                spinner = Halo(
+                    text=f"[{chain_name}] Waiting for {wei_to_token(required_olas - get_erc20_balance(ledger_api, olas_address, safe_address), STAKED_BONDING_TOKEN)}...",
+                    spinner="dots",
+                )
+                spinner.start()
+                while get_erc20_balance(ledger_api, olas_address, safe_address) < required_olas:
+                    time.sleep(1)
 
-    print_section(f"Deploying on-chain service {chain_config.chain_data.token} on {chain_name}")
-    print()
+                balance = get_erc20_balance(ledger_api, olas_address, safe_address) / 10 ** 18
+                spinner.succeed(f"[{chain_name}] Safe updated balance: {balance} {STAKED_BONDING_TOKEN}")
+
+    print_section(f"Deploying on-chain service on {chain_name}")
     print_box("PLEASE, DO NOT INTERRUPT THIS PROCESS.")
-    print()
     print("Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve.")
-    print()
     manager.deploy_service_onchain_from_safe(service_config_id=service.service_config_id)
 
     print_section("Funding the service")
