@@ -4,16 +4,13 @@ version = "0.1.0"
 description = "A quickstart for the trader agent for AI prediction markets on Gnosis at https://github.com/valory-xyz/trader"
 authors = ["David Vilela <dvilelaf@gmail.com>", "Viraj Patel <vptl185@gmail.com>", "Ojuswi Rastogi <ojuswimail@gmail.com>"]
 readme = "README.md"
+package-mode = false
 packages = []
 include = []
 
 [tool.poetry.dependencies]
-python = "<3.12,>=3.9"
-olas-operate-app = "==0.2.0-rc6"
-halo = "==0.0.31"
-
-[tool.poetry.group.development.dependencies]
-tomte = {version = "0.2.17", extras = ["cli"]}
+olas-operate-middleware = { git = "https://github.com/valory-xyz/olas-operate-app.git", branch = "feat/multi-agent-middleware", python = ">=3.9,<3.12" }
+halo = {version = "==0.0.31", python = ">=3.4"}
 
 [build-system]
 requires = ["poetry-core"]
