@@ -246,7 +246,7 @@ def _get_staking_contract_metadata(
         }
 
 
-def _get_staking_env_variables(  # pylint: disable=too-many-locals
+def get_staking_env_variables(  # pylint: disable=too-many-locals
     program_id: str, use_blockscout: bool = False
 ) -> Dict[str, str]:
     if program_id == NO_STAKING_PROGRAM_ID:
@@ -397,7 +397,7 @@ def main() -> None:
     program_id = _prompt_select_staking_program()
 
     print("  - Populating staking program variables in the .env file")
-    staking_env_variables = _get_staking_env_variables(
+    staking_env_variables = get_staking_env_variables(
         program_id, use_blockscout=args.use_blockscout
     )
     _set_dotenv_file_variables(staking_env_variables)
