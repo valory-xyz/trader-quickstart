@@ -60,12 +60,12 @@ ACTIVITY_CHECKER_ABI_PATH = Path(
     "build",
     "MechActivity.json",
 )
-
+ACTIVITY_CHECKER_ABI_PATH = 'https://raw.githubusercontent.com/valory-xyz/trader/refs/heads/main/packages/valory/contracts/mech_activity/build/MechActivity.json'
+STAKING_TOKEN_INSTANCE_ABI_PATH = 'https://raw.githubusercontent.com/valory-xyz/trader/refs/heads/main/packages/valory/contracts/staking_token/build/StakingToken.json'
 IPFS_ADDRESS = "https://gateway.autonolas.tech/ipfs/f01701220{hash}"
 NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
 NEVERMINED_AGENT_REGISTRY_ADDRESS = "0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
 NEVERMINED_MECH_REQUEST_PRICE = "0"
-AGENT_ID = 14
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 DEPRECATED_TEXT = "(DEPRECATED)"
 NO_STAKING_PROGRAM_ID = "no_staking"
@@ -75,17 +75,17 @@ NO_STAKING_PROGRAM_METADATA = {
         markets, but it will not be staked within any staking program.",
 }
 NO_STAKING_PROGRAM_ENV_VARIABLES = {
-    "USE_STAKING": False,
+    "USE_STAKING": "false",
     "STAKING_PROGRAM": NO_STAKING_PROGRAM_ID,
-    "AGENT_ID": AGENT_ID,
+    "AGENT_ID": "25",
     "CUSTOM_SERVICE_REGISTRY_ADDRESS": "0x9338b5153AE39BB89f50468E608eD9d764B755fD",
     "CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS": "0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8",
     "MECH_CONTRACT_ADDRESS": "0x77af31De935740567Cf4fF1986D04B2c964A786a",
     "CUSTOM_OLAS_ADDRESS": ZERO_ADDRESS,
     "CUSTOM_STAKING_ADDRESS": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",  # Non-staking agents need to specify an arbitrary staking contract so that they can call getStakingState()
     "MECH_ACTIVITY_CHECKER_CONTRACT": ZERO_ADDRESS,
-    "MIN_STAKING_BOND_OLAS": 1,
-    "MIN_STAKING_DEPOSIT_OLAS": 1,
+    "MIN_STAKING_BOND_OLAS": "0",
+    "MIN_STAKING_DEPOSIT_OLAS": "0",
 }
 
 STAKING_PROGRAMS = {
@@ -261,9 +261,9 @@ def _get_staking_contract_metadata(
         }
 
 
-def get_staking_env_variables(  # pylint: disable=too-many-locals
+def _get_staking_env_variables(  # pylint: disable=too-many-locals
     program_id: str, use_blockscout: bool = False
-) -> StakingVariables:
+) -> Dict[str, str]:
     if program_id == NO_STAKING_PROGRAM_ID:
         return NO_STAKING_PROGRAM_ENV_VARIABLES
 
@@ -300,8 +300,8 @@ def get_staking_env_variables(  # pylint: disable=too-many-locals
         activity_checker = ZERO_ADDRESS
         agent_mech = staking_token_contract.functions.agentMech().call()
 
-    return StakingVariables({
-        "USE_STAKING": program_id != NO_STAKING_PROGRAM_ID,
+    return {
+        "USE_STAKING": "true",
         "STAKING_PROGRAM": program_id,
         "AGENT_ID": agent_id,
         "CUSTOM_SERVICE_REGISTRY_ADDRESS": service_registry,
@@ -310,9 +310,9 @@ def get_staking_env_variables(  # pylint: disable=too-many-locals
         "CUSTOM_STAKING_ADDRESS": staking_token_instance_address,
         "MECH_ACTIVITY_CHECKER_CONTRACT": activity_checker,
         "MECH_CONTRACT_ADDRESS": agent_mech,
-        "MIN_STAKING_BOND_OLAS": int(min_staking_bond),
-        "MIN_STAKING_DEPOSIT_OLAS": int(min_staking_deposit),
-    })
+        "MIN_STAKING_BOND_OLAS": min_staking_bond,
+        "MIN_STAKING_DEPOSIT_OLAS": min_staking_deposit,
+    }
 
 
 def _set_dotenv_file_variables(env_vars: Dict[str, str]) -> None:
@@ -412,7 +412,7 @@ def main() -> None:
     program_id = _prompt_select_staking_program()
 
     print("  - Populating staking program variables in the .env file")
-    staking_env_variables = get_staking_env_variables(
+    staking_env_variables = _get_staking_env_variables(
         program_id, use_blockscout=args.use_blockscout
     )
     _set_dotenv_file_variables(staking_env_variables)

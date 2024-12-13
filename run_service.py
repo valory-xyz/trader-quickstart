@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from aea.crypto.base import LedgerApi
-from aea_ledger_ethereum import EthereumApi
+from aea_ledger_ethereum import EthereumApi, Web3
 from dotenv import load_dotenv
 from halo import Halo
 from termcolor import colored
@@ -54,14 +54,20 @@ from operate.operate_types import (
     ServiceEnvProvisionType,
 )
 from scripts.choose_staking import (
+    ACTIVITY_CHECKER_ABI_PATH,
+    IPFS_ADDRESS,
+    NO_STAKING_PROGRAM_ID,
+    NO_STAKING_PROGRAM_METADATA,
     STAKING_PROGRAMS,
-    _get_staking_contract_metadata,
-    get_staking_env_variables,
+    STAKING_TOKEN_INSTANCE_ABI_PATH,
+    ZERO_ADDRESS,
+    _get_abi,
     StakingVariables,
 )
 
 load_dotenv()
 
+AGENT_ID = 14
 OPERATIONAL_FUND_REQUIREMENT = 500_000_000_000_000_000
 SAFETY_MARGIN = 100_000_000_000_000
 STAKED_BONDING_TOKEN = "OLAS"
@@ -216,6 +222,114 @@ def check_rpc(rpc_url: t.Optional[str] = None) -> True:
     print("Terminating script.")
     return False
 
+def _get_staking_token_contract(program_id: str, rpc: str, use_blockscout: bool = False) -> t.Any:
+    w3 = Web3(Web3.HTTPProvider(rpc))
+    staking_token_instance_address = STAKING_PROGRAMS.get(program_id)
+    if use_blockscout:
+        abi = _get_abi(staking_token_instance_address)
+    else:
+        abi = requests.get(STAKING_TOKEN_INSTANCE_ABI_PATH).json()['abi']
+    contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
+
+    if "getImplementation" in [func.fn_name for func in contract.all_functions()]:
+        # It is a proxy contract
+        implementation_address = contract.functions.getImplementation().call()
+        if use_blockscout:
+            abi = _get_abi(implementation_address)
+        else:
+            abi = requests.get(STAKING_TOKEN_INSTANCE_ABI_PATH).json()['abi']
+        contract = w3.eth.contract(address=staking_token_instance_address, abi=abi)
+
+    return contract
+
+def _get_staking_contract_metadata(
+    program_id: str, rpc: str, use_blockscout: bool = False
+) -> t.Dict[str, str]:
+    try:
+        if program_id == NO_STAKING_PROGRAM_ID:
+            return NO_STAKING_PROGRAM_METADATA
+
+        staking_token_contract = _get_staking_token_contract(
+            program_id=program_id, rpc=rpc, use_blockscout=use_blockscout
+        )
+        metadata_hash = staking_token_contract.functions.metadataHash().call()
+        ipfs_address = IPFS_ADDRESS.format(hash=metadata_hash.hex())
+        response = requests.get(ipfs_address)
+
+        if response.status_code == 200:
+            return response.json()
+
+        raise Exception(  # pylint: disable=broad-except
+            f"Failed to fetch data from {ipfs_address}: {response.status_code}"
+        )
+    except Exception:  # pylint: disable=broad-except
+        return {
+            "name": program_id,
+            "description": program_id,
+        }
+
+def _get_staking_env_variables(  # pylint: disable=too-many-locals
+    program_id: str, rpc: str, use_blockscout: bool = False
+) -> StakingVariables:
+    if program_id == NO_STAKING_PROGRAM_ID:
+        return {
+            "USE_STAKING": False,
+            "STAKING_PROGRAM": NO_STAKING_PROGRAM_ID,
+            "AGENT_ID": AGENT_ID,
+            "CUSTOM_SERVICE_REGISTRY_ADDRESS": "0x9338b5153AE39BB89f50468E608eD9d764B755fD",
+            "CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS": "0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8",
+            "MECH_CONTRACT_ADDRESS": "0x77af31De935740567Cf4fF1986D04B2c964A786a",
+            "CUSTOM_OLAS_ADDRESS": ZERO_ADDRESS,
+            "CUSTOM_STAKING_ADDRESS": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",  # Non-staking agents need to specify an arbitrary staking contract so that they can call getStakingState()
+            "MECH_ACTIVITY_CHECKER_CONTRACT": ZERO_ADDRESS,
+            "MIN_STAKING_BOND_OLAS": 1,
+            "MIN_STAKING_DEPOSIT_OLAS": 1,
+        }
+
+    staking_token_instance_address = STAKING_PROGRAMS.get(program_id)
+    staking_token_contract = _get_staking_token_contract(
+        program_id=program_id, rpc=rpc, use_blockscout=use_blockscout
+    )
+    agent_id = staking_token_contract.functions.agentIds(0).call()
+    service_registry = staking_token_contract.functions.serviceRegistry().call()
+    staking_token = staking_token_contract.functions.stakingToken().call()
+    service_registry_token_utility = (
+        staking_token_contract.functions.serviceRegistryTokenUtility().call()
+    )
+    min_staking_deposit = staking_token_contract.functions.minStakingDeposit().call()
+    min_staking_bond = min_staking_deposit
+
+    if "activityChecker" in [
+        func.fn_name for func in staking_token_contract.all_functions()
+    ]:
+        activity_checker = staking_token_contract.functions.activityChecker().call()
+
+        if use_blockscout:
+            abi = _get_abi(activity_checker)
+        else:
+            abi = requests.get(ACTIVITY_CHECKER_ABI_PATH).json()['abi']
+
+        w3 = Web3(Web3.HTTPProvider(rpc))
+        activity_checker_contract = w3.eth.contract(address=activity_checker, abi=abi)
+        agent_mech = activity_checker_contract.functions.agentMech().call()
+    else:
+        activity_checker = ZERO_ADDRESS
+        agent_mech = staking_token_contract.functions.agentMech().call()
+
+    return StakingVariables({
+        "USE_STAKING": program_id != NO_STAKING_PROGRAM_ID,
+        "STAKING_PROGRAM": program_id,
+        "AGENT_ID": agent_id,
+        "CUSTOM_SERVICE_REGISTRY_ADDRESS": service_registry,
+        "CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS": service_registry_token_utility,
+        "CUSTOM_OLAS_ADDRESS": staking_token,
+        "CUSTOM_STAKING_ADDRESS": staking_token_instance_address,
+        "MECH_ACTIVITY_CHECKER_CONTRACT": activity_checker,
+        "MECH_CONTRACT_ADDRESS": agent_mech,
+        "MIN_STAKING_BOND_OLAS": int(min_staking_bond),
+        "MIN_STAKING_DEPOSIT_OLAS": int(min_staking_deposit),
+    })
+
 def configure_local_config() -> TraderConfig:
     """Configure local trader configuration."""
     path = OPERATE_HOME / "local_config.json"
@@ -236,7 +350,7 @@ def configure_local_config() -> TraderConfig:
         print_section("Please, select your staking program preference")
         ids = list(STAKING_PROGRAMS.keys())
         for index, key in enumerate(ids):
-            metadata = _get_staking_contract_metadata(program_id=key)
+            metadata = _get_staking_contract_metadata(program_id=key, rpc=trader_config.gnosis_rpc)
             name = metadata["name"]
             description = metadata["description"]
             wrapped_description = textwrap.fill(
@@ -256,7 +370,7 @@ def configure_local_config() -> TraderConfig:
 
         print(f"Selected staking program: {program_id}")
         print()
-        trader_config.staking_vars = get_staking_env_variables(program_id)
+        trader_config.staking_vars = _get_staking_env_variables(program_id, trader_config.gnosis_rpc)
 
     if trader_config.use_mech_marketplace is None:
         trader_config.use_mech_marketplace = True
