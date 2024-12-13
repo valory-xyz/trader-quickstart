@@ -98,13 +98,13 @@ speedups = ["Brotli", "aiodns", "brotlicffi"]
 
 [[package]]
 name = "aiosignal"
-version = "1.3.1"
+version = "1.3.2"
 description = "aiosignal: a list of registered asynchronous callbacks"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.9"
 files = [
-    {file = "aiosignal-1.3.1-py3-none-any.whl", hash = "sha256:f8376fb07dd1e86a584e4fcdec80b36b7f81aac666ebc724e2c090300dd83b17"},
-    {file = "aiosignal-1.3.1.tar.gz", hash = "sha256:54cd96e15e1649b75d6c87526a6ff0b6c1b0dd3459f43d9ca11d48c339b68cfc"},
+    {file = "aiosignal-1.3.2-py2.py3-none-any.whl", hash = "sha256:45cde58e409a301715980c2b01d0c28bdde3770d8290b5eb2173759d9acb31a5"},
+    {file = "aiosignal-1.3.2.tar.gz", hash = "sha256:a8c255c66fafb1e499c9351d0bf32ff2d8a0321595ebac3b93713656d2436f54"},
 ]
 
 [package.dependencies]
@@ -2049,8 +2049,8 @@ web3 = "==6.1.0"
 [package.source]
 type = "git"
 url = "https://github.com/valory-xyz/olas-operate-app.git"
-reference = "feat/multi-agent-middleware"
-resolved_reference = "b6a5f52ab6e5e6d08bbc14d2b16419cd27b59df9"
+reference = "784e271d89bb2453f2fe03f964386b4708d37b96"
+resolved_reference = "784e271d89bb2453f2fe03f964386b4708d37b96"
 
 [[package]]
 name = "open-aea"
@@ -3639,4 +3639,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "*"
-content-hash = "423692dd0b2c9ecefbf4c1ec588b355d6ef9bd9dc1b1b93c44abf6211a892d93"
+content-hash = "17b93e05528248eb6f50ab8b5aee645c7d38a583b86e6220245c1d1f9da13366"

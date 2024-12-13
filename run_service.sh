@@ -837,6 +837,10 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
   exit 1
 }
 
+poetry install --no-cache
+poetry run python run_service.py
+exit 0
+
 try_read_storage
 
 if [ "$ATTENDED" = true ]; then
