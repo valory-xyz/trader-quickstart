@@ -44,7 +44,7 @@ def main(service_name: str) -> None:
     optimus_config = load_local_config()
     template = get_service_template(optimus_config)
     manager = operate.service_manager()
-    service = get_service(manager, template)
+    service, _ = get_service(manager, template)
     manager.stop_service_locally(service_config_id=service.service_config_id, delete=True, use_docker=True)
 
     print()

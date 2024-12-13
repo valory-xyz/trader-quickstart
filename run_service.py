@@ -499,7 +499,8 @@ def get_service_template(config: TraderConfig) -> ServiceTemplate:
         },
     })
 
-def get_service(manager: ServiceManager, template: ServiceTemplate) -> Service:
+def get_service(manager: ServiceManager, template: ServiceTemplate) -> t.Tuple[Service, bool]:
+    is_update = False
     if len(manager.json) > 0:
         old_hash = manager.json[0]["hash"]
         if old_hash == template["hash"]:
@@ -513,6 +514,7 @@ def get_service(manager: ServiceManager, template: ServiceTemplate) -> Service:
                 service_config_id=manager.json[0]["service_config_id"],
                 service_template=template,
             )
+            is_update = True
     else:
         print(f'Creating service {template["hash"]}')
         service = manager.load_or_create(
@@ -520,7 +522,7 @@ def get_service(manager: ServiceManager, template: ServiceTemplate) -> Service:
             service_template=template,
         )
 
-    return service
+    return service, is_update
 
 
 def main(service_name: str) -> None:
@@ -536,7 +538,7 @@ def main(service_name: str) -> None:
     config = configure_local_config()
     template = get_service_template(config)
     manager = operate.service_manager()
-    service = get_service(manager, template)
+    service, is_service_update = get_service(manager, template)
     password = None
 
     if operate.user_account is None:
@@ -593,11 +595,14 @@ def main(service_name: str) -> None:
         print(f"[{chain_name}] Main wallet balance: {balance_str}",)
         safe_exists = wallet.safes.get(chain) is not None
 
+        operational_fund_req = chain_metadata.get("operationalFundReq")
         agent_fund_requirement = chain_config.chain_data.user_params.fund_requirements.agent
         safe_fund_requirement = chain_config.chain_data.user_params.fund_requirements.safe
-        operational_fund_req = chain_metadata.get("operationalFundReq")
-        safety_margin = SAFETY_MARGIN if service_state == OnChainState.NON_EXISTENT else 0
+        if is_service_update:
+            agent_fund_requirement *= 2
+            safe_fund_requirement *= 2
 
+        safety_margin = SAFETY_MARGIN if service_state == OnChainState.NON_EXISTENT else 0
         if chain_config.chain_data.multisig != DUMMY_MULTISIG:
             safe_fund_requirement -= ledger_api.get_balance(chain_config.chain_data.multisig)
         if len(service.keys) > 0:
