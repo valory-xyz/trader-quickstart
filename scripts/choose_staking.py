@@ -75,7 +75,7 @@ NO_STAKING_PROGRAM_METADATA = {
         markets, but it will not be staked within any staking program.",
 }
 NO_STAKING_PROGRAM_ENV_VARIABLES = {
-    "USE_STAKING": "false",
+    "USE_STAKING": False,
     "STAKING_PROGRAM": NO_STAKING_PROGRAM_ID,
     "AGENT_ID": AGENT_ID,
     "CUSTOM_SERVICE_REGISTRY_ADDRESS": "0x9338b5153AE39BB89f50468E608eD9d764B755fD",
@@ -84,8 +84,8 @@ NO_STAKING_PROGRAM_ENV_VARIABLES = {
     "CUSTOM_OLAS_ADDRESS": ZERO_ADDRESS,
     "CUSTOM_STAKING_ADDRESS": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",  # Non-staking agents need to specify an arbitrary staking contract so that they can call getStakingState()
     "MECH_ACTIVITY_CHECKER_CONTRACT": ZERO_ADDRESS,
-    "MIN_STAKING_BOND_OLAS": "1",
-    "MIN_STAKING_DEPOSIT_OLAS": "1",
+    "MIN_STAKING_BOND_OLAS": 1,
+    "MIN_STAKING_DEPOSIT_OLAS": 1,
 }
 
 STAKING_PROGRAMS = {
@@ -310,8 +310,8 @@ def get_staking_env_variables(  # pylint: disable=too-many-locals
         "CUSTOM_STAKING_ADDRESS": staking_token_instance_address,
         "MECH_ACTIVITY_CHECKER_CONTRACT": activity_checker,
         "MECH_CONTRACT_ADDRESS": agent_mech,
-        "MIN_STAKING_BOND_OLAS": min_staking_bond,
-        "MIN_STAKING_DEPOSIT_OLAS": min_staking_deposit,
+        "MIN_STAKING_BOND_OLAS": int(min_staking_bond),
+        "MIN_STAKING_DEPOSIT_OLAS": int(min_staking_deposit),
     })
 
 
