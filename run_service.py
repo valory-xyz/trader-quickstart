@@ -528,10 +528,6 @@ def get_service(manager: ServiceManager, template: ServiceTemplate) -> t.Tuple[S
 def main(service_name: str) -> None:
     """Run service."""
 
-    print_title(f"{service_name} Quickstart")
-    print(f"This script will assist you in setting up and running the {service_name} service.")
-    print()
-
     operate = OperateApp(home=OPERATE_HOME)
     operate.setup()
 
@@ -696,6 +692,7 @@ def main(service_name: str) -> None:
                 balance = get_erc20_balance(ledger_api, olas_address, safe_address) / 10 ** 18
                 spinner.succeed(f"[{chain_name}] Safe updated balance: {balance} {STAKED_BONDING_TOKEN}")
 
+    # return  # TODO: Remove this line
     print_section(f"Deploying on-chain service on {chain_name}")
     print_box("PLEASE, DO NOT INTERRUPT THIS PROCESS.")
     print("Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve.")

@@ -21,9 +21,5 @@
 # force utf mode for python, cause sometimes there are issues with local codepages
 export PYTHONUTF8=1
 
-
 poetry install
 poetry run python stop_service.py
-exit 0
-
-cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd ..
