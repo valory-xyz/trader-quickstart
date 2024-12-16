@@ -1,0 +1,69 @@
+{
+    "name": "Trader Agent",
+    "hash": "bafybeifzqsbzidvhhiruhk7jf4v7tpxarvbatl72adq2omhxqgosul3uli",
+    "description": "Trader agent for omen prediction markets",
+    "image": "https://operate.olas.network/_next/image?url=%2Fimages%2Fprediction-agent.png&w=3840&q=75",
+    "service_version": "v0.18.7",
+    "home_chain": "gnosis",
+    "configurations": {
+        "gnosis": {
+            "nft": "bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq",
+            "threshold": 1,
+            "use_mech_marketplace": true,
+            "fund_requirements": {
+                "agent": 100000000000000000,
+                "safe": 5000000000000000000
+            }
+        }
+    },
+    "env_variables": {
+        "GNOSIS_LEDGER_RPC": {
+            "name": "Gnosis ledger RPC",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "STAKING_CONTRACT_ADDRESS": {
+            "name": "Staking contract address",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "MECH_ACTIVITY_CHECKER_CONTRACT": {
+            "name": "Mech activity checker contract",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "MECH_CONTRACT_ADDRESS": {
+            "name": "Mech contract address",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "MECH_REQUEST_PRICE": {
+            "name": "Mech request price",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "USE_MECH_MARKETPLACE": {
+            "name": "Use Mech marketplace",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "REQUESTER_STAKING_INSTANCE_ADDRESS": {
+            "name": "Requester staking instance address",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "PRIORITY_MECH_ADDRESS": {
+            "name": "Priority Mech address",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        }
+    }
+}
