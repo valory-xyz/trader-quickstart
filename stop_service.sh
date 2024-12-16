@@ -21,5 +21,5 @@
 # force utf mode for python, cause sometimes there are issues with local codepages
 export PYTHONUTF8=1
 
-poetry install
-poetry run python stop_service.py
+poetry install --no-cache
+poetry run python -m operate.cli quickstop config.json

@@ -33,9 +33,9 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 
 echo ""
-echo "-------------------"
+echo "==================="
 echo " Trader quickstart "
-echo "-------------------"
+echo "==================="
 echo ""
 echo "This script will assist you in setting up and running the Trader service ($service_repo)."
 echo ""
@@ -97,4 +97,4 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
 
 # Install dependencies and run the agent througth the middleware
 poetry install --no-cache
-poetry run python run_service.py
+poetry run python -m operate.cli quickstart config.json

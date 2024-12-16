@@ -26,7 +26,7 @@ import os
 import sys
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, List, TypedDict
+from typing import Any, Dict, List
 
 import requests
 from dotenv import dotenv_values, set_key, unset_key
@@ -60,8 +60,7 @@ ACTIVITY_CHECKER_ABI_PATH = Path(
     "build",
     "MechActivity.json",
 )
-ACTIVITY_CHECKER_ABI_PATH = 'https://raw.githubusercontent.com/valory-xyz/trader/refs/heads/main/packages/valory/contracts/mech_activity/build/MechActivity.json'
-STAKING_TOKEN_INSTANCE_ABI_PATH = 'https://raw.githubusercontent.com/valory-xyz/trader/refs/heads/main/packages/valory/contracts/staking_token/build/StakingToken.json'
+
 IPFS_ADDRESS = "https://gateway.autonolas.tech/ipfs/f01701220{hash}"
 NEVERMINED_MECH_CONTRACT_ADDRESS = "0x327E26bDF1CfEa50BFAe35643B23D5268E41F7F9"
 NEVERMINED_AGENT_REGISTRY_ADDRESS = "0xAed729d4f4b895d8ca84ba022675bB0C44d2cD52"
@@ -106,20 +105,6 @@ DEPRECATED_STAKING_PROGRAMS = {
     "quickstart_alpha_alpine": "0x2Ef503950Be67a98746F484DA0bBAdA339DF3326",
     "quickstart_alpha_coastal": "0x43fB32f25dce34EB76c78C7A42C8F40F84BCD237",
 }
-
-
-class StakingVariables(TypedDict):
-    USE_STAKING: str
-    STAKING_PROGRAM: str
-    AGENT_ID: str
-    CUSTOM_SERVICE_REGISTRY_ADDRESS: str
-    CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS: str
-    CUSTOM_OLAS_ADDRESS: str
-    CUSTOM_STAKING_ADDRESS: str
-    MECH_ACTIVITY_CHECKER_CONTRACT: str
-    MECH_CONTRACT_ADDRESS: str
-    MIN_STAKING_BOND_OLAS: str
-    MIN_STAKING_DEPOSIT_OLAS: str
 
 
 def _prompt_select_staking_program() -> str:
