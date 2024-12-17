@@ -117,7 +117,7 @@ def _claim_rewards(  # pylint: disable=too-many-locals
         encoding=DEFAULT_ENCODING
     ).strip()
     print(
-        f"OLAS Balance on service Safe {service_safe_address}: {_erc20_balance(service_safe_address)}"
+        f"OLAS Balance of service Safe {service_safe_address}: {_erc20_balance(service_safe_address)}"
     )
 
     env_file_vars = dotenv_values(DOTENV_PATH)
@@ -159,15 +159,16 @@ def _claim_rewards(  # pylint: disable=too-many-locals
 
     if "status" in tx_receipt and tx_receipt["status"] == 0:
         print(
-            "The transaction was reverted. This may be caused because your service does not have rewards to claim."
+            "WARNING: The transaction was reverted. This may be caused because your service does not have rewards to claim."
         )
     else:
         print("")
         print(f"Claimed OLAS transferred to your service Safe {service_safe_address}")
-        print(
-            f"You can use your Owner/Operator wallet (address {operator_address}) to connect your Safe at"
-        )
-        print(f"{SAFE_WEBAPP_URL}{service_safe_address}")
+
+    print("")
+    print(
+        f"You can use your Owner/Operator wallet (address {operator_address}) to connect your Safe at {SAFE_WEBAPP_URL}{service_safe_address}."
+    )
 
 
 def main() -> None:
