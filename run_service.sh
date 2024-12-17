@@ -737,7 +737,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.21.0"
+service_version="v0.21.2"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1027,13 +1027,17 @@ if [ "$local_service_hash" != "$remote_service_hash" ] || [ "$on_chain_agent_id"
     echo ""
 
     response="y"
-    if [ "${USE_STAKING}" = true ] && [ "$ATTENDED" = true ]; then
+    if [ "${USE_STAKING}" = true ]; then
       echo "If your service is in a staking program, updating your on-chain service requires that it is first unstaked."
       echo "Unstaking your service will retrieve the accrued staking rewards."
       echo ""
-      echo "Do you want to continue updating your service? (yes/no)"
-      read -r response
-      echo ""
+      if [ "$ATTENDED" = true ]; then
+        echo "Do you want to continue updating your service? (yes/no)"
+        read -r response
+        echo ""
+      else
+        response="n"
+      fi
     fi
 
     if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
@@ -1261,9 +1265,9 @@ export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
 # 10 cents minimum bet amount. Also, the bet will not be placed if expected returns - bet_threshold <= 0
-export BET_THRESHOLD=100000000000000000
-export TRADING_STRATEGY=kelly_criterion_no_conf
-export STRATEGIES_KWARGS='[["bet_kelly_fraction",1.5],["floor_balance",500000000000000000],["bet_amount_per_threshold",{"0.0":0,"0.1":0,"0.2":0,"0.3":0,"0.4":0,"0.5":0,"0.6":60000000000000000,"0.7":80000000000000000,"0.8":160000000000000000,"0.9":1000000000000000000,"1.0":1000000000000000000}]]'
+export BET_THRESHOLD=250000000000000000
+export TRADING_STRATEGY=bet_amount_per_threshold
+export STRATEGIES_KWARGS='[["bet_kelly_fraction",1.5],["floor_balance",500000000000000000],["bet_amount_per_threshold",{"0.0":0,"0.1":0,"0.2":0,"0.3":0,"0.4":0,"0.5":0,"0.6":0,"0.7":0,"0.8":250000000000000000,"0.9":250000000000000000,"1.0":250000000000000000}]]'
 export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export IRRELEVANT_TOOLS='["native-transfer","prediction-online-lite","claude-prediction-online-lite","prediction-online-sme-lite","prediction-request-reasoning-lite","prediction-request-reasoning-claude-lite","prediction-request-rag","prediction-request-reasoning-claude","prediction-url-cot-claude","claude-prediction-offline","claude-prediction-online","prediction-offline-sme","deepmind-optimization", "deepmind-optimization-strong", "openai-gpt-3.5-turbo", "openai-gpt-3.5-turbo-instruct", "openai-gpt-4", "openai-text-davinci-002", "openai-text-davinci-003", "prediction-online-sum-url-content", "prediction-online-summarized-info", "stabilityai-stable-diffusion-512-v2-1", "stabilityai-stable-diffusion-768-v2-1", "stabilityai-stable-diffusion-v1-5", "stabilityai-stable-diffusion-xl-beta-v2-2-2"]'
 export STAKING_CONTRACT_ADDRESS=$CUSTOM_STAKING_ADDRESS
@@ -1272,7 +1276,7 @@ export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
 export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmXhah4pLENsc4pbDTdKmw22GLGb4Z1FSG3FiEsF9ayxxd
+export TOOLS_ACCURACY_HASH=QmebjcPizAdVFSUAfMBgAGFJhLPVBMvV68LxhSq4LPvv9d
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
