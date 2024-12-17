@@ -25,11 +25,13 @@ import os
 import sys
 from getpass import getpass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
+from aea.crypto.helpers import DecryptError, KeyIsIncorrect
 from aea_ledger_ethereum.ethereum import EthereumCrypto
 from dotenv import dotenv_values
 from web3 import Web3
+
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
@@ -73,7 +75,7 @@ ERC20_ABI_PATH = Path(
 
 def _is_keystore(pkeypath: Path) -> bool:
     try:
-        with open(pkeypath, 'r') as f:
+        with open(pkeypath, "r", encoding="utf-8") as f:
             json.load(f)
         return True
     except json.JSONDecodeError:
@@ -97,7 +99,7 @@ def _erc20_balance(
     address: str,
     token_address: str = OLAS_TOKEN_ADDRESS_GNOSIS,
     token_name: str = "OLAS",
-    decimal_precision: int = 2
+    decimal_precision: int = 2,
 ) -> str:
     """Get ERC20 balance"""
     rpc = RPC_PATH.read_text(encoding=DEFAULT_ENCODING).strip()
@@ -108,8 +110,12 @@ def _erc20_balance(
     return f"{balance / 10**18:.{decimal_precision}f} {token_name}"
 
 
-def _claim_rewards(password: str =  None) -> None:
-    service_safe_address = SERVICE_SAFE_ADDRESS_PATH.read_text(encoding=DEFAULT_ENCODING).strip()
+def _claim_rewards(  # pylint: disable=too-many-locals
+    password: Optional[str] = None,
+) -> None:
+    service_safe_address = SERVICE_SAFE_ADDRESS_PATH.read_text(
+        encoding=DEFAULT_ENCODING
+    ).strip()
     print(
         f"OLAS Balance on service Safe {service_safe_address}: {_erc20_balance(service_safe_address)}"
     )
@@ -128,11 +134,13 @@ def _claim_rewards(password: str =  None) -> None:
         operator_address = ethereum_crypto.address
         operator_pkey = ethereum_crypto.private_key
     except DecryptError:
-        print(f"Could not decrypt key file at {OPERATOR_PKEY_PATH}. Please verify if your key file are password-protected, and if the provided password is correct (passwords are case-sensitive).")
-        raise
+        print(
+            f"Could not decrypt key {OPERATOR_PKEY_PATH}. Please verify if your key file is password-protected, and if the provided password is correct (passwords are case-sensitive)."
+        )
+        sys.exit(1)
     except KeyIsIncorrect:
-        print(f"Inccorect operator key at {OPERATOR_PKEY_PATH}. Please verify your key file.")
-        raise
+        print(f"Error decoding key file {OPERATOR_PKEY_PATH}.")
+        sys.exit(1)
 
     function = staking_token_contract.functions.claim(service_id)
     claim_transaction = function.build_transaction(
@@ -162,15 +170,32 @@ def _claim_rewards(password: str =  None) -> None:
         print(f"{SAFE_WEBAPP_URL}{service_safe_address}")
 
 
-if __name__ == "__main__":
-    print("This script will claim accrued OLAS on the current staking contract to your service Safe.")
+def main() -> None:
+    """Main method."""
+    print("---------------------")
+    print("Claim staking rewards")
+    print("---------------------")
+    print("")
+    print(
+        "This script will claim the OLAS staking rewards accrued in the current staking contract and transfer them to your service Safe."
+    )
     _continue = input("Do you want to continue (yes/no)? ").strip().lower()
 
     if _continue not in ("y", "yes"):
-        exit(0)
-   
+        sys.exit(0)
+
+    print("")
+
     password = None
     if _is_keystore(OPERATOR_PKEY_PATH):
-        password = getpass(f"Your operator key file is protected with a password. Please, enter password:").strip()
+        print("Enter your password")
+        print("-------------------")
+        print("Your key files are protected with a password.")
+        password = getpass("Please, enter your password: ").strip()
+        print("")
 
     _claim_rewards(password)
+
+
+if __name__ == "__main__":
+    main()
