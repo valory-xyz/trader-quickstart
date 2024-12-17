@@ -1,6 +1,9 @@
-# trader-quickstart
+# !!!DO NOT USE!!!
 
-A quickstart for the trader agent for AI prediction markets on Gnosis at https://github.com/valory-xyz/trader
+
+----
+
+
 
 ## Compatible Systems
 
