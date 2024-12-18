@@ -33,7 +33,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from scripts.mech_events import get_mech_requests
+from scripts.predict_trader.mech_events import get_mech_requests
 
 
 IRRELEVANT_TOOLS = [

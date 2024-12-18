@@ -24,4 +24,4 @@ export PYTHONUTF8=1
 set -e  # Exit script on first error
 
 poetry install --no-cache
-poetry run python -m operate.cli quickstop config.json
+poetry run python -m operate.cli quickstop configs/config_predict_trader.json

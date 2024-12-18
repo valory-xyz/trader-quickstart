@@ -33,8 +33,8 @@ from pathlib import Path
 from typing import Any
 
 import docker
-import trades
-from trades import (
+import scripts.predict_trader.trades as trades
+from scripts.predict_trader.trades import (
     MarketAttribute,
     MarketState,
     get_balance,
