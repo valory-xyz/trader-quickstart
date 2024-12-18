@@ -16,3 +16,4 @@ frozenlist==1.4.1
 multidict==6.0.5
 requests==2.31.0
 packaging==23.2
+python-dotenv==1.0.1

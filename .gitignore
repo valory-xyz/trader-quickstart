@@ -5,3 +5,4 @@ trader
 __pycache__
 data
 logs
+.env

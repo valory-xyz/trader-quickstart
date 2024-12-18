@@ -16,10 +16,12 @@ from web3 import Web3
 from eth_account import Account
 import requests
 import docker
+from dotenv import load_dotenv
+
 # Initialize colorama
 HEALTH_CHECK_URL = "http://127.0.0.1:8716/healthcheck"
 init()
-
+load_dotenv()
 
 def check_docker_status(logger: logging.Logger) -> bool:
     """Check if Docker containers are running properly."""
@@ -99,11 +101,11 @@ def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
 
 # Test Configuration
 TEST_CONFIG = {
-    "RPC_URL": "https://virtual.gnosis.rpc.tenderly.co/d33f24ed-3a9e-4df1-91c5-0a7786f335ad",
-    "BACKUP_WALLET": "0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8",
-    "TEST_PASSWORD": "secret",
-    "PRIVATE_KEY": "4a3f2ffe454858623239c7030ae9c7066efe993b212ffab992db84b07f2177e9",
-    "STAKING_CHOICE": "1"  # 1 for No Staking, 2 for Quickstart Beta - Hobbyist
+    "RPC_URL": os.getenv('RPC_URL', ''),
+    "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
+    "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
+    "PRIVATE_KEY": os.getenv('PRIVATE_KEY', ''),
+    "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')  # 1 for No Staking, 2 for Quickstart Beta - Hobbyist
 }
 
 # Expected prompts and their responses
