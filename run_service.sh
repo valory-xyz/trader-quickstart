@@ -21,24 +21,7 @@
 # force utf mode for python, cause sometimes there are issues with local codepages
 export PYTHONUTF8=1
 
-# ------------------
-# Script starts here
-# ------------------
-
 set -e  # Exit script on first error
-
-# Initialize repo and version variables
-org_name="valory-xyz"
-directory="trader"
-service_repo=https://github.com/$org_name/$directory.git
-
-echo ""
-echo "==================="
-echo " Trader quickstart "
-echo "==================="
-echo ""
-echo "This script will assist you in setting up and running the Trader service ($service_repo)."
-echo ""
 
 # Display information of the Git repository
 current_branch=$(git rev-parse --abbrev-ref HEAD)
