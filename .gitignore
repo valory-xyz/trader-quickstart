@@ -4,3 +4,4 @@ trader
 *.DS_Store
 __pycache__
 data
+logs
