@@ -1,4 +1,4 @@
-.PHONY: install test run_no_staking_tests
+.PHONY: install test run_no_staking_tests stop_service
 
 # Install project dependencies
 install:
@@ -10,3 +10,6 @@ run_no_staking_tests: install
 
 # Run all commands in sequence
 test: install run_no_staking_tests
+
+stop_service:
+	./stop_service.sh
