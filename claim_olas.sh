@@ -18,4 +18,10 @@
 #
 # ------------------------------------------------------------------------------
 
-cd trader; poetry run python "../scripts/claim.py"; cd ..
+# force utf mode for python, cause sometimes there are issues with local codepages
+export PYTHONUTF8=1
+
+set -e  # Exit script on first error
+
+poetry install --no-cache
+poetry run python -m operate.cli claim configs/config_predict_trader.json
