@@ -2283,8 +2283,8 @@ web3 = "==6.1.0"
 [package.source]
 type = "git"
 url = "https://github.com/valory-xyz/olas-operate-app.git"
-reference = "3a26856254e57bff45a7ce1c3daecc7180c63df5"
-resolved_reference = "3a26856254e57bff45a7ce1c3daecc7180c63df5"
+reference = "2e0e747b796f06cddd9fcbfc325a0d1db3f0a909"
+resolved_reference = "2e0e747b796f06cddd9fcbfc325a0d1db3f0a909"
 
 [[package]]
 name = "open-aea"
@@ -3530,6 +3530,27 @@ files = [
 ]
 
 [[package]]
+name = "tqdm"
+version = "4.67.1"
+description = "Fast, Extensible Progress Meter"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tqdm-4.67.1-py3-none-any.whl", hash = "sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2"},
+    {file = "tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+dev = ["nbval", "pytest (>=6)", "pytest-asyncio (>=0.24)", "pytest-cov", "pytest-timeout"]
+discord = ["requests"]
+notebook = ["ipywidgets (>=6)"]
+slack = ["slack-sdk"]
+telegram = ["requests"]
+
+[[package]]
 name = "twikit"
 version = "2.2.0"
 description = "Twitter API wrapper for python with **no API key required**."
@@ -3930,5 +3951,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "*"
-content-hash = "8faee6185b98e3b7890c49afb406381e24a36334c123302e2158d58af9c2e3cb"
+python-versions = ">=3.9,<3.12"
+content-hash = "49c77b704963aef86b11c4cd12d4a38a2678899b7e16ef1ad49c803b56af2c04"

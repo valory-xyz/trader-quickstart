@@ -1,8 +1,8 @@
-#!/bin/bash
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2023 Valory AG
+#   Copyright 2022-2023 Valory AG
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,11 +17,4 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-
-# force utf mode for python, cause sometimes there are issues with local codepages
-export PYTHONUTF8=1
-
-set -e  # Exit script on first error
-
-poetry install --no-cache
-poetry run python -m operate.cli quickstop "$1"
+"""This package contains useful scrips for the predict trader agent."""
