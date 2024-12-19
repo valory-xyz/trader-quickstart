@@ -19,6 +19,8 @@ from eth_account import Account
 import requests
 import docker
 from dotenv import load_dotenv
+from operate.constants import HEALTH_CHECK_URL
+
 
 # Initialize colorama and load environment
 init()
@@ -26,8 +28,6 @@ load_dotenv()
 
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
-
-HEALTH_CHECK_URL = "http://127.0.0.1:8716/healthcheck"
 
 def check_docker_status(logger: logging.Logger) -> bool:
     """Check if Docker containers are running properly."""
