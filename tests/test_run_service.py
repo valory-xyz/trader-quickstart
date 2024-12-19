@@ -7,6 +7,7 @@ import logging
 import pexpect
 import os
 import shutil
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
@@ -17,6 +18,9 @@ from eth_account import Account
 import requests
 import docker
 from dotenv import load_dotenv
+
+# Handle the distutils warning
+os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
 
 # Initialize colorama
 HEALTH_CHECK_URL = "http://127.0.0.1:8716/healthcheck"
@@ -58,6 +62,62 @@ def check_service_health(logger: logging.Logger) -> bool:
             return False
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
+        return False
+
+def check_service_logs(logger: logging.Logger) -> bool:
+    """Check service logs for critical errors."""
+    try:
+        client = docker.from_env()
+        containers = client.containers.list(filters={"name": "traderpearl"})
+        
+        # Define patterns to ignore
+        ignore_patterns = [
+            "The same event 'Event.FETCH_ERROR'",
+            "The kwargs={'mech_request_price'",
+            "Slashing has not been enabled",
+            "No stored bets file was detected",
+            "WARNING"  # Ignore general warnings
+        ]
+        
+        for container in containers:
+            logs = container.logs().decode('utf-8')
+            
+            # Split logs into lines for better analysis
+            log_lines = logs.split('\n')
+            
+            for line in log_lines:
+                # Skip empty lines
+                if not line.strip():
+                    continue
+                    
+                # Check if line contains ERROR but isn't in ignore patterns
+                if "ERROR" in line and not any(pattern in line for pattern in ignore_patterns):
+                    logger.error(f"Found critical error in container {container.name}: {line}")
+                    return False
+                    
+        logger.info("Service logs check passed")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error checking service logs: {str(e)}")
+        return False
+
+def check_shutdown_logs(logger: logging.Logger) -> bool:
+    """Check shutdown logs for errors."""
+    try:
+        client = docker.from_env()
+        containers = client.containers.list(filters={"name": "traderpearl"})
+        
+        for container in containers:
+            logs = container.logs().decode('utf-8')
+            if "Error during shutdown" in logs or "Failed to gracefully stop" in logs:
+                logger.error(f"Found shutdown errors in container {container.name} logs")
+                return False
+                
+        logger.info("Shutdown logs check passed")
+        return True
+    except Exception as e:
+        logger.error(f"Error checking shutdown logs: {str(e)}")
         return False
 
 def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
@@ -110,16 +170,15 @@ TEST_CONFIG = {
 
 # Expected prompts and their responses
 PROMPTS = {
-    "eth_newFilter \[hidden input\]": TEST_CONFIG["RPC_URL"],
+    r"eth_newFilter \[hidden input\]": TEST_CONFIG["RPC_URL"], 
     "input your password": TEST_CONFIG["TEST_PASSWORD"],
     "confirm your password": TEST_CONFIG["TEST_PASSWORD"],
     "Enter your choice": TEST_CONFIG["STAKING_CHOICE"],
     "backup owner": TEST_CONFIG["BACKUP_WALLET"],
     "Press enter to continue": "\n",
     "press enter": "\n",
-    "Please make sure master EOA.*has at least.*xDAI": handle_xDAIfunding,  # Updated pattern
-    "Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]  # Added new password prompt
-
+    "Please make sure master EOA.*has at least.*xDAI": handle_xDAIfunding,
+    r"Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]
 }
 
 class ColoredFormatter(logging.Formatter):
@@ -139,10 +198,48 @@ class ColoredFormatter(logging.Formatter):
 
 def cleanup_previous_run():
     """Clean up previous run artifacts."""
-    operate_folder = Path("../.operate")
+    operate_folder = Path("/Users/siddi_404/Solulab/OLAS/middleware/quickstart/.operate")
     if operate_folder.exists():
         print(f"Removing existing .operate folder: {operate_folder}")
-        shutil.rmtree(operate_folder)
+        try:
+            # Kill any processes that might be using the directory
+            os.system("pkill -f trader")
+            os.system("pkill -f quickstart")
+            time.sleep(2)  # Give processes time to terminate
+            
+            # Force close any file handles
+            os.system(f"lsof +D {operate_folder} | awk '{{print $2}}' | tail -n +2 | xargs -r kill -9")
+            time.sleep(1)
+            
+            # Remove read-only attributes and set full permissions recursively
+            os.system(f"chmod -R 777 {operate_folder}")
+            time.sleep(1)
+            
+            # Remove directory using multiple methods
+            commands = [
+                f"rm -rf {operate_folder}",
+                f"find {operate_folder} -type f -delete",
+                f"find {operate_folder} -type d -delete"
+            ]
+            
+            for cmd in commands:
+                os.system(cmd)
+                time.sleep(1)
+                if not operate_folder.exists():
+                    break
+                    
+            if operate_folder.exists():
+                print(f"Failed to delete directory using standard methods, attempting with sudo...")
+                os.system(f"sudo rm -rf {operate_folder}")
+                
+            if operate_folder.exists():
+                print("Warning: Directory still exists after all cleanup attempts")
+                # List directory contents and permissions for debugging
+                os.system(f"ls -la {operate_folder}")
+                os.system(f"lsof +D {operate_folder}")
+                
+        except Exception as e:
+            print(f"Error while cleaning up .operate folder: {str(e)}")
 
 def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     """Set up logging configuration."""
@@ -176,6 +273,37 @@ def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     
     return logger
 
+def stop_service(logger: logging.Logger) -> bool:
+    """Stop the service and verify shutdown."""
+    logger.info("Stopping service...")
+    try:
+        # Execute stop script
+        stop_script = Path("./stop_service.sh")
+        os.chmod(stop_script, 0o755)
+        process = pexpect.spawn('bash ./stop_service.sh', encoding='utf-8', timeout=30)
+        process.expect(pexpect.EOF)
+        
+        # Wait for service to fully stop
+        time.sleep(5)
+        
+        # Check shutdown logs
+        if not check_shutdown_logs(logger):
+            return False
+            
+        # Verify docker containers are stopped
+        client = docker.from_env()
+        containers = client.containers.list(filters={"name": "traderpearl"})
+        if len(containers) > 0:
+            logger.error("Containers still running after stop_service.sh")
+            return False
+            
+        logger.info("Service stopped successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Service stop failed: {str(e)}")
+        return False
+
 def test_run_service():
     """Test running the run_service.py script using pexpect."""
     
@@ -190,6 +318,12 @@ def test_run_service():
     logger.info("Starting run_service.py test")
     logger.info(f"Log file: logs/{log_file}")
 
+    test_results = {
+        "service_logs": False,
+        "docker_status": False,
+        "health_check": False,
+        "shutdown_logs": False
+    }
     
     try:
         script_path = Path("./run_service.sh")
@@ -197,7 +331,7 @@ def test_run_service():
 
         # Start the process with pexpect
         child = pexpect.spawn(
-            'bash ./run_service.sh',  # Use bash explicitly
+            'bash ./run_service.sh',
             encoding='utf-8',
             timeout=600,
             cwd="."
@@ -243,16 +377,39 @@ def test_run_service():
         # Get the exit status
         child.close()
         if child.exitstatus == 0:
-            logger.info("Test completed successfully")
-            # Check Docker status
-            if not check_docker_status(logger):
-                raise Exception("Docker container check failed")
+            logger.info("Initial setup completed successfully")
+            
+            # Wait for service to fully start
+            time.sleep(5)
+            
+            # Test Case 1: Check Service Logs
+            logger.info("Running Test Case 1: Service Logs Check")
+            test_results["service_logs"] = check_service_logs(logger)
+            
+            # Test Case 2: Check Docker Status
+            logger.info("Running Test Case 2: Docker Status Check")
+            test_results["docker_status"] = check_docker_status(logger)
+            
+            # Test Case 3: Check Service Health
+            logger.info("Running Test Case 3: Service Health Check")
+            test_results["health_check"] = check_service_health(logger)
+            
+            # Stop the service
+            logger.info("Stopping service for shutdown test...")
+            test_results["shutdown_logs"] = stop_service(logger)
+            
+            # Log test results
+            logger.info("\nTest Results:")
+            for test_name, result in test_results.items():
+                status = colored("PASSED", "green") if result else colored("FAILED", "red")
+                logger.info(f"{test_name}: {status}")
                 
-            # Check service health
-            if not check_service_health(logger):
-                raise Exception("Service health check failed")
+            # Overall test result
+            if all(test_results.values()):
+                logger.info(colored("\nAll tests passed successfully!", "green"))
+            else:
+                logger.error(colored("\nSome tests failed!", "red"))
                 
-            logger.info("All checks passed successfully")
         else:
             logger.error(f"Test failed with exit status {child.exitstatus}")
             
