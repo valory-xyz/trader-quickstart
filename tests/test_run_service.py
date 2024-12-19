@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Test run_service.py script using pexpect for reliable automation."""
+"""Test run_service.py script using pytest for reliable automation."""
 
 import re
+import shutil
 import sys
 import logging
 import pexpect
 import os
-import shutil
 import time
+import pytest
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 from termcolor import colored
 from colorama import init
 from web3 import Web3
@@ -19,13 +20,14 @@ import requests
 import docker
 from dotenv import load_dotenv
 
+# Initialize colorama and load environment
+init()
+load_dotenv()
+
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
 
-# Initialize colorama
 HEALTH_CHECK_URL = "http://127.0.0.1:8716/healthcheck"
-init()
-load_dotenv()
 
 def check_docker_status(logger: logging.Logger) -> bool:
     """Check if Docker containers are running properly."""
@@ -158,29 +160,6 @@ def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
     
     return ""
 
-
-# Test Configuration
-TEST_CONFIG = {
-    "RPC_URL": os.getenv('RPC_URL', ''),
-    "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
-    "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
-    "PRIVATE_KEY": os.getenv('PRIVATE_KEY', ''),
-    "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')  # 1 for No Staking, 2 for Quickstart Beta - Hobbyist
-}
-
-# Expected prompts and their responses
-PROMPTS = {
-    r"eth_newFilter \[hidden input\]": TEST_CONFIG["RPC_URL"], 
-    "input your password": TEST_CONFIG["TEST_PASSWORD"],
-    "confirm your password": TEST_CONFIG["TEST_PASSWORD"],
-    "Enter your choice": TEST_CONFIG["STAKING_CHOICE"],
-    "backup owner": TEST_CONFIG["BACKUP_WALLET"],
-    "Press enter to continue": "\n",
-    "press enter": "\n",
-    "Please make sure master EOA.*has at least.*xDAI": handle_xDAIfunding,
-    r"Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]
-}
-
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with colors."""
     def format(self, record):
@@ -196,54 +175,18 @@ class ColoredFormatter(logging.Formatter):
         
         return super().format(record)
 
-def cleanup_previous_run():
+def cleanup_previous_run(logger: logging.Logger):
     """Clean up previous run artifacts."""
-    operate_folder = Path("/Users/siddi_404/Solulab/OLAS/middleware/quickstart/.operate")
+    operate_folder = Path("./.operate")  # Using relative path
     if operate_folder.exists():
-        print(f"Removing existing .operate folder: {operate_folder}")
         try:
-            # Kill any processes that might be using the directory
-            os.system("pkill -f trader")
-            os.system("pkill -f quickstart")
-            time.sleep(2)  # Give processes time to terminate
-            
-            # Force close any file handles
-            os.system(f"lsof +D {operate_folder} | awk '{{print $2}}' | tail -n +2 | xargs -r kill -9")
-            time.sleep(1)
-            
-            # Remove read-only attributes and set full permissions recursively
-            os.system(f"chmod -R 777 {operate_folder}")
-            time.sleep(1)
-            
-            # Remove directory using multiple methods
-            commands = [
-                f"rm -rf {operate_folder}",
-                f"find {operate_folder} -type f -delete",
-                f"find {operate_folder} -type d -delete"
-            ]
-            
-            for cmd in commands:
-                os.system(cmd)
-                time.sleep(1)
-                if not operate_folder.exists():
-                    break
-                    
-            if operate_folder.exists():
-                print(f"Failed to delete directory using standard methods, attempting with sudo...")
-                os.system(f"sudo rm -rf {operate_folder}")
-                
-            if operate_folder.exists():
-                print("Warning: Directory still exists after all cleanup attempts")
-                # List directory contents and permissions for debugging
-                os.system(f"ls -la {operate_folder}")
-                os.system(f"lsof +D {operate_folder}")
-                
+            logger.info(f"Removing .operate folder")
+            shutil.rmtree(operate_folder, ignore_errors=True)
         except Exception as e:
-            print(f"Error while cleaning up .operate folder: {str(e)}")
-
+            logger.error(f"Error while cleaning up .operate folder: {str(e)}")
+            
 def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     """Set up logging configuration."""
-    # Create logs directory if it doesn't exist
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
     
@@ -260,7 +203,6 @@ def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     logger.addHandler(console_handler)
     
     if log_file:
-        # Put the log file in the logs directory
         log_path = logs_dir / log_file
         file_handler = logging.FileHandler(log_path)
         file_handler.setLevel(logging.DEBUG)
@@ -273,150 +215,162 @@ def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     
     return logger
 
-def stop_service(logger: logging.Logger) -> bool:
-    """Stop the service and verify shutdown."""
-    logger.info("Stopping service...")
-    try:
-        # Execute stop script
-        stop_script = Path("./stop_service.sh")
-        os.chmod(stop_script, 0o755)
-        process = pexpect.spawn('bash ./stop_service.sh', encoding='utf-8', timeout=30)
-        process.expect(pexpect.EOF)
+# Test Configuration
+TEST_CONFIG = {
+    "RPC_URL": os.getenv('RPC_URL', ''),
+    "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
+    "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
+    "PRIVATE_KEY": os.getenv('PRIVATE_KEY', ''),
+    "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
+}
+
+# Expected prompts and their responses
+PROMPTS = {
+    r"eth_newFilter \[hidden input\]": TEST_CONFIG["RPC_URL"],
+    "input your password": TEST_CONFIG["TEST_PASSWORD"],
+    "confirm your password": TEST_CONFIG["TEST_PASSWORD"],
+    "Enter your choice": TEST_CONFIG["STAKING_CHOICE"],
+    "backup owner": TEST_CONFIG["BACKUP_WALLET"],
+    "Press enter to continue": "\n",
+    "press enter": "\n",
+    "Please make sure master EOA.*has at least.*xDAI": handle_xDAIfunding,
+    r"Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]
+}
+
+class TestService:
+    @classmethod
+    def setup_class(cls):
+        """Setup for all tests"""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        cls.log_file = Path(f'test_run_service_{timestamp}.log')
+        cls.logger = setup_logging(cls.log_file)
         
-        # Wait for service to fully stop
+        # Start the service
+        cls.start_service()
+        # Wait for service to fully start
         time.sleep(5)
         
-        # Check shutdown logs
-        if not check_shutdown_logs(logger):
-            return False
+    @classmethod
+    def teardown_class(cls):
+        """Cleanup after all tests"""
+        try:
+                # First stop the service
+            cls.stop_service()
             
-        # Verify docker containers are stopped
-        client = docker.from_env()
-        containers = client.containers.list(filters={"name": "traderpearl"})
-        if len(containers) > 0:
-            logger.error("Containers still running after stop_service.sh")
-            return False
+            # Wait for service to fully stop
+            time.sleep(10)
             
-        logger.info("Service stopped successfully")
-        return True
+            # Then clean up the folder
+            cleanup_previous_run(cls.logger)
+        except Exception as e:
+            cls.logger.error(f"Error during cleanup: {str(e)}")
         
-    except Exception as e:
-        logger.error(f"Service stop failed: {str(e)}")
-        return False
-
-def test_run_service():
-    """Test running the run_service.py script using pexpect."""
-    
-    # Cleanup previous run artifacts
-    cleanup_previous_run()
-    
-    # Setup logging
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = Path(f'test_run_service_{timestamp}.log')
-    logger = setup_logging(log_file)
-    
-    logger.info("Starting run_service.py test")
-    logger.info(f"Log file: logs/{log_file}")
-
-    test_results = {
-        "service_logs": False,
-        "docker_status": False,
-        "health_check": False,
-        "shutdown_logs": False
-    }
-    
-    try:
-        script_path = Path("./run_service.sh")
-        os.chmod(script_path, 0o755)
-
-        # Start the process with pexpect
-        child = pexpect.spawn(
-            'bash ./run_service.sh',
-            encoding='utf-8',
-            timeout=600,
-            cwd="."
-        )
-        
-        # Enable logging of the interaction
-        child.logfile = sys.stdout
-        
-        # Handle the interaction
-        while True:
-            try:
-                patterns = list(PROMPTS.keys())
-                index = child.expect(patterns, timeout=600)
-                pattern = patterns[index]
-                response = PROMPTS[pattern]
-                
-                # Log the interaction
-                logger.info(f"Matched prompt: {pattern}", extra={'is_expect': True})
-                
-                # Handle response based on type
-                if callable(response):
-                    output = child.before + child.after
-                    response = response(output, logger)
-                
-                if "password" in pattern.lower():
-                    logger.info("Sending: [HIDDEN]", extra={'is_input': True})
-                else:
-                    logger.info(f"Sending: {response}", extra={'is_input': True})
-                
-                # Send the response
-                child.sendline(response)
-                
-            except pexpect.EOF:
-                logger.info("Process completed")
-                break
-            except pexpect.TIMEOUT:
-                logger.error("Timeout waiting for prompt")
-                break
-            except Exception as e:
-                logger.error(f"Error handling prompt: {str(e)}")
-                break
-        
-        # Get the exit status
-        child.close()
-        if child.exitstatus == 0:
-            logger.info("Initial setup completed successfully")
+    @classmethod
+    def start_service(cls):
+        """Start the service and handle initial setup."""
+        try:
+            cls.logger.info("Starting run_service.py test")
             
-            # Wait for service to fully start
-            time.sleep(5)
+            # Get current virtual environment path
+            venv_path = os.environ.get('VIRTUAL_ENV')
             
-            # Test Case 1: Check Service Logs
-            logger.info("Running Test Case 1: Service Logs Check")
-            test_results["service_logs"] = check_service_logs(logger)
-            
-            # Test Case 2: Check Docker Status
-            logger.info("Running Test Case 2: Docker Status Check")
-            test_results["docker_status"] = check_docker_status(logger)
-            
-            # Test Case 3: Check Service Health
-            logger.info("Running Test Case 3: Service Health Check")
-            test_results["health_check"] = check_service_health(logger)
-            
-            # Stop the service
-            logger.info("Stopping service for shutdown test...")
-            test_results["shutdown_logs"] = stop_service(logger)
-            
-            # Log test results
-            logger.info("\nTest Results:")
-            for test_name, result in test_results.items():
-                status = colored("PASSED", "green") if result else colored("FAILED", "red")
-                logger.info(f"{test_name}: {status}")
+            # Temporarily deactivate virtual environment
+            if venv_path:
+                temp_env = os.environ.copy()
+                temp_env.pop('VIRTUAL_ENV', None)
+                temp_env.pop('POETRY_ACTIVE', None)
                 
-            # Overall test result
-            if all(test_results.values()):
-                logger.info(colored("\nAll tests passed successfully!", "green"))
+                # Update PATH to remove the virtual environment
+                paths = temp_env['PATH'].split(os.pathsep)
+                paths = [p for p in paths if not p.startswith(venv_path)]
+                temp_env['PATH'] = os.pathsep.join(paths)
             else:
-                logger.error(colored("\nSome tests failed!", "red"))
-                
-        else:
-            logger.error(f"Test failed with exit status {child.exitstatus}")
+                temp_env = os.environ
             
-    except Exception as e:
-        logger.error(f"Test failed with error: {str(e)}")
-    finally:
-        logger.info(f"Test logs saved to: {log_file}")
+            # Start the process with pexpect
+            cls.child = pexpect.spawn(
+                'bash ./run_service.sh',
+                encoding='utf-8',
+                timeout=600,
+                env=temp_env,
+                cwd="."
+            )
+            
+            cls.child.logfile = sys.stdout
+            
+            # Handle the interaction
+            try:
+                while True:
+                    patterns = list(PROMPTS.keys())
+                    index = cls.child.expect(patterns, timeout=600)
+                    pattern = patterns[index]
+                    response = PROMPTS[pattern]
+                
+                    cls.logger.info(f"Matched prompt: {pattern}", extra={'is_expect': True})
+
+                    if callable(response):
+                        output = cls.child.before + cls.child.after
+                        response = response(output, cls.logger)
+
+                    if "password" in pattern.lower():
+                        cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
+                    else:
+                        cls.logger.info(f"Sending: {response}", extra={'is_input': True})
+                    
+                    cls.child.sendline(response)
+                    
+            except pexpect.EOF:
+                cls.logger.info("Initial setup completed")
+                
+                # Add delay to ensure services are up
+                time.sleep(30)
+                
+                # Verify Docker containers are running
+                retries = 5
+                while retries > 0:
+                    if check_docker_status(cls.logger):
+                        break
+                    time.sleep(10)
+                    retries -= 1
+                
+                if retries == 0:
+                    raise Exception("Docker containers failed to start")
+                    
+            except Exception as e:
+                cls.logger.error(f"Error in setup: {str(e)}")
+                raise
+                
+        except Exception as e:
+            cls.logger.error(f"Service start failed: {str(e)}")
+            raise
+            
+    @classmethod
+    def stop_service(cls):
+        """Stop the service"""
+        cls.logger.info("Stopping service...")
+        process = pexpect.spawn('bash ./stop_service.sh', encoding='utf-8', timeout=30)
+        process.expect(pexpect.EOF)
+        time.sleep(10)
+        
+    def test_01_service_logs(self):
+        """Test service logs for errors"""
+        self.logger.info("Testing service logs...")
+        assert check_service_logs(self.logger) == True, "Service logs check failed"
+        
+    def test_02_docker_status(self):
+        """Test Docker container status"""
+        self.logger.info("Testing Docker container status...")
+        assert check_docker_status(self.logger) == True, "Docker status check failed"
+        
+    def test_03_health_check(self):
+        """Test service health endpoint"""
+        self.logger.info("Testing service health...")
+        assert check_service_health(self.logger) == True, "Health check failed"
+        
+    def test_04_shutdown_logs(self):
+        """Test service shutdown logs"""
+        self.logger.info("Testing shutdown logs...")
+        assert check_shutdown_logs(self.logger) == True, "Shutdown logs check failed"
 
 if __name__ == "__main__":
-    test_run_service()
+    pytest.main([__file__, "-v"])

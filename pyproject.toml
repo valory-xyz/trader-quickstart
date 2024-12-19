@@ -9,7 +9,28 @@ packages = []
 include = []
 
 [tool.poetry.dependencies]
-olas-operate-middleware = { git = "https://github.com/valory-xyz/olas-operate-app.git", rev = "6bc24267962e071b738226e1598d00187eb273a0", python = ">=3.9,<3.12" }
+python = ">=3.9,<3.12"
+olas-operate-middleware = { git = "https://github.com/valory-xyz/olas-operate-app.git", rev = "3a26856254e57bff45a7ce1c3daecc7180c63df5", python = ">=3.9,<3.12" }
+pexpect = "^4.9.0"
+web3 = "^6.1.0"
+termcolor = "^2.5.0"
+colorama = "^0.4.6"
+eth-account = "^0.8.0"
+eth-keyfile = "^0.6.1"
+eth-keys = "^0.4.0"
+eth-rlp = "^0.3.0"
+eth-typing = "^3.5.2"
+eth-utils = "^2.3.1"
+hexbytes = "^0.3.1"
+pytest = "^7.2.1"
+aiohttp = "^3.9.5"
+cytoolz = "^0.12.3"
+frozenlist = "^1.4.1"
+multidict = "^6.0.5"
+requests = "^2.31.0"
+packaging = "^23.2"
+python-dotenv = ">=0.14.5,<0.22.0"
+docker = "^6.1.2"
 
 [build-system]
 requires = ["poetry-core"]
