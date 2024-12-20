@@ -22,23 +22,22 @@
 
 import json
 import os
+import requests
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
+from tqdm import tqdm
 from typing import Any, ClassVar, Dict
 
-import requests
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
-from tqdm import tqdm
 from web3.datastructures import AttributeDict
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, "..", ".trader_runner")
-MECH_EVENTS_JSON_PATH = Path(STORE_PATH, "mech_events.json")
+MECH_EVENTS_JSON_PATH = Path(SCRIPT_PATH.parents[1], "data", "mech_events.json")
 HTTP = "http://"
 HTTPS = HTTP[:4] + "s" + HTTP[4:]
 CID_PREFIX = "f01701220"
@@ -159,7 +158,7 @@ def _read_mech_events_data_from_file() -> Dict[str, Any]:
         if mech_events_data.get("db_version", 0) < MECH_EVENTS_DB_VERSION:
             current_time = time.strftime("%Y-%m-%d_%H-%M-%S")
             old_db_filename = f"mech_events.{current_time}.old.json"
-            os.rename(MECH_EVENTS_JSON_PATH, Path(STORE_PATH, old_db_filename))
+            os.rename(MECH_EVENTS_JSON_PATH, Path(MECH_EVENTS_JSON_PATH.parent, old_db_filename))
             mech_events_data = {}
             mech_events_data["db_version"] = MECH_EVENTS_DB_VERSION
     except FileNotFoundError:

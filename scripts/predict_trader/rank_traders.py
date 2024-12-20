@@ -17,35 +17,28 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
+
 import datetime
-import os
 import sys
 from argparse import ArgumentParser
 from collections import defaultdict
-from dotenv import load_dotenv
-from pathlib import Path
 from string import Template
 from typing import Any
 
 import requests
-import trades
-from trades import MarketAttribute, MarketState, wei_to_xdai
+from operate.quickstart.run_service import load_local_config
+from scripts.utils import get_subgraph_api_key
+from scripts.predict_trader.trades import MarketAttribute, MarketState, parse_user, wei_to_xdai
 
 
 QUERY_BATCH_SIZE = 1000
 DUST_THRESHOLD = 10000000000000
 INVALID_ANSWER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 FPMM_CREATOR = "0x89c5cc945dd550bcffb72fe42bff002429f46fec"
-DEFAULT_FROM_DATE = "1970-01-01T00:00:00"
+DEFAULT_FROM_DATE = "2024-12-01T00:00:00"
 DEFAULT_TO_DATE = "2038-01-19T03:14:07"
-SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
-ENV_FILE = Path(STORE_PATH, ".env")
-
-load_dotenv(ENV_FILE)
 
 
 headers = {
@@ -175,10 +168,11 @@ def _query_omen_xdai_subgraph(
     fpmm_to_timestamp: float,
 ) -> dict[str, Any]:
     """Query the subgraph."""
-    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    subgraph_api_key = get_subgraph_api_key()
     url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
 
     grouped_results = defaultdict(list)
+    batch_size = QUERY_BATCH_SIZE
     id_gt = ""
 
     while True:
@@ -188,7 +182,7 @@ def _query_omen_xdai_subgraph(
             creationTimestamp_lte=int(to_timestamp),
             fpmm_creationTimestamp_gte=int(fpmm_from_timestamp),
             fpmm_creationTimestamp_lte=int(fpmm_to_timestamp),
-            first=QUERY_BATCH_SIZE,
+            first=batch_size,
             id_gt=id_gt,
         )
         content_json = _to_content(query)
@@ -204,6 +198,7 @@ def _query_omen_xdai_subgraph(
             grouped_results[fpmm_id].append(trade)
 
         id_gt = user_trades[len(user_trades) - 1]["id"]
+        print(f"Querying {batch_size} fpmmTrades from id {id_gt}")
 
     all_results = {
         "data": {
@@ -314,8 +309,8 @@ if __name__ == "__main__":
     print("Starting script")
     user_args = _parse_args()
 
-    with open(trades.RPC_PATH, "r", encoding="utf-8") as rpc_file:
-        rpc = rpc_file.read()
+    config = load_local_config()
+    rpc = config.gnosis_rpc
 
     print("Querying Thegraph...")
     all_trades_json = _query_omen_xdai_subgraph(
@@ -335,7 +330,7 @@ if __name__ == "__main__":
     for i, (creator_id, trades_json_id) in enumerate(
         creator_to_trades.items(), start=1
     ):
-        _, statistics_table_id = trades.parse_user(rpc, creator_id, trades_json_id, {})
+        _, statistics_table_id = parse_user(rpc, creator_id, trades_json_id, {})
         creator_to_statistics[creator_id] = statistics_table_id
         _print_progress_bar(i, total_traders)
 

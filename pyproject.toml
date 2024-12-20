@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "trader-quickstart"
+name = "quickstart"
 version = "0.1.0"
-description = "A quickstart for the trader agent for AI prediction markets on Gnosis at https://github.com/valory-xyz/trader"
+description = "A quickstart for the OLAS agents"
 authors = ["David Vilela <dvilelaf@gmail.com>", "Viraj Patel <vptl185@gmail.com>", "Ojuswi Rastogi <ojuswimail@gmail.com>"]
 readme = "README.md"
 package-mode = false
@@ -9,7 +9,9 @@ packages = []
 include = []
 
 [tool.poetry.dependencies]
-olas-operate-middleware = { git = "https://github.com/valory-xyz/olas-operate-app.git", rev = "3a26856254e57bff45a7ce1c3daecc7180c63df5", python = ">=3.9,<3.12" }
+python = ">=3.9,<3.12"
+olas-operate-middleware = { git = "https://github.com/valory-xyz/olas-operate-app.git", rev = "caed60d6757f9fa477d9723fd2ec017413ce5d6f"}
+tqdm = "^4.67.1"
 
 [build-system]
 requires = ["poetry-core"]
