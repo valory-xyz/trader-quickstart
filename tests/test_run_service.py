@@ -27,6 +27,10 @@ from operate.constants import HEALTH_CHECK_URL
 init()
 load_dotenv()
 
+STARTUP_WAIT = 5
+SERVICE_INIT_WAIT = 30
+CONTAINER_STOP_WAIT = 10
+
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
 
@@ -236,27 +240,53 @@ class TestService:
         cls.log_file = Path(f'test_run_service_{timestamp}.log')
         cls.logger = setup_logging(cls.log_file)
         
+        # Create temporary directory and store original path
+        cls.original_cwd = os.getcwd()
+        cls.temp_dir = tempfile.TemporaryDirectory(prefix='operate_test_')
+        
+        # Copy the entire project directory structure to temp directory
+        cls.logger.info(f"Copying project files to temporary directory: {cls.temp_dir.name}")
+        
+        # Exclude patterns for files/directories we don't want to copy
+        exclude_patterns = [
+            '.git',              # Git directory - we'll copy this separately
+            '.pytest_cache',     # Pytest cache
+            '__pycache__',       # Python cache
+            '*.pyc',            # Python compiled files
+            '.operate',          # Operate directory
+            'logs',             # Log files
+            '*.log',            # Log files
+            '.env'              # Environment files
+        ]
+        
+        def ignore_patterns(path, names):
+            return set(n for n in names if any(p in n or any(p.endswith(n) for p in exclude_patterns) for p in exclude_patterns))
+        
+        # First copy everything except excluded patterns
+        shutil.copytree(cls.original_cwd, cls.temp_dir.name, dirs_exist_ok=True, ignore=ignore_patterns)
+        
+        # Then copy .git directory
+        git_dir = Path(cls.original_cwd) / '.git'
+        if git_dir.exists():
+            shutil.copytree(git_dir, Path(cls.temp_dir.name) / '.git', symlinks=True)    
+            
+        # Switch to temporary directory
+        os.chdir(cls.temp_dir.name)
+        
         # Setup environment
         cls._setup_environment()
-        
-        # Create temporary directory for .operate
-        cls.temp_dir = tempfile.mkdtemp(prefix='operate_test_')
-        operate_path = Path('.operate')
-        if operate_path.exists():
-            if operate_path.is_symlink():
-                operate_path.unlink()
-            else:
-                shutil.rmtree(operate_path)
-        operate_path.symlink_to(cls.temp_dir)
         
         # Start the service
         cls.start_service()
         # Wait for service to fully start
-        time.sleep(5)
+        time.sleep(STARTUP_WAIT)
 
     @classmethod
     def _setup_environment(cls):
         """Setup environment for tests"""
+
+        cls.logger.info("Setting up test environment...")
+
         venv_path = os.environ.get('VIRTUAL_ENV')
         
         # Temporarily deactivate virtual environment
@@ -271,20 +301,17 @@ class TestService:
             cls.temp_env['PATH'] = os.pathsep.join(paths)
         else:
             cls.temp_env = os.environ
-        
+
+        cls.logger.info("Environment setup completed")
+
     @classmethod
     def teardown_class(cls):
         """Cleanup after all tests"""
         try:
-            # Remove symlink
-            operate_path = Path('.operate')
-            if operate_path.is_symlink():
-                operate_path.unlink()
-            
-            # Clean up temporary directory
-            if hasattr(cls, 'temp_dir') and os.path.exists(cls.temp_dir):
-                shutil.rmtree(cls.temp_dir)
-                
+            cls.logger.info("Starting test cleanup...")
+            os.chdir(cls.original_cwd)
+            cls.temp_dir.cleanup()
+            cls.logger.info("Cleanup completed successfully")
         except Exception as e:
             cls.logger.error(f"Error during cleanup: {str(e)}")
             
@@ -330,14 +357,14 @@ class TestService:
                 cls.logger.info("Initial setup completed")
                 
                 # Add delay to ensure services are up
-                time.sleep(30)
+                time.sleep(SERVICE_INIT_WAIT)
                 
                 # Verify Docker containers are running
                 retries = 5
                 while retries > 0:
                     if check_docker_status(cls.logger):
                         break
-                    time.sleep(10)
+                    time.sleep(CONTAINER_STOP_WAIT)
                     retries -= 1
                 
                 if retries == 0:
@@ -367,7 +394,10 @@ class TestService:
     def test_02_docker_status(self):
         """Test Docker container status"""
         self.logger.info("Testing Docker container status...")
-        assert check_docker_status(self.logger) == True, "Docker status check failed"
+        assert check_docker_status(self.logger), (
+            "Docker containers are not running correctly. "
+            "Check docker ps output for more details."
+        )
         
     def test_03_health_check(self):
         """Test service health endpoint"""
