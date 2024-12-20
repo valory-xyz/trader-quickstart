@@ -57,19 +57,39 @@ def check_docker_status(logger: logging.Logger) -> bool:
         logger.error(f"Error checking Docker status: {str(e)}")
         return False
 
-def check_service_health(logger: logging.Logger) -> bool:
-    """Check if the service is healthy."""
+def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
+    """Enhanced service health check with metrics."""
+    metrics = {
+        'response_time': None,
+        'status_code': None,
+        'error': None
+    }
+    
     try:
-        response = requests.get(HEALTH_CHECK_URL)
+        start_time = time.time()
+        response = requests.get(HEALTH_CHECK_URL, timeout=10)
+        metrics['response_time'] = time.time() - start_time
+        metrics['status_code'] = response.status_code
+        
         if response.status_code == 200:
-            logger.info("Service health check passed")
-            return True
+            logger.info(f"Health check passed (response time: {metrics['response_time']:.2f}s)")
+            return True, metrics
         else:
-            logger.error(f"Service health check failed with status code: {response.status_code}")
-            return False
+            logger.error(f"Health check failed - Status: {response.status_code}")
+            return False, metrics
+            
+    except requests.exceptions.Timeout:
+        metrics['error'] = 'timeout'
+        logger.error("Health check timeout")
+        return False, metrics
+    except requests.exceptions.ConnectionError as e:
+        metrics['error'] = 'connection_error'
+        logger.error(f"Connection error: {str(e)}")
+        return False, metrics
     except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return False
+        metrics['error'] = str(e)
+        logger.error(f"Unexpected error in health check: {str(e)}")
+        return False, metrics
 
 def check_service_logs(logger: logging.Logger) -> bool:
     """Check service logs for critical errors."""
@@ -402,8 +422,13 @@ class TestService:
     def test_03_health_check(self):
         """Test service health endpoint"""
         self.logger.info("Testing service health...")
-        assert check_service_health(self.logger) == True, "Health check failed"
+        status, metrics = check_service_health(self.logger)
         
+        # Log the metrics for debugging/monitoring
+        self.logger.info(f"Health check metrics: {metrics}")
+        
+        assert status == True, f"Health check failed with metrics: {metrics}"
+            
     def test_04_shutdown_logs(self):
         """Test service shutdown logs"""
         self.logger.info("Testing shutdown logs...")
