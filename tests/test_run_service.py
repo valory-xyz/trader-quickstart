@@ -2,13 +2,14 @@
 """Test run_service.py script using pytest for reliable automation."""
 
 import re
-import shutil
 import sys
 import logging
 import pexpect
 import os
 import time
 import pytest
+import tempfile
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -175,16 +176,6 @@ class ColoredFormatter(logging.Formatter):
         
         return super().format(record)
 
-def cleanup_previous_run(logger: logging.Logger):
-    """Clean up previous run artifacts."""
-    operate_folder = Path("./.operate")  # Using relative path
-    if operate_folder.exists():
-        try:
-            logger.info(f"Removing .operate folder")
-            shutil.rmtree(operate_folder, ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Error while cleaning up .operate folder: {str(e)}")
-            
 def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     """Set up logging configuration."""
     logs_dir = Path("logs")
@@ -245,54 +236,70 @@ class TestService:
         cls.log_file = Path(f'test_run_service_{timestamp}.log')
         cls.logger = setup_logging(cls.log_file)
         
+        # Setup environment
+        cls._setup_environment()
+        
+        # Create temporary directory for .operate
+        cls.temp_dir = tempfile.mkdtemp(prefix='operate_test_')
+        operate_path = Path('.operate')
+        if operate_path.exists():
+            if operate_path.is_symlink():
+                operate_path.unlink()
+            else:
+                shutil.rmtree(operate_path)
+        operate_path.symlink_to(cls.temp_dir)
+        
         # Start the service
         cls.start_service()
         # Wait for service to fully start
         time.sleep(5)
+
+    @classmethod
+    def _setup_environment(cls):
+        """Setup environment for tests"""
+        venv_path = os.environ.get('VIRTUAL_ENV')
+        
+        # Temporarily deactivate virtual environment
+        if venv_path:
+            cls.temp_env = os.environ.copy()
+            cls.temp_env.pop('VIRTUAL_ENV', None)
+            cls.temp_env.pop('POETRY_ACTIVE', None)
+            
+            # Update PATH to remove the virtual environment
+            paths = cls.temp_env['PATH'].split(os.pathsep)
+            paths = [p for p in paths if not p.startswith(venv_path)]
+            cls.temp_env['PATH'] = os.pathsep.join(paths)
+        else:
+            cls.temp_env = os.environ
         
     @classmethod
     def teardown_class(cls):
         """Cleanup after all tests"""
         try:
-                # First stop the service
-            cls.stop_service()
+            # Remove symlink
+            operate_path = Path('.operate')
+            if operate_path.is_symlink():
+                operate_path.unlink()
             
-            # Wait for service to fully stop
-            time.sleep(10)
-            
-            # Then clean up the folder
-            cleanup_previous_run(cls.logger)
+            # Clean up temporary directory
+            if hasattr(cls, 'temp_dir') and os.path.exists(cls.temp_dir):
+                shutil.rmtree(cls.temp_dir)
+                
         except Exception as e:
             cls.logger.error(f"Error during cleanup: {str(e)}")
-        
+            
     @classmethod
     def start_service(cls):
         """Start the service and handle initial setup."""
         try:
             cls.logger.info("Starting run_service.py test")
             
-            # Get current virtual environment path
-            venv_path = os.environ.get('VIRTUAL_ENV')
-            
-            # Temporarily deactivate virtual environment
-            if venv_path:
-                temp_env = os.environ.copy()
-                temp_env.pop('VIRTUAL_ENV', None)
-                temp_env.pop('POETRY_ACTIVE', None)
-                
-                # Update PATH to remove the virtual environment
-                paths = temp_env['PATH'].split(os.pathsep)
-                paths = [p for p in paths if not p.startswith(venv_path)]
-                temp_env['PATH'] = os.pathsep.join(paths)
-            else:
-                temp_env = os.environ
-            
             # Start the process with pexpect
             cls.child = pexpect.spawn(
                 'bash ./run_service.sh',
                 encoding='utf-8',
                 timeout=600,
-                env=temp_env,
+                env=cls.temp_env,
                 cwd="."
             )
             
@@ -370,6 +377,15 @@ class TestService:
     def test_04_shutdown_logs(self):
         """Test service shutdown logs"""
         self.logger.info("Testing shutdown logs...")
+        # First stop the service
+        self.stop_service()
+        # Wait for containers to stop
+        time.sleep(10)
+        # Verify containers are stopped
+        client = docker.from_env()
+        containers = client.containers.list(filters={"name": "traderpearl"})
+        assert len(containers) == 0, "Containers are still running"
+        # Now check the logs
         assert check_shutdown_logs(self.logger) == True, "Shutdown logs check failed"
 
 if __name__ == "__main__":
