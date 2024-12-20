@@ -47,17 +47,17 @@ from scripts.predict_trader.trades import (
 )
 from web3 import HTTPProvider, Web3
 
-from operate.constants import OPERATE_HOME
+from operate.constants import (
+    OPERATE_HOME,
+    STAKING_TOKEN_JSON_URL,
+    ACTIVITY_CHECKER_JSON_URL,
+    SERVICE_REGISTRY_TOKEN_UTILITY_JSON_URL,
+    MECH_CONTRACT_JSON_URL,
+)
 from operate.quickstart.run_service import load_local_config
 from scripts.utils import get_service_from_config
 
-
 SCRIPT_PATH = Path(__file__).resolve().parent
-STAKING_TOKEN_JSON_URL = "https://raw.githubusercontent.com/valory-xyz/trader/refs/heads/main/packages/valory/contracts/service_staking_token/build/ServiceStakingToken.json"
-ACTIVITY_CHECKER_JSON_URL = "https://raw.githubusercontent.com/valory-xyz/trader/refs/heads/main/packages/valory/contracts/mech_activity/build/MechActivity.json"
-SERVICE_REGISTRY_TOKEN_UTILITY_JSON_URL = "https://raw.githubusercontent.com/valory-xyz/open-autonomy/refs/heads/main/packages/valory/contracts/service_registry_token_utility/build/ServiceRegistryTokenUtility.json"
-MECH_CONTRACT_JSON_URL = "https://raw.githubusercontent.com/valory-xyz/mech/refs/heads/main/packages/valory/contracts/agent_mech/build/AgentMech.json"
-
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
