@@ -1,4 +1,4 @@
-name: Python Tests
+name: Qucikstart Tests
 on:
   push:
     branches:
@@ -57,9 +57,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y git
         
+    - name: Clean Python cache
+      run: |
+        sudo rm -rf ~/.cache/pip
+        sudo rm -rf ~/.cache/poetry
+        sudo rm -rf .pytest_cache
+        sudo rm -rf .venv
+        sudo rm -rf poetry.lock
+        
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | python3 -
+        curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.7.1 python3 -
         
     - name: Configure Poetry
       run: |
@@ -76,7 +84,7 @@ jobs:
         
     - name: Install project dependencies
       run: |
-        poetry install --no-interaction --no-root
+        poetry install --no-interaction
         
     - name: Run tests
       run: |
