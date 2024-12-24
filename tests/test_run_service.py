@@ -28,8 +28,8 @@ init()
 load_dotenv()
 
 STARTUP_WAIT = 20 
-SERVICE_INIT_WAIT = 60 
-CONTAINER_STOP_WAIT = 45
+SERVICE_INIT_WAIT = 300 
+CONTAINER_STOP_WAIT = 60
 
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
