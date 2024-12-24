@@ -1,5 +1,4 @@
 name: Python Tests
-
 on:
   push:
     branches:
@@ -11,6 +10,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      RPC_URL: ${{ secrets.RPC_URL }}
+      BACKUP_WALLET: ${{ secrets.BACKUP_WALLET }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      STAKING_CHOICE: ${{ secrets.STAKING_CHOICE }}
     
     steps:
     - uses: actions/checkout@v3
@@ -18,7 +23,19 @@ jobs:
     - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'  # Explicitly setting Python 3.10
+        python-version: '3.10'
+        
+    - name: Set up Docker
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker.io
+        sudo systemctl start docker
+        sudo usermod -aG docker $USER
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git
         
     - name: Install Poetry
       run: |
@@ -28,16 +45,26 @@ jobs:
       run: |
         poetry config virtualenvs.create true
         poetry config virtualenvs.in-project true
-        poetry config installer.max-workers 10
         
-    - name: Clear Poetry Cache and Lock File
+    - name: Create .env file
       run: |
-        rm -f poetry.lock || true
-        poetry cache clear . --all || true
+        echo "RPC_URL=${RPC_URL}" > .env
+        echo "BACKUP_WALLET=${BACKUP_WALLET}" >> .env
+        echo "TEST_PASSWORD=${TEST_PASSWORD}" >> .env
+        echo "PRIVATE_KEY=${PRIVATE_KEY}" >> .env
+        echo "STAKING_CHOICE=${STAKING_CHOICE}" >> .env
         
-    - name: Install dependencies
+    - name: Install project dependencies
       run: |
-        poetry install --no-interaction
-      
+        poetry install --no-interaction --no-root
+        
     - name: Run tests
-      run: poetry run pytest -v tests/test_run_service.py -s --log-cli-level=INFO
+      run: |
+        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=INFO
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-logs
+        path: logs/
