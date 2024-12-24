@@ -21,19 +21,19 @@
 """This script queries the OMEN subgraph to obtain the trades of a given address."""
 
 import datetime
-import os
 import re
+import requests
+import sys
 from argparse import Action, ArgumentError, ArgumentParser, Namespace
 from collections import defaultdict
-from dotenv import load_dotenv
 from enum import Enum
 from pathlib import Path
 from string import Template
 from typing import Any, Dict, Optional
 
-import requests
-
-from scripts.mech_events import get_mech_requests
+from operate.quickstart.run_service import load_local_config
+from scripts.predict_trader.mech_events import get_mech_requests
+from scripts.utils import get_service_from_config, get_subgraph_api_key
 
 
 IRRELEVANT_TOOLS = [
@@ -57,16 +57,7 @@ DEFAULT_TO_DATE = "2038-01-19T03:14:07"
 DEFAULT_FROM_TIMESTAMP = 0
 DEFAULT_TO_TIMESTAMP = 2147483647
 SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
-RPC_PATH = Path(STORE_PATH, "rpc.txt")
-ENV_FILE = Path(STORE_PATH, ".env")
 WXDAI_CONTRACT_ADDRESS = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
-SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
-SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
-
-
-load_dotenv(ENV_FILE)
 
 
 headers = {
@@ -297,8 +288,12 @@ def _parse_args() -> Any:
     args = parser.parse_args()
 
     if args.creator is None:
-        with open(SAFE_ADDRESS_PATH, "r", encoding="utf-8") as file:
-            args.creator = file.read().strip()
+        template_path = Path(SCRIPT_PATH.parents[1], "configs", "config_predict_trader.json")
+        if not template_path.exists():
+            print("No Safe address found!")
+            sys.exit(1)
+
+        args.creator = get_service_from_config(template_path).chain_configs["gnosis"].chain_data.multisig
 
     args.from_date = args.from_date.replace(tzinfo=datetime.timezone.utc)
     args.to_date = args.to_date.replace(tzinfo=datetime.timezone.utc)
@@ -330,7 +325,7 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
     fpmm_to_timestamp: float = DEFAULT_TO_TIMESTAMP,
 ) -> Dict[str, Any]:
     """Query the subgraph."""
-    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    subgraph_api_key = get_subgraph_api_key()
     url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz"
 
     grouped_results = defaultdict(list)
@@ -376,7 +371,7 @@ def _query_omen_xdai_subgraph(  # pylint: disable=too-many-locals
 
 def _query_conditional_tokens_gc_subgraph(creator: str) -> Dict[str, Any]:
     """Query the subgraph."""
-    subgraph_api_key = os.getenv('SUBGRAPH_API_KEY')
+    subgraph_api_key = get_subgraph_api_key()
     url = f"https://gateway-arbitrum.network.thegraph.com/api/{subgraph_api_key}/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
 
     all_results: Dict[str, Any] = {"data": {"user": {"userPositions": []}}}
@@ -854,8 +849,8 @@ def get_mech_statistics(mech_requests: Dict[str, Any]) -> Dict[str, Dict[str, in
 if __name__ == "__main__":
     user_args = _parse_args()
 
-    with open(RPC_PATH, "r", encoding="utf-8") as rpc_file:
-        rpc = rpc_file.read()
+    config = load_local_config()
+    rpc = config.gnosis_rpc
 
     mech_requests = get_mech_requests(
         user_args.creator,

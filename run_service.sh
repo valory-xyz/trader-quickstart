@@ -21,45 +21,13 @@
 # force utf mode for python, cause sometimes there are issues with local codepages
 export PYTHONUTF8=1
 
-# ------------------
-# Script starts here
-# ------------------
-
 set -e  # Exit script on first error
-
-# Initialize repo and version variables
-org_name="valory-xyz"
-directory="trader"
-service_repo=https://github.com/$org_name/$directory.git
-
-echo ""
-echo "==================="
-echo " Trader quickstart "
-echo "==================="
-echo ""
-echo "This script will assist you in setting up and running the Trader service ($service_repo)."
-echo ""
 
 # Display information of the Git repository
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 latest_commit_hash=$(git rev-parse HEAD)
 echo "Current branch: $current_branch"
 echo "Commit hash: $latest_commit_hash"
-
-# Check the command-line arguments
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        --build-only)
-            echo "Build-only flag selected."
-            export BUILD_ONLY=true
-            ;;
-        --attended=false)
-            export ATTENDED=false
-            ;;
-        *) echo "Unknown parameter: $1" ;;
-    esac
-    shift
-done
 
 # Check if user is inside a venv
 if [[ "$VIRTUAL_ENV" != "" ]]
@@ -71,14 +39,18 @@ fi
 # Check dependencies
 if command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD="python3"
-    python3 scripts/check_python.py
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
-    python scripts/check_python.py
 else
     echo >&2 "Python is not installed!";
     exit 1
 fi
+
+if ! [[ $($PYTHON_CMD --version) =~ ^(Python\ 3\.[8-9])|(Python\ 3\.10)|(Python\ 3\.11) ]]; then
+    echo "Python version >=3.8.0, <3.12.0 is required"
+    exit 1
+fi
+echo "`$PYTHON_CMD --version` is compatible"
 
 command -v poetry >/dev/null 2>&1 ||
 { echo >&2 "Poetry is not installed!";
@@ -97,4 +69,4 @@ docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
 
 # Install dependencies and run the agent througth the middleware
 poetry install --no-cache
-poetry run python -m operate.cli quickstart config.json
+poetry run python -m operate.cli quickstart "$1"

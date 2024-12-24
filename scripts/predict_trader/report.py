@@ -22,19 +22,20 @@
 
 import json
 import math
+import sys
 import time
 import traceback
 from argparse import ArgumentParser
 from collections import Counter
 
-from dotenv import dotenv_values
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import docker
-import trades
-from trades import (
+import requests
+import scripts.predict_trader.trades as trades
+from scripts.predict_trader.trades import (
     MarketAttribute,
     MarketState,
     get_balance,
@@ -46,62 +47,17 @@ from trades import (
 )
 from web3 import HTTPProvider, Web3
 
+from operate.constants import (
+    OPERATE_HOME,
+    STAKING_TOKEN_JSON_URL,
+    ACTIVITY_CHECKER_JSON_URL,
+    SERVICE_REGISTRY_TOKEN_UTILITY_JSON_URL,
+    MECH_CONTRACT_JSON_URL,
+)
+from operate.quickstart.run_service import load_local_config
+from scripts.utils import get_service_from_config
 
 SCRIPT_PATH = Path(__file__).resolve().parent
-STORE_PATH = Path(SCRIPT_PATH, ".trader_runner")
-DOTENV_PATH = Path(STORE_PATH, ".env")
-RPC_PATH = Path(STORE_PATH, "rpc.txt")
-AGENT_KEYS_JSON_PATH = Path(STORE_PATH, "keys.json")
-OPERATOR_KEYS_JSON_PATH = Path(STORE_PATH, "operator_keys.json")
-SAFE_ADDRESS_PATH = Path(STORE_PATH, "service_safe_address.txt")
-SERVICE_ID_PATH = Path(STORE_PATH, "service_id.txt")
-STAKING_TOKEN_JSON_PATH = Path(
-    SCRIPT_PATH,
-    "trader",
-    "packages",
-    "valory",
-    "contracts",
-    "staking_token",
-    "build",
-    "StakingToken.json",
-)
-ACTIVITY_CHECKER_JSON_PATH = Path(
-    SCRIPT_PATH,
-    "trader",
-    "packages",
-    "valory",
-    "contracts",
-    "mech_activity",
-    "build",
-    "MechActivity.json",
-)
-SERVICE_REGISTRY_L2_JSON_PATH = Path(
-    SCRIPT_PATH,
-    "trader",
-    "packages",
-    "valory",
-    "contracts",
-    "service_registry",
-    "build",
-    "ServiceRegistryL2.json",
-)
-SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH = Path(
-    SCRIPT_PATH,
-    "contracts",
-    "ServiceRegistryTokenUtility.json",
-)
-MECH_CONTRACT_ADDRESS = "0x77af31De935740567Cf4fF1986D04B2c964A786a"
-MECH_CONTRACT_JSON_PATH = Path(
-    SCRIPT_PATH,
-    "trader",
-    "packages",
-    "valory",
-    "contracts",
-    "mech",
-    "build",
-    "mech.json",
-)
-
 SAFE_BALANCE_THRESHOLD = 500000000000000000
 AGENT_XDAI_BALANCE_THRESHOLD = 50000000000000000
 OPERATOR_XDAI_BALANCE_THRESHOLD = 50000000000000000
@@ -263,24 +219,23 @@ def _parse_args() -> Any:
 if __name__ == "__main__":
     user_args = _parse_args()
 
-    with open(AGENT_KEYS_JSON_PATH, "r", encoding="utf-8") as file:
-        agent_keys_data = json.load(file)
-    agent_address = agent_keys_data[0]["address"]
+    operate_wallet_path = OPERATE_HOME / "wallets" / "ethereum.json"
+    if not operate_wallet_path.exists():
+        print("Operate wallet not found.")
+        sys.exit(1)
 
-    with open(OPERATOR_KEYS_JSON_PATH, "r", encoding="utf-8") as file:
-        operator_keys_data = json.load(file)
-    operator_address = operator_keys_data[0]["address"]
+    with open(operate_wallet_path) as file:
+        operator_wallet_data = json.load(file)
 
-    with open(SAFE_ADDRESS_PATH, "r", encoding="utf-8") as file:
-        safe_address = file.read().strip()
-
-    with open(SERVICE_ID_PATH, "r", encoding="utf-8") as file:
-        service_id = int(file.read().strip())
-
-    with open(RPC_PATH, "r", encoding="utf-8") as file:
-        rpc = file.read().strip()
-
-    env_file_vars = dotenv_values(DOTENV_PATH)
+    template_path = Path(SCRIPT_PATH.parents[1], "configs", "config_predict_trader.json")
+    config = load_local_config()
+    service = get_service_from_config(template_path)
+    chain_config = service.chain_configs["gnosis"]
+    agent_address = service.keys[0].address
+    operator_address = operator_wallet_data["address"]
+    safe_address = chain_config.chain_data.multisig
+    service_id = chain_config.chain_data.token
+    rpc = chain_config.ledger_config.rpc
 
     # Prediction market trading
     mech_requests = trades.get_mech_requests(safe_address)
@@ -302,9 +257,8 @@ if __name__ == "__main__":
     try:
         w3 = Web3(HTTPProvider(rpc))
 
-        staking_token_address = env_file_vars.get("CUSTOM_STAKING_ADDRESS")
-        with open(STAKING_TOKEN_JSON_PATH, "r", encoding="utf-8") as file:
-            staking_token_data = json.load(file)
+        staking_token_address = config.staking_vars["CUSTOM_STAKING_ADDRESS"]
+        staking_token_data = requests.get(STAKING_TOKEN_JSON_URL).json()
 
         staking_token_abi = staking_token_data.get("abi", [])
         staking_token_contract = w3.eth.contract(
@@ -312,7 +266,7 @@ if __name__ == "__main__":
         )
 
         staking_state = StakingState(
-            staking_token_contract.functions.getStakingState(
+            staking_token_contract.functions.getServiceStakingState(
                 service_id
             ).call()
         )
@@ -332,19 +286,14 @@ if __name__ == "__main__":
         if is_staked:
 
             activity_checker_address = staking_token_contract.functions.activityChecker().call()
-            with open(ACTIVITY_CHECKER_JSON_PATH, "r", encoding="utf-8") as file:
-                activity_checker_data = json.load(file)
+            activity_checker_data = requests.get(ACTIVITY_CHECKER_JSON_URL).json()
 
             activity_checker_abi = activity_checker_data.get("abi", [])
             activity_checker_contract = w3.eth.contract(
                 address=activity_checker_address, abi=activity_checker_abi  # type: ignore
             )
 
-            with open(
-                SERVICE_REGISTRY_TOKEN_UTILITY_JSON_PATH, "r", encoding="utf-8"
-            ) as file:
-                service_registry_token_utility_data = json.load(file)
-
+            service_registry_token_utility_data = requests.get(SERVICE_REGISTRY_TOKEN_UTILITY_JSON_URL).json()
             service_registry_token_utility_contract_address = (
                 staking_token_contract.functions.serviceRegistryTokenUtility().call()
             )
@@ -356,9 +305,8 @@ if __name__ == "__main__":
                 abi=service_registry_token_utility_abi,
             )
 
-            mech_contract_address = env_file_vars.get("MECH_CONTRACT_ADDRESS")
-            with open(MECH_CONTRACT_JSON_PATH, "r", encoding="utf-8") as file:
-                mech_contract_data = json.load(file)
+            mech_contract_address = config.staking_vars["MECH_CONTRACT_ADDRESS"]
+            mech_contract_data = requests.get(MECH_CONTRACT_JSON_URL).json()
 
             mech_contract_abi = mech_contract_data.get("abi", [])
 
@@ -371,7 +319,7 @@ if __name__ == "__main__":
                     operator_address, service_id
                 ).call()
             )
-            agent_id = int(env_file_vars.get("AGENT_ID").strip())
+            agent_id = int(config.staking_vars["AGENT_ID"].strip())
             agent_bond = service_registry_token_utility_contract.functions.getAgentBond(
                 service_id, agent_id
             ).call()

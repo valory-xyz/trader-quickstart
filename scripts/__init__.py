@@ -17,4 +17,4 @@
 #
 # ------------------------------------------------------------------------------
 
-"""This directory contains scripts for the trader-quickstart repository."""
+"""This directory contains scripts for the quickstart repository."""

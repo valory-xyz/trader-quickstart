@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "trader-quickstart"
+name = "quickstart"
 version = "0.1.0"
-description = "A quickstart for the trader agent for AI prediction markets on Gnosis at https://github.com/valory-xyz/trader"
+description = "A quickstart for the OLAS agents"
 authors = ["David Vilela <dvilelaf@gmail.com>", "Viraj Patel <vptl185@gmail.com>", "Ojuswi Rastogi <ojuswimail@gmail.com>"]
 readme = "README.md"
 package-mode = false
