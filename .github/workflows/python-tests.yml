@@ -67,7 +67,7 @@ jobs:
         
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.7.1 python3 -
+        curl -sSL https://install.python-poetry.org | python3 -
         
     - name: Configure Poetry
       run: |
@@ -84,6 +84,9 @@ jobs:
         
     - name: Install project dependencies
       run: |
+        # Ensure we're using python 3.10
+        python -m pip install --upgrade pip
+        poetry env use python3.10
         poetry install --no-interaction
         
     - name: Run tests
