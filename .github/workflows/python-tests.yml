@@ -1,4 +1,4 @@
-name: Qucikstart Tests
+name: Quickstart Tests
 on:
   push:
     branches:
@@ -16,6 +16,7 @@ jobs:
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       STAKING_CHOICE: ${{ secrets.STAKING_CHOICE }}
+      DOCKER_LOGS_DIR: ${GITHUB_WORKSPACE}/logs
     
     steps:
     - uses: actions/checkout@v3
@@ -27,30 +28,40 @@ jobs:
         
     - name: Set up Docker
       run: |
-        # Remove any conflicting packages
-        for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
-          sudo apt-get remove $pkg || true
-        done
-
-        # Add Docker's official GPG key
+        # Stop and remove existing Docker installations
+        sudo systemctl stop docker || true
+        sudo systemctl stop docker.socket || true
+        
+        # Clean existing installations
+        sudo apt-get remove -y docker docker-engine docker.io containerd runc
         sudo apt-get update
-        sudo apt-get install -y ca-certificates curl gnupg
-        sudo install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        
+        # Install prerequisites
+        sudo apt-get install -y \
+          apt-transport-https \
+          ca-certificates \
+          curl \
+          gnupg \
+          lsb-release
 
-        # Add the repository to Apt sources
+        # Add Docker's GPG key
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        
+        # Add Docker repository
         echo \
-          "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-          "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
         # Install Docker
         sudo apt-get update
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
         
-        # Verify installation
-        sudo docker --version
+        # Get current user info
+        CURRENT_USER=$(id -u)
+        CURRENT_GROUP=$(id -g)
+        
+        # Start Docker service
+        sudo systemctl start docker
         
     - name: Install system dependencies
       run: |
@@ -81,21 +92,45 @@ jobs:
         echo "TEST_PASSWORD=${TEST_PASSWORD}" >> .env
         echo "PRIVATE_KEY=${PRIVATE_KEY}" >> .env
         echo "STAKING_CHOICE=${STAKING_CHOICE}" >> .env
+        echo "DOCKER_LOGS_DIR=${DOCKER_LOGS_DIR}" >> .env
         
     - name: Install project dependencies
       run: |
-        # Ensure we're using python 3.10
         python -m pip install --upgrade pip
         poetry env use python3.10
         poetry install --no-interaction
         
+
     - name: Run tests
+      run: |  
+        # Run the tests with debug logging
+        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=DEBUG
+
+    - name: Debug container failure
+      if: failure()
       run: |
-        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=INFO
+        echo "==== Docker container status ===="
+        docker ps -a
+        
+        echo "==== Container logs ===="
+        for container in $(docker ps -aq); do
+          echo "=== Logs for $container ==="
+          docker logs $container
+          
+          echo "=== Inspect for $container ==="
+          docker inspect $container
+        done
+        
+        echo "==== Directory permissions ===="
+        ls -la /logs/
+        ls -la ${GITHUB_WORKSPACE}/logs/
 
     - name: Upload test logs
       if: always()
       uses: actions/upload-artifact@v3
       with:
         name: test-logs
-        path: logs/
+        path: |
+          logs/
+          /logs/
+          .env

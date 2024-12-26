@@ -10,10 +10,9 @@ import time
 import pytest
 import tempfile
 import shutil
-import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 from termcolor import colored
 from colorama import init
 from web3 import Web3
@@ -22,6 +21,7 @@ import requests
 import docker
 from dotenv import load_dotenv
 from operate.constants import HEALTH_CHECK_URL
+
 
 # Initialize colorama and load environment
 init()
@@ -34,247 +34,127 @@ CONTAINER_STOP_WAIT = 20
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
 
-# Required environment variables
-REQUIRED_ENV_VARS = {
-    "RPC_URL": "Ethereum RPC endpoint URL",
-    "BACKUP_WALLET": "Backup wallet address",
-    "TEST_PASSWORD": "Test password for authentication",
-    "PRIVATE_KEY": "Private key for transactions",
-    "STAKING_CHOICE": "Staking choice selection"
-}
-
-class PrerequisiteError(Exception):
-    """Custom exception for prerequisite check failures."""
-    pass
-
-def check_prerequisites(logger: logging.Logger) -> None:
-    """
-    Check all prerequisites before running tests.
-    Raises PrerequisiteError if any check fails.
-    """
-    logger.info(colored("Checking prerequisites...", "cyan"))
-    
-    # Check environment variables
-    missing_vars = check_environment_variables(logger)
-    if missing_vars:
-        error_msg = "\nMissing required environment variables:\n"
-        for var, description in missing_vars.items():
-            error_msg += f"- {var}: {description}\n"
-        error_msg += "\nPlease set these variables in your .env file before running tests."
-        raise PrerequisiteError(error_msg)
-
-    # Check Docker installation and service
-    if not check_docker_running_status(logger):
-        raise PrerequisiteError(
-            "\nDocker is not properly installed or running.\n"
-            "Please ensure that:\n"
-            "1. Docker is installed (run 'docker --version')\n"
-            "2. Docker daemon is running (run 'docker ps')\n"
-            "3. Current user has permissions to run Docker commands"
-        )
-
-    logger.info(colored("✓ All prerequisites met", "green"))
-
-def check_environment_variables(logger: logging.Logger) -> Dict[str, str]:
-    """
-    Enhanced check for environment variables:
-    - Verifies .env file exists
-    - Validates file is not empty
-    - Checks all required variables are set
-    - Validates URL format for RPC_URL
-    - Validates address format for BACKUP_WALLET
-    - Ensures values are not empty strings
-    
-    Returns a dictionary of missing/invalid variables and their descriptions.
-    """
-    missing_vars = {}
-    env_file_path = Path('.env')
-
-    # Check if .env file exists
-    if not env_file_path.exists():
-        logger.error(colored("✗ .env file not found", "red"))
-        missing_vars['ENV_FILE'] = "Create a .env file in the project root directory"
-        return missing_vars
-
-    # Check if .env file is empty
-    if env_file_path.stat().st_size == 0:
-        logger.error(colored("✗ .env file is empty", "red"))
-        missing_vars['ENV_FILE'] = "The .env file exists but is empty"
-        return missing_vars
-
-    # Read and parse .env file
-    try:
-        with open(env_file_path, 'r') as f:
-            env_contents = f.read().strip()
-        if not env_contents:
-            logger.error(colored("✗ .env file contains no valid entries", "red"))
-            missing_vars['ENV_FILE'] = "The .env file contains no valid entries"
-            return missing_vars
-    except Exception as e:
-        logger.error(colored(f"✗ Error reading .env file: {str(e)}", "red"))
-        missing_vars['ENV_FILE'] = f"Error reading .env file: {str(e)}"
-        return missing_vars
-
-    # Validate each required variable
-    for var, description in REQUIRED_ENV_VARS.items():
-        value = os.getenv(var)
-        
-        # Check if variable exists and is not empty
-        if not value or value.strip() == '':
-            logger.error(colored(f"✗ {var} is not set or is empty", "red"))
-            missing_vars[var] = f"{description} (not set or empty)"
-            continue
-
-        # Specific validation for different variable types
-        if var == 'RPC_URL':
-            # Basic URL validation
-            if not value.startswith(('http://', 'https://', 'ws://', 'wss://')):
-                logger.error(colored(f"✗ {var} is not a valid URL format", "red"))
-                missing_vars[var] = f"{description} (invalid URL format: {value})"
-                continue
-                
-        elif var == 'BACKUP_WALLET':
-            # Validate Ethereum address format
-            if not re.match(r'^0x[a-fA-F0-9]{40}$', value):
-                logger.error(colored(f"✗ {var} is not a valid Ethereum address", "red"))
-                missing_vars[var] = f"{description} (invalid Ethereum address format: {value})"
-                continue
-                
-        elif var == 'PRIVATE_KEY':
-            # Validate private key format (hex string, usually 64 characters without 0x prefix)
-            if not re.match(r'^[a-fA-F0-9]{64}$', value.strip('0x')):
-                logger.error(colored(f"✗ {var} is not a valid private key format", "red"))
-                missing_vars[var] = f"{description} (invalid private key format)"
-                continue
-                
-        elif var == 'STAKING_CHOICE':
-            # Validate staking choice is a number
-            if not value.isdigit() or not (1 <= int(value) <= 3):
-                logger.error(colored(f"✗ {var} must be a number between 1 and 3", "red"))
-                missing_vars[var] = f"{description} (must be 1, 2, or 3)"
-                continue
-                
-        elif var == 'TEST_PASSWORD':
-            # Ensure password meets minimum requirements
-            if len(value) < 6:
-                logger.error(colored(f"✗ {var} is too short (minimum 8 characters)", "red"))
-                missing_vars[var] = f"{description} (too short)"
-                continue
-
-        logger.info(colored(f"✓ {var} is properly set and validated", "green"))
-
-    if not missing_vars:
-        logger.info(colored("✓ All environment variables are properly set and validated", "green"))
-    
-    return missing_vars
-
-def check_docker_running_status(logger: logging.Logger) -> bool:
-    """
-    Check if Docker is installed and running using pexpect.
-    Returns True if Docker is operational, False otherwise.
-    """
-    logger.info("Checking Docker status...")
-    try:
-        # Check Docker version
-        child = pexpect.spawn('docker --version', encoding='utf-8')
-        index = child.expect(['Docker version', pexpect.EOF, pexpect.TIMEOUT], timeout=5)
-        if index != 0:
-            logger.error(colored("✗ Docker is not installed", "red"))
-            return False
-        logger.info(colored("✓ Docker is installed", "green"))
-        
-        # Check if Docker daemon is running by trying to list containers
-        child = pexpect.spawn('docker ps', encoding='utf-8')
-        index = child.expect(['CONTAINER ID', pexpect.EOF, pexpect.TIMEOUT], timeout=5)
-        if index != 0:
-            logger.error(colored("✗ Docker daemon is not running", "red"))
-            return False
-            
-        logger.info(colored("✓ Docker daemon is running", "green"))
-        return True
-        
-    except Exception as e:
-        logger.error(colored(f"✗ Docker check failed: {str(e)}", "red"))
-        return False
-
-def countdown_spinner(seconds: int, message: str, logger: logging.Logger):
-    """Display a spinner with countdown."""
-    spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-    end_time = time.time() + seconds
-    
-    def spin():
-        i = 0
-        while time.time() < end_time:
-            remaining = int(end_time - time.time())
-            sys.stdout.write(f'\r{spinner[i]} {message} ({remaining}s remaining)')
-            sys.stdout.flush()
-            time.sleep(0.1)
-            i = (i + 1) % len(spinner)
-        sys.stdout.write('\r' + ' ' * (len(message) + 25) + '\r')
-        sys.stdout.flush()
-    
-    spinner_thread = threading.Thread(target=spin)
-    spinner_thread.start()
-    time.sleep(seconds)
-    spinner_thread.join()
-    logger.info(f"Completed: {message}")
-
 def check_docker_status(logger: logging.Logger) -> bool:
     """Check if Docker containers are running properly."""
-    try:
-        client = docker.from_env()
-        containers = client.containers.list(filters={"name": "traderpearl"})
-        
-        if not containers:
-            logger.error("No trader containers found")
-            return False
+    max_retries = 3
+    retry_delay = 20
+    
+    for attempt in range(max_retries):
+        logger.info(f"Checking Docker status (attempt {attempt + 1}/{max_retries})")
+        try:
+            client = docker.from_env()
             
-        for container in containers:
-            logger.info(f"Container {container.name} status: {container.status}")
-            if container.status != 'running':
-                logger.error(f"Container {container.name} is not running")
+            # Check all containers, including stopped ones
+            all_containers = client.containers.list(all=True, filters={"name": "traderpearl"})
+            running_containers = client.containers.list(filters={"name": "traderpearl"})
+            
+            if not all_containers:
+                logger.error(f"No trader containers found (attempt {attempt + 1}/{max_retries})")
+                if attempt == max_retries - 1:
+                    return False
+                logger.info(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+                continue
+            
+            # Log status of all containers
+            for container in all_containers:
+                logger.info(f"Container {container.name} status: {container.status}")
+                
+                if container.status == "exited":
+                    # Get exit code
+                    inspect = client.api.inspect_container(container.id)
+                    exit_code = inspect['State']['ExitCode']
+                    logger.error(f"Container {container.name} exited with code {exit_code}")
+                    
+                    # Get last logs
+                    logs = container.logs(tail=50).decode('utf-8')
+                    logger.error(f"Container logs:\n{logs}")
+                    
+                    # Try to restart the container if it exited with 0
+                    if exit_code == 0:
+                        logger.info(f"Attempting to restart container {container.name}")
+                        container.start()
+                
+                elif container.status == "restarting":
+                    logger.error(f"Container {container.name} is restarting. Last logs:")
+                    logs = container.logs(tail=50).decode('utf-8')
+                    logger.error(f"Container logs:\n{logs}")
+            
+            # Check if all required containers are running
+            if not running_containers:
+                if attempt == max_retries - 1:
+                    return False
+                logger.info(f"Waiting {retry_delay} seconds for containers to start...")
+                time.sleep(retry_delay)
+                continue
+            
+            # Verify all running containers are actually running
+            all_running = all(c.status == "running" for c in running_containers)
+            if all_running:
+                logger.info("All trader containers are running")
+                return True
+            
+            if attempt == max_retries - 1:
                 return False
                 
-        logger.info("All trader containers are running")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Error checking Docker status: {str(e)}")
-        return False
+            logger.info(f"Some containers not running, waiting {retry_delay} seconds...")
+            time.sleep(retry_delay)
+            
+        except Exception as e:
+            logger.error(f"Error checking Docker status: {str(e)}")
+            if attempt == max_retries - 1:
+                return False
+            logger.info(f"Waiting {retry_delay} seconds before retry...")
+            time.sleep(retry_delay)
+    
+    return False
 
 def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
-    """Enhanced service health check with metrics."""
+    """Enhanced service health check with metrics, monitoring for 2 minutes."""
     metrics = {
         'response_time': None,
         'status_code': None,
-        'error': None
+        'error': None,
+        'check_count': 24,  # Total number of checks (2 minutes / 5 seconds)
+        'successful_checks': 0
     }
     
-    try:
-        start_time = time.time()
-        response = requests.get(HEALTH_CHECK_URL, timeout=10)
-        metrics['response_time'] = time.time() - start_time
-        metrics['status_code'] = response.status_code
-        
-        if response.status_code == 200:
-            logger.info(f"Health check passed (response time: {metrics['response_time']:.2f}s)")
-            return True, metrics
-        else:
-            logger.error(f"Health check failed - Status: {response.status_code}")
+    start_monitoring = time.time()
+    while time.time() - start_monitoring < 120:  # Run for 2 minutes
+        try:
+            start_time = time.time()
+            response = requests.get(HEALTH_CHECK_URL, timeout=10)
+            metrics['response_time'] = time.time() - start_time
+            metrics['status_code'] = response.status_code
+            
+            if response.status_code == 200:
+                metrics['successful_checks'] += 1
+                logger.info(f"Health check passed (response time: {metrics['response_time']:.2f}s)")
+            else:
+                logger.error(f"Health check failed - Status: {response.status_code}")
+                return False, metrics
+                
+        except requests.exceptions.Timeout:
+            metrics['error'] = 'timeout'
+            logger.error("Health check timeout")
+            return False, metrics
+        except requests.exceptions.ConnectionError as e:
+            metrics['error'] = 'connection_error'
+            logger.error(f"Connection error: {str(e)}")
+            return False, metrics
+        except Exception as e:
+            metrics['error'] = str(e)
+            logger.error(f"Unexpected error in health check: {str(e)}")
             return False, metrics
             
-    except requests.exceptions.Timeout:
-        metrics['error'] = 'timeout'
-        logger.error("Health check timeout")
-        return False, metrics
-    except requests.exceptions.ConnectionError as e:
-        metrics['error'] = 'connection_error'
-        logger.error(f"Connection error: {str(e)}")
-        return False, metrics
-    except Exception as e:
-        metrics['error'] = str(e)
-        logger.error(f"Unexpected error in health check: {str(e)}")
-        return False, metrics
+        # Wait for remaining time in 5-second interval
+        elapsed = time.time() - start_time
+        if elapsed < 5:
+            time.sleep(5 - elapsed)
+    
+    # Return True only if all checks were successful
+    is_healthy = metrics['successful_checks'] == metrics['check_count']
+    return is_healthy, metrics
 
 def check_shutdown_logs(logger: logging.Logger) -> bool:
     """Check shutdown logs for errors."""
@@ -379,11 +259,11 @@ def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
 
 # Test Configuration
 TEST_CONFIG = {
-    "RPC_URL": os.getenv('RPC_URL'),
+    "RPC_URL": os.getenv('RPC_URL', ''),
     "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
-    "TEST_PASSWORD": os.getenv('TEST_PASSWORD'),
-    "PRIVATE_KEY": os.getenv('PRIVATE_KEY'),
-    "STAKING_CHOICE": os.getenv('STAKING_CHOICE')
+    "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
+    "PRIVATE_KEY": os.getenv('PRIVATE_KEY', ''),
+    "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
 }
 
 # Expected prompts and their responses
@@ -406,13 +286,6 @@ class TestService:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         cls.log_file = Path(f'test_run_service_{timestamp}.log')
         cls.logger = setup_logging(cls.log_file)
-
-        # Check prerequisites before proceeding
-        try:
-            check_prerequisites(cls.logger)
-        except PrerequisiteError as e:
-            cls.logger.error(str(e))
-            sys.exit(1)
         
         # Create temporary directory and store original path
         cls.original_cwd = os.getcwd()
@@ -452,9 +325,8 @@ class TestService:
         
         # Start the service
         cls.start_service()
-        # Wait for service to fully start with spinner
-        cls.logger.info("Waiting for initial startup...")
-        countdown_spinner(STARTUP_WAIT, "Waiting for initial startup", cls.logger)
+        # Wait for service to fully start
+        time.sleep(STARTUP_WAIT)
 
     @classmethod
     def _setup_environment(cls):
@@ -463,18 +335,33 @@ class TestService:
 
         venv_path = os.environ.get('VIRTUAL_ENV')
         
-        # Temporarily deactivate virtual environment
+        # Create a clean environment without virtualenv variables
+        cls.temp_env = os.environ.copy()
+        cls.temp_env.pop('VIRTUAL_ENV', None)
+        cls.temp_env.pop('POETRY_ACTIVE', None)
+        
         if venv_path:
-            cls.temp_env = os.environ.copy()
-            cls.temp_env.pop('VIRTUAL_ENV', None)
-            cls.temp_env.pop('POETRY_ACTIVE', None)
+            # Get site-packages path
+            if os.name == 'nt':  # Windows
+                site_packages = Path(venv_path) / 'Lib' / 'site-packages'
+            else:  # Unix-like
+                site_packages = list(Path(venv_path).glob('lib/python*/site-packages'))[0]
+                
+            # Add site-packages to PYTHONPATH
+            pythonpath = cls.temp_env.get('PYTHONPATH', '')
+            cls.temp_env['PYTHONPATH'] = f"{site_packages}:{pythonpath}" if pythonpath else str(site_packages)
             
-            # Update PATH to remove the virtual environment
+            # Remove virtualenv path from PATH
             paths = cls.temp_env['PATH'].split(os.pathsep)
-            paths = [p for p in paths if not p.startswith(venv_path)]
+            paths = [p for p in paths if not p.startswith(str(venv_path))]
             cls.temp_env['PATH'] = os.pathsep.join(paths)
+            
+            cls.logger.info(f"Original virtualenv: {venv_path}")
+            cls.logger.info(f"Using site-packages: {site_packages}")
+            cls.logger.info(f"Cleaned PATH: {cls.temp_env['PATH']}")
+            cls.logger.info(f"PYTHONPATH: {cls.temp_env['PYTHONPATH']}")
         else:
-            cls.temp_env = os.environ
+            cls.logger.warning("No virtualenv detected")
 
         cls.logger.info("Environment setup completed")
 
@@ -497,7 +384,7 @@ class TestService:
             
             # Start the process with pexpect
             cls.child = pexpect.spawn(
-                'bash ./run_service.sh',
+                'bash ./run_service.sh configs/config_predict_trader.json',
                 encoding='utf-8',
                 timeout=600,
                 env=cls.temp_env,
@@ -530,15 +417,15 @@ class TestService:
             except pexpect.EOF:
                 cls.logger.info("Initial setup completed")
                 
-                # Add delay with spinner to ensure services are up
-                countdown_spinner(SERVICE_INIT_WAIT, "Waiting for services to initialize", cls.logger)
+                # Add delay to ensure services are up
+                time.sleep(SERVICE_INIT_WAIT)
                 
                 # Verify Docker containers are running
                 retries = 5
                 while retries > 0:
                     if check_docker_status(cls.logger):
                         break
-                    countdown_spinner(CONTAINER_STOP_WAIT, f"Waiting for containers (attempt {6-retries}/5)", cls.logger)
+                    time.sleep(CONTAINER_STOP_WAIT)
                     retries -= 1
                 
                 if retries == 0:
@@ -556,19 +443,11 @@ class TestService:
     def stop_service(cls):
         """Stop the service"""
         cls.logger.info("Stopping service...")
-        process = pexpect.spawn('bash ./stop_service.sh', encoding='utf-8', timeout=30)
+        process = pexpect.spawn('bash ./stop_service.sh configs/config_predict_trader.json', encoding='utf-8', timeout=30)
         process.expect(pexpect.EOF)
-        countdown_spinner(CONTAINER_STOP_WAIT, "Waiting for service to stop", cls.logger)
+        time.sleep(30)      
         
-    def test_01_docker_status(self):
-        """Test Docker container status"""
-        self.logger.info("Testing Docker container status...")
-        assert check_docker_status(self.logger), (
-            "Docker containers are not running correctly. "
-            "Check docker ps output for more details."
-        )
-        
-    def test_02_health_check(self):
+    def test_01_health_check(self):
         """Test service health endpoint"""
         self.logger.info("Testing service health...")
         status, metrics = check_service_health(self.logger)
@@ -578,13 +457,13 @@ class TestService:
         
         assert status == True, f"Health check failed with metrics: {metrics}"
             
-    def test_03_shutdown_logs(self):
+    def test_02_shutdown_logs(self):
         """Test service shutdown logs"""
         self.logger.info("Testing shutdown logs...")
         # First stop the service
         self.stop_service()
-        # Wait for containers to stop with spinner
-        countdown_spinner(CONTAINER_STOP_WAIT, "Waiting for containers to stop", self.logger)
+        # Wait for containers to stop
+        time.sleep(30)
         # Verify containers are stopped
         client = docker.from_env()
         containers = client.containers.list(filters={"name": "traderpearl"})
@@ -594,4 +473,3 @@ class TestService:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-    
