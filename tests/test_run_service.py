@@ -27,9 +27,9 @@ from operate.constants import HEALTH_CHECK_URL
 init()
 load_dotenv()
 
-STARTUP_WAIT = 20 
-SERVICE_INIT_WAIT = 300 
-CONTAINER_STOP_WAIT = 60
+STARTUP_WAIT = 10
+SERVICE_INIT_WAIT = 60
+CONTAINER_STOP_WAIT = 20
 
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
