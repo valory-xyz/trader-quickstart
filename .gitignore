@@ -3,3 +3,10 @@ trader
 *.DS_Store
 __pycache__
 data
+logs
+**/logs
+.env
+
+# Ignore all .pytest_cache directories anywhere in the project
+**/.pytest_cache/
+.pytest_cache/
