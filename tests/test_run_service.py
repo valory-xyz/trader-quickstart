@@ -172,7 +172,7 @@ def check_shutdown_logs(logger: logging.Logger) -> bool:
 
 def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
     """Handle funding requirement using Tenderly API."""
-    pattern = r"Please make sure master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI"
+    pattern = r"Please make sure Master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI"
     match = re.search(pattern, output)
     
     if match:
@@ -285,7 +285,7 @@ PROMPTS = {
     "backup owner": TEST_CONFIG["BACKUP_WALLET"],
     "Press enter to continue": "\n",
     "press enter": "\n",
-    "Please make sure master EOA.*has at least.*xDAI": handle_xDAIfunding,
+    "Please make sure Master EOA.*has at least.*xDAI": handle_xDAIfunding,
     r"Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]
 }
 
