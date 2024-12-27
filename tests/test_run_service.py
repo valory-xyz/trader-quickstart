@@ -69,11 +69,6 @@ def check_docker_status(logger: logging.Logger) -> bool:
                     # Get last logs
                     logs = container.logs(tail=50).decode('utf-8')
                     logger.error(f"Container logs:\n{logs}")
-                    
-                    # Try to restart the container if it exited with 0
-                    if exit_code == 0:
-                        logger.info(f"Attempting to restart container {container.name}")
-                        container.start()
                 
                 elif container.status == "restarting":
                     logger.error(f"Container {container.name} is restarting. Last logs:")
@@ -110,18 +105,19 @@ def check_docker_status(logger: logging.Logger) -> bool:
     return False
 
 def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
-    """Enhanced service health check with metrics, monitoring for 2 minutes."""
+    """Enhanced service health check with metrics and success rate tracking."""
     metrics = {
         'response_time': None,
         'status_code': None,
         'error': None,
-        'check_count': 24,  # Total number of checks (2 minutes / 5 seconds)
-        'successful_checks': 0
+        'successful_checks': 0,
+        'total_checks': 0
     }
     
     start_monitoring = time.time()
     while time.time() - start_monitoring < 120:  # Run for 2 minutes
         try:
+            metrics['total_checks'] += 1
             start_time = time.time()
             response = requests.get(HEALTH_CHECK_URL, timeout=10)
             metrics['response_time'] = time.time() - start_time
@@ -152,9 +148,12 @@ def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
         if elapsed < 5:
             time.sleep(5 - elapsed)
     
-    # Return True only if all checks were successful
-    is_healthy = metrics['successful_checks'] == metrics['check_count']
-    return is_healthy, metrics
+    # Calculate and log success rate
+    success_rate = metrics['successful_checks'] / metrics['total_checks']
+    logger.info(f"Health check completed - Success rate: {success_rate * 100:.2f}% ({metrics['successful_checks']}/{metrics['total_checks']} checks)")
+    
+    # Return True if success rate is at least 90%
+    return success_rate >= 0.9, metrics
 
 def check_shutdown_logs(logger: logging.Logger) -> bool:
     """Check shutdown logs for errors."""

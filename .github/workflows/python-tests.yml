@@ -1,11 +1,9 @@
 name: Quickstart Tests
 on:
-  push:
-    branches:
-      - feat/updating_test_script
   pull_request:
     branches:
       - main
+  workflow_dispatch:  # Add manual trigger option
 
 jobs:
   test:
@@ -15,7 +13,6 @@ jobs:
       BACKUP_WALLET: ${{ secrets.BACKUP_WALLET }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
       PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-      STAKING_CHOICE: ${{ secrets.STAKING_CHOICE }}
       DOCKER_LOGS_DIR: ${GITHUB_WORKSPACE}/logs
     
     steps:
@@ -91,7 +88,6 @@ jobs:
         echo "BACKUP_WALLET=${BACKUP_WALLET}" >> .env
         echo "TEST_PASSWORD=${TEST_PASSWORD}" >> .env
         echo "PRIVATE_KEY=${PRIVATE_KEY}" >> .env
-        echo "STAKING_CHOICE=${STAKING_CHOICE}" >> .env
         echo "DOCKER_LOGS_DIR=${DOCKER_LOGS_DIR}" >> .env
         
     - name: Install project dependencies
