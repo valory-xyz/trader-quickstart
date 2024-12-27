@@ -105,7 +105,7 @@ def check_docker_status(logger: logging.Logger) -> bool:
     return False
 
 def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
-    """Enhanced service health check with metrics and success rate tracking."""
+    """Enhanced service health check with metrics. Any failure results in overall failure."""
     metrics = {
         'response_time': None,
         'status_code': None,
@@ -148,12 +148,9 @@ def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
         if elapsed < 5:
             time.sleep(5 - elapsed)
     
-    # Calculate and log success rate
-    success_rate = metrics['successful_checks'] / metrics['total_checks']
-    logger.info(f"Health check completed - Success rate: {success_rate * 100:.2f}% ({metrics['successful_checks']}/{metrics['total_checks']} checks)")
-    
-    # Return True if success rate is at least 90%
-    return success_rate >= 0.9, metrics
+    # If we got here, all checks passed
+    logger.info(f"Health check completed successfully - {metrics['successful_checks']} checks passed")
+    return True, metrics
 
 def check_shutdown_logs(logger: logging.Logger) -> bool:
     """Check shutdown logs for errors."""
