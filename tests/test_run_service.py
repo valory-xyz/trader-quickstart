@@ -171,7 +171,7 @@ def check_shutdown_logs(logger: logging.Logger) -> bool:
         return False
 
 def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
-    """Handle funding requirement."""
+    """Handle funding requirement using Tenderly API."""
     pattern = r"Please make sure master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI"
     match = re.search(pattern, output)
     
@@ -181,29 +181,44 @@ def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
         logger.info(f"Funding requirement detected - Address: {wallet_address}, Amount: {required_amount} xDAI")
         
         try:
+            # Convert amount to Wei (hex)
             w3 = Web3(Web3.HTTPProvider(TEST_CONFIG["RPC_URL"]))
-            account = Account.from_key(TEST_CONFIG["PRIVATE_KEY"])
             amount_wei = w3.to_wei(required_amount, 'ether')
+            amount_hex = hex(amount_wei)
             
-            tx = {
-                'from': account.address,
-                'to': wallet_address,
-                'value': amount_wei,
-                'gas': 21000,
-                'gasPrice': w3.eth.gas_price,
-                'nonce': w3.eth.get_transaction_count(account.address),
+            # Prepare Tenderly API request
+            headers = {
+                "Content-Type": "application/json"
             }
             
-            signed_tx = account.sign_transaction(tx)
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "tenderly_addBalance",
+                "params": [
+                    wallet_address,
+                    amount_hex
+                ],
+                "id": "1"
+            }
             
-            if receipt['status'] == 1:
-                logger.info(f"Successfully funded {required_amount} xDAI to {wallet_address}")
+            # Make request to Tenderly RPC
+            response = requests.post(TEST_CONFIG["RPC_URL"], headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if 'error' in result:
+                    raise Exception(f"Tenderly API error: {result['error']}")
+                    
+                logger.info(f"Successfully funded {required_amount} xDAI to {wallet_address} using Tenderly API")
+                # Verify balance
+                new_balance = w3.eth.get_balance(wallet_address)
+                logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} xDAI")
                 return ""
+            else:
+                raise Exception(f"Tenderly API request failed with status {response.status_code}")
                 
         except Exception as e:
-            logger.error(f"Failed to fund wallet: {str(e)}")
+            logger.error(f"Failed to fund wallet using Tenderly API: {str(e)}")
             raise
     
     return ""
@@ -258,7 +273,6 @@ TEST_CONFIG = {
     "RPC_URL": os.getenv('RPC_URL', ''),
     "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
     "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
-    "PRIVATE_KEY": os.getenv('PRIVATE_KEY', ''),
     "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
 }
 
@@ -352,10 +366,6 @@ class TestService:
             paths = [p for p in paths if not p.startswith(str(venv_path))]
             cls.temp_env['PATH'] = os.pathsep.join(paths)
             
-            cls.logger.info(f"Original virtualenv: {venv_path}")
-            cls.logger.info(f"Using site-packages: {site_packages}")
-            cls.logger.info(f"Cleaned PATH: {cls.temp_env['PATH']}")
-            cls.logger.info(f"PYTHONPATH: {cls.temp_env['PYTHONPATH']}")
         else:
             cls.logger.warning("No virtualenv detected")
 
