@@ -171,55 +171,65 @@ def check_shutdown_logs(logger: logging.Logger) -> bool:
         return False
 
 def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
-    """Handle funding requirement using Tenderly API."""
-    pattern = r"Please make sure Master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI"
-    match = re.search(pattern, output)
+    """Handle funding requirement using Tenderly API for both EOA and Safe addresses."""
+    # Patterns for both EOA and Safe funding requests
+    patterns = [
+        r"Please make sure Master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI",
+        r"Please make sure Master Safe (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI"
+    ]
     
-    if match:
-        wallet_address = match.group(1)
-        required_amount = float(match.group(2))
-        logger.info(f"Funding requirement detected - Address: {wallet_address}, Amount: {required_amount} xDAI")
-        
-        try:
-            # Convert amount to Wei (hex)
-            w3 = Web3(Web3.HTTPProvider(TEST_CONFIG["RPC_URL"]))
-            amount_wei = w3.to_wei(required_amount, 'ether')
-            amount_hex = hex(amount_wei)
+    # Try each pattern
+    for pattern in patterns:
+        match = re.search(pattern, output)
+        if match:
+            wallet_address = match.group(1)
+            required_amount = float(match.group(2))
             
-            # Prepare Tenderly API request
-            headers = {
-                "Content-Type": "application/json"
-            }
+            # Determine if it's an EOA or Safe address
+            wallet_type = "EOA" if "EOA" in pattern else "Safe"
+            logger.info(f"Funding requirement detected - Type: {wallet_type}, Address: {wallet_address}, Amount: {required_amount} xDAI")
             
-            payload = {
-                "jsonrpc": "2.0",
-                "method": "tenderly_addBalance",
-                "params": [
-                    wallet_address,
-                    amount_hex
-                ],
-                "id": "1"
-            }
-            
-            # Make request to Tenderly RPC
-            response = requests.post(TEST_CONFIG["RPC_URL"], headers=headers, json=payload)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if 'error' in result:
-                    raise Exception(f"Tenderly API error: {result['error']}")
-                    
-                logger.info(f"Successfully funded {required_amount} xDAI to {wallet_address} using Tenderly API")
-                # Verify balance
-                new_balance = w3.eth.get_balance(wallet_address)
-                logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} xDAI")
-                return ""
-            else:
-                raise Exception(f"Tenderly API request failed with status {response.status_code}")
+            try:
+                # Convert amount to Wei (hex)
+                w3 = Web3(Web3.HTTPProvider(TEST_CONFIG["RPC_URL"]))
+                amount_wei = w3.to_wei(required_amount, 'ether')
+                amount_hex = hex(amount_wei)
                 
-        except Exception as e:
-            logger.error(f"Failed to fund wallet using Tenderly API: {str(e)}")
-            raise
+                # Prepare Tenderly API request
+                headers = {
+                    "Content-Type": "application/json"
+                }
+                
+                payload = {
+                    "jsonrpc": "2.0",
+                    "method": "tenderly_addBalance",
+                    "params": [
+                        wallet_address,
+                        amount_hex
+                    ],
+                    "id": "1"
+                }
+                
+                # Make request to Tenderly RPC
+                response = requests.post(TEST_CONFIG["RPC_URL"], headers=headers, json=payload)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if 'error' in result:
+                        raise Exception(f"Tenderly API error: {result['error']}")
+                        
+                    logger.info(f"Successfully funded {required_amount} xDAI to {wallet_type} {wallet_address} using Tenderly API")
+                    
+                    # Verify balance
+                    new_balance = w3.eth.get_balance(wallet_address)
+                    logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} xDAI")
+                    return ""
+                else:
+                    raise Exception(f"Tenderly API request failed with status {response.status_code}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to fund {wallet_type} using Tenderly API: {str(e)}")
+                raise
     
     return ""
 
@@ -285,7 +295,7 @@ PROMPTS = {
     "backup owner": TEST_CONFIG["BACKUP_WALLET"],
     "Press enter to continue": "\n",
     "press enter": "\n",
-    "Please make sure Master EOA.*has at least.*xDAI": handle_xDAIfunding,
+    "Please make sure Master (EOA|Safe) .*has at least.*xDAI": handle_xDAIfunding,  # Updated to handle both patterns
     r"Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]
 }
 
