@@ -832,10 +832,13 @@ command -v docker >/dev/null 2>&1 ||
   exit 1
 }
 
-docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
+containers=$(docker ps --filter name=trader_* -aq) &> /dev/null ||
 { echo >&2 "Docker is not running!";
   exit 1
 }
+if [[ -n "$containers" ]]; then
+  docker rm -f $containers
+fi
 
 try_read_storage
 
@@ -1287,9 +1290,9 @@ if [ -n "$SUBGRAPH_API_KEY" ]; then
 fi
 
 service_dir="trader_service"
-build_dir="abci_build"
+directory=$(ls -d "$service_dir"/abci_build_???? 2>/dev/null || echo "$service_dir/abci_build")
+build_dir=$(basename "$directory")
 build_dir_k8s="abci_build_k8s"
-directory="$service_dir/$build_dir"
 
 if [ -d $directory ]
 then
@@ -1329,10 +1332,12 @@ if [[ -d "$build_dir_k8s" ]]; then
     echo "Directory removed: $build_dir"
 fi
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build --kubernetes "../../$keys_json_path" --n $n_agents -ltm
+build_dir=$(ls -d abci_build_???? 2>/dev/null || echo "abci_build")
 mv $build_dir $build_dir_k8s
 echo "Kubernetes deployment built on ./trader/$service_dir/$build_dir_k8s"
 
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
+build_dir=$(ls -d abci_build_???? 2>/dev/null || echo "abci_build")
 echo "Docker Compose deployment built on ./trader/$service_dir/$build_dir"
 
 cd ..
@@ -1340,8 +1345,11 @@ cd ..
 # warm start is disabled as no global weights are provided to calibrate the tools' weights
 # warm_start
 
-add_volume_to_service_docker_compose "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
-add_volume_to_service_k8s "$PWD/trader_service/abci_build_k8s/build.yaml"
+directory="$service_dir/$build_dir"
+suffix=${build_dir##*_}
+abci_0="trader${suffix}_abci_0"
+add_volume_to_service_docker_compose "$PWD/$directory/docker-compose.yaml" "$abci_0" "/data" "$path_to_store"
+add_volume_to_service_k8s "$PWD/$service_dir/$build_dir_k8s/build.yaml"
 sudo chown -R $(whoami) "$path_to_store"
 
 if [[ "$build_only" == true ]]; then
