@@ -22,4 +22,8 @@
 export PYTHONUTF8=1
 
 
-cd trader; poetry run autonomy deploy stop --build-dir trader_service/abci_build; cd ..
+cd trader
+service_dir="trader_service"
+build_dir=$(ls -d "$service_dir"/abci_build_???? 2>/dev/null || echo "$service_dir/abci_build")
+poetry run autonomy deploy stop --build-dir "$build_dir"
+cd ..
