@@ -1,5 +1,6 @@
 {
     "name": "Trader Agent",
+    "agent_id": 14,
     "hash": "bafybeifzqsbzidvhhiruhk7jf4v7tpxarvbatl72adq2omhxqgosul3uli",
     "description": "Trader agent for omen prediction markets",
     "image": "https://operate.olas.network/_next/image?url=%2Fimages%2Fprediction-agent.png&w=3840&q=75",
@@ -11,10 +12,24 @@
             "threshold": 1,
             "use_mech_marketplace": true,
             "fund_requirements": {
-                "agent": 100000000000000000,
-                "safe": 5000000000000000000
+                "0x0000000000000000000000000000000000000000": {
+                    "agent": 100000000000000000,
+                    "safe": 5000000000000000000
+                }
             }
         }
+    },
+    "staking_programs": {
+        "no_staking": "0x0000000000000000000000000000000000000000",
+        "quickstart_beta_hobbyist": "0x389B46c259631Acd6a69Bde8B6cEe218230bAE8C",
+        "quickstart_beta_hobbyist_2": "0x238EB6993b90a978ec6AAD7530d6429c949C08DA",
+        "quickstart_beta_expert": "0x5344B7DD311e5d3DdDd46A4f71481bD7b05AAA3e",
+        "quickstart_beta_expert_2": "0xb964e44c126410df341ae04B13aB10A985fE3513",
+        "quickstart_beta_expert_3": "0x80faD33Cadb5F53f9D29F02Db97D682E8b101618",
+        "quickstart_beta_expert_4": "0xaD9d891134443B443D7F30013c7e14Fe27F2E029",
+        "quickstart_beta_expert_5": "0xE56dF1E563De1B10715cB313D514af350D207212",
+        "quickstart_beta_expert_6": "0x2546214aEE7eEa4bEE7689C81231017CA231Dc93",
+        "quickstart_beta_expert_7": "0xD7A3C8b975f71030135f1a66e9e23164d54fF455"
     },
     "env_variables": {
         "GNOSIS_LEDGER_RPC": {
