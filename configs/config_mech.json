@@ -1,0 +1,94 @@
+{
+    "name": "Mech",
+    "agent_id": 37,
+    "hash": "bafybeig544gw6i7ahlwj6d64djlwfltjuznz3p66kmwk4m6bzqtn2bjfbq",
+    "description": "The mech executes AI tasks requested on-chain and delivers the results to the requester.",
+    "image": "https://gateway.autonolas.tech/ipfs/bafybeidzpenez565d7vp7jexfrwisa2wijzx6vwcffli57buznyyqkrceq",
+    "service_version": "v0.1.0",
+    "home_chain": "gnosis",
+    "configurations": {
+        "gnosis": {
+            "nft": "bafybeifgj3kackzfoq4fxjiuousm6epgwx7jbc3n2gjwzjgvtbbz7fc3su",
+            "threshold": 1,
+            "use_mech_marketplace": false,
+            "fund_requirements": {
+                "0x0000000000000000000000000000000000000000": {
+                    "agent": 1500000000000000000,
+                    "safe": 0
+                }
+            }
+        }
+    },
+    "staking_programs": {
+        "no_staking": "0x0000000000000000000000000000000000000000",
+        "mech_marketplace": "0x998dEFafD094817EF329f6dc79c703f1CF18bC90"
+    },
+    "env_variables": {
+        "GNOSIS_LEDGER_RPC": {
+            "name": "Gnosis ledger RPC",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "SERVICE_REGISTRY_ADDRESS": {
+            "name": "Service registry address",
+            "description": "",
+            "value": "0x9338b5153AE39BB89f50468E608eD9d764B755fD",
+            "provision_type": "fixed"
+        },
+        "STAKING_TOKEN_CONTRACT_ADDRESS": {
+            "name": "Staking contract address",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "MECH_MARKETPLACE_ADDRESS": {
+            "name": "Mech marketplace address",
+            "description": "",
+            "value": "0x4554fE75c1f5576c1d7F765B2A036c199Adae329",
+            "provision_type": "fixed"
+        },
+        "API_KEYS": {
+            "name": "API keys",
+            "description": "API keys are the key value pairs for every AI tool your mech uses. The name of the tool will be the key used in the file. The value will be an array of valid API keys the tool can use.",
+            "value": "{\"openai\":[\"dummy_api_key\"], \"google_api_key\":[\"dummy_api_key\"]}",
+            "provision_type": "user"
+        },
+        "AGENT_ID": {
+            "name": "Agent ID",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "METADATA_HASH": {
+            "name": "Metadata hash",
+            "description": "",
+            "value": "f01701220caa53607238e340da63b296acab232c18a48e954f0af6ff2b835b2d93f1962f0",
+            "provision_type": "fixed"
+        },
+        "MECH_TO_CONFIG": {
+            "name": "Mech to config",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "ON_CHAIN_SERVICE_ID": {
+            "name": "On-chain service ID",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        },
+        "TOOLS_TO_PACKAGE_HASH": {
+            "name": "Tools to package hash",
+            "description": "Tools to package hash tracks services for each tool packages.",
+            "value": "{\"openai-gpt-3.5-turbo-instruct\":\"bafybeigz5brshryms5awq5zscxsxibjymdofm55dw5o6ud7gtwmodm3vmq\",\"openai-gpt-3.5-turbo\":\"bafybeigz5brshryms5awq5zscxsxibjymdofm55dw5o6ud7gtwmodm3vmq\",\"openai-gpt-4\":\"bafybeigz5brshryms5awq5zscxsxibjymdofm55dw5o6ud7gtwmodm3vmq\"}",
+            "provision_type": "fixed"
+        },
+        "GNOSIS_RPC_0": {
+            "name": "Gnosis RPC 0",
+            "description": "",
+            "value": "",
+            "provision_type": "computed"
+        }
+    }
+}
