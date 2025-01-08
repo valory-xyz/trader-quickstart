@@ -4,7 +4,7 @@
 import re
 import sys
 import logging
-import pexpect
+import pexpect 
 import os
 import time
 import pytest
@@ -22,7 +22,6 @@ import docker
 from dotenv import load_dotenv
 from operate.constants import HEALTH_CHECK_URL
 
-
 # Initialize colorama and load environment
 init()
 load_dotenv()
@@ -34,8 +33,54 @@ CONTAINER_STOP_WAIT = 20
 # Handle the distutils warning
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
 
-def check_docker_status(logger: logging.Logger) -> bool:
+def get_service_config(config_path: str) -> dict:
+    """
+    Get service-specific configuration.
+    
+    Args:
+        config_path (str): Path to the config file
+        
+    Returns:
+        dict: Dictionary containing service configuration with container name and health check URL
+    """
+    # Service configuration mappings
+    SERVICE_CONFIGS = {
+        "optimus": {
+            "container_name": "optimus",
+            "health_check_url": HEALTH_CHECK_URL,
+        },
+        "modius": {
+            "container_name": "optimus",
+            "health_check_url": HEALTH_CHECK_URL,
+        },
+        "traderpearl": {
+            "container_name": "traderpearl",
+            "health_check_url": HEALTH_CHECK_URL,
+        }
+    }
+    
+    # Default configuration
+    DEFAULT_CONFIG = {
+        "container_name": "traderpearl",
+        "health_check_url": HEALTH_CHECK_URL,
+    }
+    
+    # Convert config path to lowercase for case-insensitive matching
+    config_path_lower = config_path.lower()
+    
+    # Find matching service configuration
+    for service_name, config in SERVICE_CONFIGS.items():
+        if service_name in config_path_lower:
+            return config
+            
+    # Return default configuration if no match found
+    return DEFAULT_CONFIG
+
+def check_docker_status(logger: logging.Logger, config_path: str) -> bool:
     """Check if Docker containers are running properly."""
+    service_config = get_service_config(config_path)
+    container_name = service_config["container_name"]
+    
     max_retries = 3
     retry_delay = 20
     
@@ -44,29 +89,24 @@ def check_docker_status(logger: logging.Logger) -> bool:
         try:
             client = docker.from_env()
             
-            # Check all containers, including stopped ones
-            all_containers = client.containers.list(all=True, filters={"name": "traderpearl"})
-            running_containers = client.containers.list(filters={"name": "traderpearl"})
+            all_containers = client.containers.list(all=True, filters={"name": container_name})
+            running_containers = client.containers.list(filters={"name": container_name})
             
             if not all_containers:
-                logger.error(f"No trader containers found (attempt {attempt + 1}/{max_retries})")
+                logger.error(f"No {container_name} containers found (attempt {attempt + 1}/{max_retries})")
                 if attempt == max_retries - 1:
                     return False
                 logger.info(f"Waiting {retry_delay} seconds before retry...")
                 time.sleep(retry_delay)
                 continue
             
-            # Log status of all containers
             for container in all_containers:
                 logger.info(f"Container {container.name} status: {container.status}")
                 
                 if container.status == "exited":
-                    # Get exit code
                     inspect = client.api.inspect_container(container.id)
                     exit_code = inspect['State']['ExitCode']
                     logger.error(f"Container {container.name} exited with code {exit_code}")
-                    
-                    # Get last logs
                     logs = container.logs(tail=50).decode('utf-8')
                     logger.error(f"Container logs:\n{logs}")
                 
@@ -75,7 +115,6 @@ def check_docker_status(logger: logging.Logger) -> bool:
                     logs = container.logs(tail=50).decode('utf-8')
                     logger.error(f"Container logs:\n{logs}")
             
-            # Check if all required containers are running
             if not running_containers:
                 if attempt == max_retries - 1:
                     return False
@@ -83,10 +122,9 @@ def check_docker_status(logger: logging.Logger) -> bool:
                 time.sleep(retry_delay)
                 continue
             
-            # Verify all running containers are actually running
             all_running = all(c.status == "running" for c in running_containers)
             if all_running:
-                logger.info("All trader containers are running")
+                logger.info(f"All {container_name} containers are running")
                 return True
             
             if attempt == max_retries - 1:
@@ -104,8 +142,11 @@ def check_docker_status(logger: logging.Logger) -> bool:
     
     return False
 
-def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
-    """Enhanced service health check with metrics. Any failure results in overall failure."""
+def check_service_health(logger: logging.Logger, config_path: str) -> tuple[bool, dict]:
+    """Enhanced service health check with metrics."""
+    service_config = get_service_config(config_path)
+    health_check_url = service_config["health_check_url"]
+    
     metrics = {
         'response_time': None,
         'status_code': None,
@@ -119,7 +160,7 @@ def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
         try:
             metrics['total_checks'] += 1
             start_time = time.time()
-            response = requests.get(HEALTH_CHECK_URL, timeout=10)
+            response = requests.get(health_check_url, timeout=10)
             metrics['response_time'] = time.time() - start_time
             metrics['status_code'] = response.status_code
             
@@ -143,20 +184,200 @@ def check_service_health(logger: logging.Logger) -> tuple[bool, dict]:
             logger.error(f"Unexpected error in health check: {str(e)}")
             return False, metrics
             
-        # Wait for remaining time in 5-second interval
         elapsed = time.time() - start_time
         if elapsed < 5:
             time.sleep(5 - elapsed)
     
-    # If we got here, all checks passed
     logger.info(f"Health check completed successfully - {metrics['successful_checks']} checks passed")
-    return True, metrics
+    return True, metrics    
 
-def check_shutdown_logs(logger: logging.Logger) -> bool:
+def get_token_config():
+    """Get token configurations for different chains"""
+    return {
+        "mode": {
+            "USDC": {
+                "address": "0xd988097fb8612cc24eeC14542bC03424c656005f",
+                "decimals": 6
+            },
+            "OLAS": {
+                "address": "your_olas_address",
+                "decimals": 18
+            }
+        },
+        "optimism": {
+            "USDC": {
+                "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+                "decimals": 6
+            }
+        },
+        "base": {
+            "USDC": {
+                "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "decimals": 6
+            }
+        }
+    }
+
+def handle_erc20_funding(output: str, logger: logging.Logger, rpc_url: str) -> str:
+    """Handle funding requirement using Tenderly API for ERC20 tokens."""
+    pattern = r"\[(optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) (0x[a-fA-F0-9]{40}) has at least ([0-9.]+) ([A-Z]+)"
+    logger.info(f"Funding with RPC : {rpc_url}")
+    match = re.search(pattern, output)
+    if match:
+        chain = match.group(1)
+        wallet_address = match.group(2)
+        required_amount = float(match.group(3))
+        token_symbol = match.group(4)
+
+        # Map chain identifier to config key
+        chain_map = {
+            "optimistic": "optimism",
+            "base": "base",
+            "mode": "mode"
+        }
+        chain_key = chain_map.get(chain, "mode")  # Default to mode if chain not found
+        
+        token_configs = get_token_config()
+        if chain_key not in token_configs or token_symbol not in token_configs[chain_key]:
+            raise Exception(f"Token {token_symbol} not configured for chain {chain_key}")
+            
+        token_config = token_configs[chain_key][token_symbol]
+        token_address = token_config["address"]
+        decimals = token_config["decimals"]
+        
+        try:
+            amount_in_units = int(required_amount * (10 ** decimals))
+            amount_hex = hex(amount_in_units)
+            
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "tenderly_setErc20Balance",
+                "params": [token_address, wallet_address, amount_hex],
+                "id": "1"
+            }
+            
+            logger.info(f"Funding {required_amount} {token_symbol} on {chain_key} chain")
+            response = requests.post(rpc_url, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if 'error' in result:
+                    raise Exception(f"Tenderly API error: {result['error']}")
+                    
+                logger.info(f"Successfully funded {required_amount} {token_symbol} to {wallet_address} on {chain_key} chain")
+                
+                try:
+                    w3 = Web3(Web3.HTTPProvider(rpc_url))
+                    erc20_abi = [
+                        {
+                            "constant": True,
+                            "inputs": [{"name": "_owner", "type": "address"}],
+                            "name": "balanceOf",
+                            "outputs": [{"name": "balance", "type": "uint256"}],
+                            "type": "function"
+                        }
+                    ]
+                    token_contract = w3.eth.contract(address=Web3.to_checksum_address(token_address), abi=erc20_abi)
+                    new_balance = token_contract.functions.balanceOf(wallet_address).call()
+                    logger.info(f"New balance: {new_balance / (10 ** decimals)} {token_symbol}")
+                except Exception as e:
+                    logger.warning(f"Could not verify balance: {str(e)}")
+                
+                return ""
+            else:
+                error_msg = f"Tenderly API request failed with status {response.status_code}"
+                if response.text:
+                    error_msg += f". Response: {response.text}"
+                raise Exception(error_msg)
+                
+        except Exception as e:
+            logger.error(f"Failed to fund {token_symbol}: {str(e)}")
+            raise
+    
+    return ""
+
+def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, config_type: str = "") -> str:
+    """Handle funding requirement using Tenderly API for native tokens."""
+    patterns = [
+        r"Please make sure Master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) (?:ETH|xDAI)",
+        r"Please make sure Master Safe (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) (?:ETH|xDAI)"
+    ]
+
+    logger.info(f"Funding with RPC : {rpc_url}")
+    
+    for pattern in patterns:
+        match = re.search(pattern, output)
+        if match:
+            wallet_address = match.group(1)
+            required_amount = float(match.group(2))
+            wallet_type = "EOA" if "EOA" in pattern else "Safe"
+            
+            if "modius" in config_type.lower():
+                original_amount = required_amount
+                required_amount = 0.6  # Fixed amount for Modius
+                logger.info(f"Modius detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
+            if "optimus" in config_type.lower():
+                original_amount = required_amount
+                required_amount = 44  # Set to 1.2 ETH (1200000000000000000 wei) for Optimus
+                logger.info(f"Optimus detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
+            try:
+                w3 = Web3(Web3.HTTPProvider(rpc_url))
+                amount_wei = w3.to_wei(required_amount, 'ether')
+                amount_hex = hex(amount_wei)
+                
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "jsonrpc": "2.0",
+                    "method": "tenderly_addBalance",
+                    "params": [wallet_address, amount_hex],
+                    "id": "1"
+                }
+                
+                response = requests.post(rpc_url, headers=headers, json=payload)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if 'error' in result:
+                        raise Exception(f"Tenderly API error: {result['error']}")
+                        
+                    chain_id = w3.eth.chain_id
+                    token_name = "ETH" if chain_id in [1, 5, 11155111, 8453, 34443, 10] else "xDAI"
+                    
+                    logger.info(f"Successfully funded {required_amount} {token_name} to {wallet_type} {wallet_address}")
+                    new_balance = w3.eth.get_balance(wallet_address)
+                    logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} {token_name}")
+                    return ""
+                else:
+                    raise Exception(f"Tenderly API request failed with status {response.status_code}")
+                    
+            except Exception as e:
+                logger.error(f"Failed to fund {wallet_type}: {str(e)}")
+                raise
+    
+    return ""
+
+def create_funding_handler(rpc_url: str, config_type: str):
+    """Create a funding handler with the specified RPC URL and config type."""
+    def handler(output: str, logger: logging.Logger) -> str:
+        return handle_native_funding(output, logger, rpc_url, config_type)
+    return handler
+
+def create_token_funding_handler(rpc_url: str):
+    """Create a token funding handler with the specified RPC URL."""
+    def handler(output: str, logger: logging.Logger) -> str:
+        return handle_erc20_funding(output, logger, rpc_url)
+    return handler
+
+
+def check_shutdown_logs(logger: logging.Logger, config_path: str) -> bool:
     """Check shutdown logs for errors."""
     try:
         client = docker.from_env()
-        containers = client.containers.list(filters={"name": "traderpearl"})
+        service_config = get_service_config(config_path)
+        container_name = service_config["container_name"]
+        
+        containers = client.containers.list(filters={"name": container_name})
         
         for container in containers:
             logs = container.logs().decode('utf-8')
@@ -169,69 +390,6 @@ def check_shutdown_logs(logger: logging.Logger) -> bool:
     except Exception as e:
         logger.error(f"Error checking shutdown logs: {str(e)}")
         return False
-
-def handle_xDAIfunding(output: str, logger: logging.Logger) -> str:
-    """Handle funding requirement using Tenderly API for both EOA and Safe addresses."""
-    # Patterns for both EOA and Safe funding requests
-    patterns = [
-        r"Please make sure Master EOA (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI",
-        r"Please make sure Master Safe (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) xDAI"
-    ]
-    
-    # Try each pattern
-    for pattern in patterns:
-        match = re.search(pattern, output)
-        if match:
-            wallet_address = match.group(1)
-            required_amount = float(match.group(2))
-            
-            # Determine if it's an EOA or Safe address
-            wallet_type = "EOA" if "EOA" in pattern else "Safe"
-            logger.info(f"Funding requirement detected - Type: {wallet_type}, Address: {wallet_address}, Amount: {required_amount} xDAI")
-            
-            try:
-                # Convert amount to Wei (hex)
-                w3 = Web3(Web3.HTTPProvider(TEST_CONFIG["RPC_URL"]))
-                amount_wei = w3.to_wei(required_amount, 'ether')
-                amount_hex = hex(amount_wei)
-                
-                # Prepare Tenderly API request
-                headers = {
-                    "Content-Type": "application/json"
-                }
-                
-                payload = {
-                    "jsonrpc": "2.0",
-                    "method": "tenderly_addBalance",
-                    "params": [
-                        wallet_address,
-                        amount_hex
-                    ],
-                    "id": "1"
-                }
-                
-                # Make request to Tenderly RPC
-                response = requests.post(TEST_CONFIG["RPC_URL"], headers=headers, json=payload)
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    if 'error' in result:
-                        raise Exception(f"Tenderly API error: {result['error']}")
-                        
-                    logger.info(f"Successfully funded {required_amount} xDAI to {wallet_type} {wallet_address} using Tenderly API")
-                    
-                    # Verify balance
-                    new_balance = w3.eth.get_balance(wallet_address)
-                    logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} xDAI")
-                    return ""
-                else:
-                    raise Exception(f"Tenderly API request failed with status {response.status_code}")
-                    
-            except Exception as e:
-                logger.error(f"Failed to fund {wallet_type} using Tenderly API: {str(e)}")
-                raise
-    
-    return ""
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with colors."""
@@ -253,9 +411,16 @@ def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
     
+    # Get the logger
     logger = logging.getLogger('test_runner')
+    
+    # Remove any existing handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+    
     logger.setLevel(logging.DEBUG)
     
+    # Only add console handler if none exists
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
     console_formatter = ColoredFormatter(
@@ -278,28 +443,141 @@ def setup_logging(log_file: Optional[Path] = None) -> logging.Logger:
     
     return logger
 
-# Test Configuration
-TEST_CONFIG = {
-    "RPC_URL": os.getenv('RPC_URL', ''),
-    "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
-    "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
-    "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
-}
+def get_config_files():
+    """Dynamically get all JSON config files from configs directory."""
+    config_dir = Path("configs")
+    if not config_dir.exists():
+        raise FileNotFoundError("configs directory not found")
+        
+    config_files = list(config_dir.glob("*.json"))
+    if not config_files:
+        raise FileNotFoundError("No JSON config files found in configs directory")
+    
+    logger = logging.getLogger('test_runner')
+    logger.info(f"Found config files: {[f.name for f in config_files]}")
+    
+    return [str(f) for f in config_files]
 
-# Expected prompts and their responses
-PROMPTS = {
-    r"eth_newFilter \[hidden input\]": TEST_CONFIG["RPC_URL"],
-    "input your password": TEST_CONFIG["TEST_PASSWORD"],
-    "confirm your password": TEST_CONFIG["TEST_PASSWORD"],
-    "Enter your choice": TEST_CONFIG["STAKING_CHOICE"],
-    "backup owner": TEST_CONFIG["BACKUP_WALLET"],
-    "Press enter to continue": "\n",
-    "press enter": "\n",
-    "Please make sure Master (EOA|Safe) .*has at least.*xDAI": handle_xDAIfunding,  # Updated to handle both patterns
-    r"Enter local user account password \[hidden input\]": TEST_CONFIG["TEST_PASSWORD"]
-}
+def get_base_config() -> dict:
+    """Get base configuration common to all services."""
+    base_config = {
+        "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
+        "BACKUP_WALLET": os.getenv('BACKUP_WALLET', ''),
+        "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
+    }
+    
+    # Common prompts used across all services
+    base_prompts = {
+        "input your password": base_config["TEST_PASSWORD"],
+        "confirm your password": base_config["TEST_PASSWORD"],
+        "Enter your choice": base_config["STAKING_CHOICE"],
+        "backup owner": base_config["BACKUP_WALLET"],
+        "Press enter to continue": "\n",
+        "press enter": "\n",
+        r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"],
+        "Please enter Tenderly": "\n",
+        "Please enter Coingecko API Key": "\n",
+    }
+    
+    return {"config": base_config, "prompts": base_prompts}
 
-class TestService:
+def get_config_specific_settings(config_path: str) -> dict:
+    """Get config specific prompts and test settings."""
+    # Get base configuration
+    base = get_base_config()
+    base_config = base["config"]
+    prompts = base["prompts"].copy()  # Create a copy of base prompts
+    
+    if "modius" in config_path.lower():
+        # Modius specific settings
+        test_config = {
+            **base_config,  # Include base config
+            "RPC_URL": os.getenv('MODIUS_RPC_URL'),
+        }
+
+        funding_handler = create_funding_handler(test_config["RPC_URL"], "modius")
+        token_funding_handler = create_token_funding_handler(test_config["RPC_URL"])
+
+        # Add Modius-specific prompts
+        prompts.update({
+            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler,
+            r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)": token_funding_handler,
+        })
+        
+    elif "optimus" in config_path.lower():
+        # Optimus settings with multiple RPCs
+        test_config = {
+            **base_config,  # Include base config
+            "MODIUS_RPC_URL": os.getenv('MODIUS_RPC_URL'),
+            "OPTIMISM_RPC_URL": os.getenv('OPTIMISM_RPC_URL'),
+            "BASE_RPC_URL": os.getenv('BASE_RPC_URL'),
+        }
+
+        def get_chain_rpc(output: str, logger: logging.Logger) -> str:
+            """Get RPC URL based on chain prefix in the output."""
+            if "[mode]" in output:
+                logger.info("Using Mode RPC URL")
+                return test_config["MODIUS_RPC_URL"]
+            elif "[base]" in output:
+                logger.info("Using Base RPC URL")
+                return test_config["BASE_RPC_URL"]
+            elif "[optimistic]" in output:
+                logger.info("Using Optimism RPC URL")
+                return test_config["OPTIMISM_RPC_URL"]
+            else:
+                logger.info("Using Mode RPC URL as default")
+                return test_config["MODIUS_RPC_URL"]
+
+        def multi_chain_funding_handler(output: str, logger: logging.Logger) -> str:
+            """Handle native token funding across multiple chains."""
+            rpc_url = get_chain_rpc(output, logger)
+            logger.info(f"Funding with RPC : {rpc_url}")
+            return handle_native_funding(output, logger, rpc_url, "optimus")
+
+        def multi_chain_token_funding_handler(output: str, logger: logging.Logger) -> str:
+            """Handle ERC20 token funding across multiple chains."""
+            rpc_url = get_chain_rpc(output, logger)
+            logger.info(f"Token funding with RPC : {rpc_url}")
+            return handle_erc20_funding(output, logger, rpc_url)
+
+        # Add Optimus-specific prompts
+        prompts.update({
+            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"],
+            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"],
+            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
+            r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": multi_chain_funding_handler,
+            r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)": multi_chain_token_funding_handler,
+        })
+        
+    else:
+        # Default PredictTrader settings
+        test_config = {
+            **base_config,  # Include base config
+            "RPC_URL": os.getenv('RPC_URL', ''),
+            "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
+        }
+
+        funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader")
+
+        # Add PredictTrader-specific prompts
+        prompts.update({
+            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler,
+        })
+
+    return {"prompts": prompts, "test_config": test_config}
+class BaseTestService:
+    """Base test service class containing core test logic."""
+    config_path = None
+    config_settings = None
+    logger = None
+    child = None
+    temp_dir = None
+    original_cwd = None
+    temp_env = None
+    _setup_complete = False
+
     @classmethod
     def setup_class(cls):
         """Setup for all tests"""
@@ -307,20 +585,21 @@ class TestService:
         cls.log_file = Path(f'test_run_service_{timestamp}.log')
         cls.logger = setup_logging(cls.log_file)
         
+        # Load config specific settings
+        cls.config_settings = get_config_specific_settings(cls.config_path)
+        cls.logger.info(f"Loaded settings for config: {cls.config_path}")
+        
         # Create temporary directory and store original path
         cls.original_cwd = os.getcwd()
         cls.temp_dir = tempfile.TemporaryDirectory(prefix='operate_test_')
+        cls.logger.info(f"Created temporary directory: {cls.temp_dir.name}")
         
-        # Copy the entire project directory structure to temp directory
-        cls.logger.info(f"Copying project files to temporary directory: {cls.temp_dir.name}")
-        
-        # Exclude patterns for files/directories we don't want to copy
+        # Define exclusion patterns
         exclude_patterns = [
-            '.git',              # Git directory - we'll copy this separately
+            '.git',              # Git directory
             '.pytest_cache',     # Pytest cache
-            '__pycache__',       # Python cache
+            '__pycache__',      # Python cache
             '*.pyc',            # Python compiled files
-            '.operate',          # Operate directory
             'logs',             # Log files
             '*.log',            # Log files
             '.env'              # Environment files
@@ -329,56 +608,53 @@ class TestService:
         def ignore_patterns(path, names):
             return set(n for n in names if any(p in n or any(p.endswith(n) for p in exclude_patterns) for p in exclude_patterns))
         
-        # First copy everything except excluded patterns
+        # Copy project files to temp directory
         shutil.copytree(cls.original_cwd, cls.temp_dir.name, dirs_exist_ok=True, ignore=ignore_patterns)
         
-        # Then copy .git directory
+        # Copy .git directory if it exists
         git_dir = Path(cls.original_cwd) / '.git'
         if git_dir.exists():
             shutil.copytree(git_dir, Path(cls.temp_dir.name) / '.git', symlinks=True)    
             
         # Switch to temporary directory
         os.chdir(cls.temp_dir.name)
+        cls.logger.info(f"Changed working directory to: {cls.temp_dir.name}")
         
         # Setup environment
         cls._setup_environment()
         
         # Start the service
         cls.start_service()
-        # Wait for service to fully start
         time.sleep(STARTUP_WAIT)
+        
+        cls._setup_complete = True
 
     @classmethod
     def _setup_environment(cls):
         """Setup environment for tests"""
         cls.logger.info("Setting up test environment...")
-
+        
         venv_path = os.environ.get('VIRTUAL_ENV')
         
-        # Create a clean environment without virtualenv variables
         cls.temp_env = os.environ.copy()
         cls.temp_env.pop('VIRTUAL_ENV', None)
         cls.temp_env.pop('POETRY_ACTIVE', None)
         
         if venv_path:
-            # Get site-packages path
             if os.name == 'nt':  # Windows
                 site_packages = Path(venv_path) / 'Lib' / 'site-packages'
             else:  # Unix-like
                 site_packages = list(Path(venv_path).glob('lib/python*/site-packages'))[0]
                 
-            # Add site-packages to PYTHONPATH
             pythonpath = cls.temp_env.get('PYTHONPATH', '')
             cls.temp_env['PYTHONPATH'] = f"{site_packages}:{pythonpath}" if pythonpath else str(site_packages)
             
-            # Remove virtualenv path from PATH
             paths = cls.temp_env['PATH'].split(os.pathsep)
             paths = [p for p in paths if not p.startswith(str(venv_path))]
             cls.temp_env['PATH'] = os.pathsep.join(paths)
-            
         else:
             cls.logger.warning("No virtualenv detected")
-
+            
         cls.logger.info("Environment setup completed")
 
     @classmethod
@@ -386,36 +662,59 @@ class TestService:
         """Cleanup after all tests"""
         try:
             cls.logger.info("Starting test cleanup...")
+            
+            # Always try to stop the service first
+            try:
+                cls.stop_service()
+                time.sleep(CONTAINER_STOP_WAIT)  # Give containers time to stop
+                
+                # Verify all containers are stopped
+                client = docker.from_env()
+                service_config = get_service_config(cls.config_path)
+                container_name = service_config["container_name"]
+                containers = client.containers.list(filters={"name": container_name})
+                
+                if containers:
+                    cls.logger.warning(f"Found running containers after stop_service, forcing removal...")
+                    for container in containers:
+                        container.stop(timeout=30)
+                        container.remove()
+            except Exception as e:
+                cls.logger.error(f"Error stopping service: {str(e)}")
+            
+            # Clean up resources
             os.chdir(cls.original_cwd)
-            cls.temp_dir.cleanup()
+            if cls.temp_dir:
+                cls.temp_dir.cleanup()
+                
             cls.logger.info("Cleanup completed successfully")
+            cls._setup_complete = False
+            
         except Exception as e:
             cls.logger.error(f"Error during cleanup: {str(e)}")
-            
+
     @classmethod
     def start_service(cls):
         """Start the service and handle initial setup."""
         try:
-            cls.logger.info("Starting run_service.py test")
+            cls.logger.info(f"Starting run_service.py test with config: {cls.config_path}")
             
-            # Start the process with pexpect
             cls.child = pexpect.spawn(
-                'bash ./run_service.sh configs/config_predict_trader.json',
+                f'bash ./run_service.sh {cls.config_path}',
                 encoding='utf-8',
                 timeout=600,
                 env=cls.temp_env,
                 cwd="."
             )
             
-            cls.child.logfile = sys.stdout
-            
-            # Handle the interaction
+            # Redirect pexpect logging to debug level only
+            cls.child.logfile = sys.stdout  # Disable direct stdout logging
             try:
                 while True:
-                    patterns = list(PROMPTS.keys())
+                    patterns = list(cls.config_settings["prompts"].keys())
                     index = cls.child.expect(patterns, timeout=600)
                     pattern = patterns[index]
-                    response = PROMPTS[pattern]
+                    response = cls.config_settings["prompts"][pattern]
                 
                     cls.logger.info(f"Matched prompt: {pattern}", extra={'is_expect': True})
 
@@ -425,6 +724,8 @@ class TestService:
 
                     if "password" in pattern.lower():
                         cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
+                    # elif "eth_newfilter" in pattern.lower():
+                    #     cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
                     else:
                         cls.logger.info(f"Sending: {response}", extra={'is_input': True})
                     
@@ -432,20 +733,19 @@ class TestService:
                     
             except pexpect.EOF:
                 cls.logger.info("Initial setup completed")
-                
-                # Add delay to ensure services are up
                 time.sleep(SERVICE_INIT_WAIT)
                 
-                # Verify Docker containers are running
                 retries = 5
                 while retries > 0:
-                    if check_docker_status(cls.logger):
+                    if check_docker_status(cls.logger, cls.config_path):
                         break
                     time.sleep(CONTAINER_STOP_WAIT)
                     retries -= 1
-                
+
                 if retries == 0:
-                    raise Exception("Docker containers failed to start")
+                    service_config = get_service_config(cls.config_path)
+                    container_name = service_config["container_name"]
+                    raise Exception(f"{container_name} containers failed to start")
                     
             except Exception as e:
                 cls.logger.error(f"Error in setup: {str(e)}")
@@ -454,38 +754,106 @@ class TestService:
         except Exception as e:
             cls.logger.error(f"Service start failed: {str(e)}")
             raise
-            
+
     @classmethod
     def stop_service(cls):
-        """Stop the service"""
+        """Stop the service ensuring we're in temp directory"""
         cls.logger.info("Stopping service...")
-        process = pexpect.spawn('bash ./stop_service.sh configs/config_predict_trader.json', encoding='utf-8', timeout=30)
+        if hasattr(cls, 'temp_dir') and cls.temp_dir:
+            stop_dir = cls.temp_dir.name
+        else:
+            stop_dir = os.getcwd()
+            
+        process = pexpect.spawn(
+            f'bash ./stop_service.sh {cls.config_path}', 
+            encoding='utf-8', 
+            timeout=30,
+            cwd=stop_dir  # Explicitly set working directory for stop_service
+        )
         process.expect(pexpect.EOF)
-        time.sleep(30)      
-        
-    def test_01_health_check(self):
+        time.sleep(0)
+
+    def test_health_check(self):
         """Test service health endpoint"""
         self.logger.info("Testing service health...")
-        status, metrics = check_service_health(self.logger)
-        
-        # Log the metrics for debugging/monitoring
+        status, metrics = check_service_health(self.logger, self.config_path)
         self.logger.info(f"Health check metrics: {metrics}")
-        
         assert status == True, f"Health check failed with metrics: {metrics}"
             
-    def test_02_shutdown_logs(self):
+    def test_shutdown_logs(self):
         """Test service shutdown logs"""
-        self.logger.info("Testing shutdown logs...")
-        # First stop the service
-        self.stop_service()
-        # Wait for containers to stop
-        time.sleep(30)
-        # Verify containers are stopped
-        client = docker.from_env()
-        containers = client.containers.list(filters={"name": "traderpearl"})
-        assert len(containers) == 0, "Containers are still running"
-        # Now check the logs
-        assert check_shutdown_logs(self.logger) == True, "Shutdown logs check failed"
+        try:
+            self.logger.info("Testing shutdown logs...")
+            self.stop_service()
+            time.sleep(CONTAINER_STOP_WAIT)
+            
+            client = docker.from_env()
+            service_config = get_service_config(self.config_path)
+            container_name = service_config["container_name"]
+            
+            containers = client.containers.list(filters={"name": container_name})
+            assert len(containers) == 0, f"Containers with name {container_name} are still running"
+            assert check_shutdown_logs(self.logger, self.config_path) == True, "Shutdown logs check failed"
+        finally:
+            if self._setup_complete:
+                self.teardown_class()
+
+class TestAgentService:
+    """Test class that runs tests for all configs."""
+    
+    @pytest.fixture(autouse=True)
+    def setup(self, request):
+        """Setup for each test case."""
+        config_path = request.param
+
+        # Create a temporary directory for stop_service
+        temp_dir = tempfile.TemporaryDirectory(prefix='operate_test_')
+        
+        # Copy necessary files to temp directory
+        shutil.copytree('.', temp_dir.name, dirs_exist_ok=True, 
+                        ignore=shutil.ignore_patterns('.git', '.pytest_cache', '__pycache__', 
+                                                '*.pyc', 'logs', '*.log', '.env'))
+        
+        # First ensure any existing service is stopped (in temp directory)
+        try:
+            process = pexpect.spawn(
+                f'bash ./stop_service.sh {config_path}',
+                encoding='utf-8',
+                timeout=30,
+                cwd=temp_dir.name  # Run in temp directory
+            )
+            process.expect(pexpect.EOF)
+            time.sleep(CONTAINER_STOP_WAIT)
+        except Exception as e:
+            print(f"Warning: Error stopping previous service: {e}")
+        
+        self.test_class = type(
+            f'TestService_{Path(config_path).stem}',
+            (BaseTestService,),
+            {'config_path': config_path}
+        )
+        self.test_class.setup_class()
+        yield
+        if self.test_class._setup_complete:
+            self.test_class.teardown_class()
+            
+        # Clean up the temporary directory used for stop_service
+        try:
+            shutil.rmtree(temp_dir.name, ignore_errors=True)
+            temp_dir.cleanup()
+        except Exception as e:
+            print(f"Warning: Error cleaning up temporary directory: {e}")
+
+    @pytest.mark.parametrize('setup', get_config_files(), indirect=True, ids=lambda x: Path(x).stem)
+    def test_agent_full_suite(self, setup):
+        """Run all tests for each config."""
+        test_instance = self.test_class()
+        
+        # Run health check
+        test_instance.test_health_check()
+        
+        # Run shutdown logs test
+        test_instance.test_shutdown_logs()
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    pytest.main(["-v", __file__, "-s", "--log-cli-level=INFO"])
