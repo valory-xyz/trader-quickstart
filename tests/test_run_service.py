@@ -391,6 +391,53 @@ def check_shutdown_logs(logger: logging.Logger, config_path: str) -> bool:
         logger.error(f"Error checking shutdown logs: {str(e)}")
         return False
 
+def ensure_service_stopped(config_path: str, temp_dir: str, logger: logging.Logger) -> bool:
+    """
+    Stop service only if it exists, with retry and verification.
+    Returns True if service is confirmed stopped (or wasn't running).
+    """
+    try:
+        client = docker.from_env()
+        service_config = get_service_config(config_path)
+        container_name = service_config["container_name"]
+        
+        # Check if service is running
+        containers = client.containers.list(filters={"name": container_name})
+        if not containers:
+            logger.info("No running service found, skipping stop")
+            return True
+            
+        logger.info(f"Found {len(containers)} running containers, stopping service")
+        
+        for attempt in range(2):
+            process = pexpect.spawn(
+                f'bash ./stop_service.sh {config_path}',
+                encoding='utf-8',
+                timeout=30,
+                cwd=temp_dir
+            )
+            process.expect(pexpect.EOF)
+            time.sleep(CONTAINER_STOP_WAIT)
+            
+            # Check if successfully stopped
+            if not client.containers.list(filters={"name": container_name}):
+                logger.info("Service stopped successfully")
+                return True
+                
+            # Force stop on final attempt
+            if attempt == 1:
+                for container in containers:
+                    container.stop(timeout=30)
+                    container.remove()
+                    
+            time.sleep(10)
+        
+        return not client.containers.list(filters={"name": container_name})
+        
+    except Exception as e:
+        logger.error(f"Error stopping service: {str(e)}")
+        return False
+    
 class ColoredFormatter(logging.Formatter):
     """Custom formatter with colors."""
     def format(self, record):
@@ -801,6 +848,8 @@ class BaseTestService:
 class TestAgentService:
     """Test class that runs tests for all configs."""
     
+    logger = setup_logging(Path(f'test_run_service_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'))
+
     @pytest.fixture(autouse=True)
     def setup(self, request):
         """Setup for each test case."""
@@ -814,18 +863,9 @@ class TestAgentService:
                         ignore=shutil.ignore_patterns('.git', '.pytest_cache', '__pycache__', 
                                                 '*.pyc', 'logs', '*.log', '.env'))
         
-        # First ensure any existing service is stopped (in temp directory)
-        try:
-            process = pexpect.spawn(
-                f'bash ./stop_service.sh {config_path}',
-                encoding='utf-8',
-                timeout=30,
-                cwd=temp_dir.name  # Run in temp directory
-            )
-            process.expect(pexpect.EOF)
-            time.sleep(CONTAINER_STOP_WAIT)
-        except Exception as e:
-            print(f"Warning: Error stopping previous service: {e}")
+        # First ensure any existing service is stopped
+        if not ensure_service_stopped(config_path, temp_dir.name, self.logger):
+            raise RuntimeError("Failed to stop existing service")
         
         self.test_class = type(
             f'TestService_{Path(config_path).stem}',
