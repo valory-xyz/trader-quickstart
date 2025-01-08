@@ -737,7 +737,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.21.4"
+service_version="v0.22.0"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -1275,7 +1275,6 @@ export DISABLE_TRADING=false
 export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
-export MECH_CHAIN_ID=ethereum
 export TOOLS_ACCURACY_HASH=QmZSkE49cnp3KeR9r6bp3hP4M2LPAmG4beHq4isz55ghv5
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
