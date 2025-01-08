@@ -509,7 +509,7 @@ def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
         "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
-        "BACKUP_WALLET": os.getenv('BACKUP_WALLET', ''),
+        "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
         "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
     }
     
