@@ -708,7 +708,7 @@ class BaseTestService:
             )
             
             # Redirect pexpect logging to debug level only
-            cls.child.logfile = sys.stdout  # Disable direct stdout logging
+            cls.child.logfile = None  # Disable direct stdout logging
             try:
                 while True:
                     patterns = list(cls.config_settings["prompts"].keys())
