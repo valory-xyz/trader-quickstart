@@ -614,6 +614,70 @@ def get_config_specific_settings(config_path: str) -> dict:
         })
 
     return {"prompts": prompts, "test_config": test_config}
+
+def cleanup_directory(path: str, logger: logging.Logger) -> bool:
+    """
+    Cross-platform directory cleanup with retry logic.
+    Optimized for Ubuntu CI environment.
+    """
+    def remove_readonly(func, path, _):
+        """Error handler for read-only files."""
+        try:
+            if os.path.isfile(path):
+                os.chmod(path, 0o666)  # Read/write for owner, group, others
+            elif os.path.isdir(path):
+                os.chmod(path, 0o777)  # Read/write/execute for owner, group, others
+            func(path)
+        except Exception as e:
+            logger.warning(f"Cleanup chmod failed for {path}: {e}")
+
+    for attempt in range(3):
+        try:
+            if os.path.exists(path):
+                # Check if path is already unlinked/deleted but still mounted
+                if os.path.ismount(path):
+                    logger.warning(f"Path {path} is a mountpoint, attempting cleanup...")
+                    
+                # Reset permissions recursively first
+                try:
+                    process = pexpect.spawn(f'find {path} -type d -exec chmod 755 {{}} \\;', encoding='utf-8')
+                    process.expect(pexpect.EOF)
+                    process = pexpect.spawn(f'find {path} -type f -exec chmod 644 {{}} \\;', encoding='utf-8')
+                    process.expect(pexpect.EOF)
+                except Exception as e:
+                    logger.warning(f"Permission reset failed: {e}")
+
+                # Try standard cleanup
+                shutil.rmtree(path, onerror=remove_readonly)
+                logger.info(f"Successfully cleaned up {path}")
+                return True
+                
+        except Exception as e:
+            logger.warning(f"Cleanup attempt {attempt + 1} failed: {e}")
+            
+            try:
+                # More aggressive cleanup attempts
+                if attempt == 0:
+                    # First retry - force permissions
+                    process = pexpect.spawn(f'chmod -R 777 {path}', encoding='utf-8')
+                    process.expect(pexpect.EOF)
+                elif attempt == 1:
+                    # Second retry - force using find
+                    process = pexpect.spawn(f'find {path} -delete', encoding='utf-8')
+                    process.expect(pexpect.EOF)
+                time.sleep(1)
+                
+            except Exception as chmod_err:
+                logger.warning(f"Force cleanup failed: {chmod_err}")
+            
+            if attempt == 2:  # Final attempt
+                logger.error(f"All cleanup attempts failed for {path}")
+                # Don't raise exception, just log and return False
+                return False
+            
+            time.sleep(2)  # Wait before retry
+    
+    return False
 class BaseTestService:
     """Base test service class containing core test logic."""
     config_path = None
@@ -713,7 +777,7 @@ class BaseTestService:
             # Always try to stop the service first
             try:
                 cls.stop_service()
-                time.sleep(CONTAINER_STOP_WAIT)  # Give containers time to stop
+                time.sleep(CONTAINER_STOP_WAIT)
                 
                 # Verify all containers are stopped
                 client = docker.from_env()
@@ -732,9 +796,14 @@ class BaseTestService:
             # Clean up resources
             os.chdir(cls.original_cwd)
             if cls.temp_dir:
-                cls.temp_dir.cleanup()
+                temp_dir_path = cls.temp_dir.name
+                try:
+                    cls.temp_dir.cleanup()
+                except Exception:
+                    cls.logger.warning("Built-in cleanup failed, trying custom cleanup...")
+                    cleanup_directory(temp_dir_path, cls.logger)
                 
-            cls.logger.info("Cleanup completed successfully")
+            cls.logger.info("Cleanup completed")
             cls._setup_complete = False
             
         except Exception as e:
@@ -854,35 +923,40 @@ class TestAgentService:
     def setup(self, request):
         """Setup for each test case."""
         config_path = request.param
+        temp_dir = None
 
-        # Create a temporary directory for stop_service
-        temp_dir = tempfile.TemporaryDirectory(prefix='operate_test_')
-        
-        # Copy necessary files to temp directory
-        shutil.copytree('.', temp_dir.name, dirs_exist_ok=True, 
-                        ignore=shutil.ignore_patterns('.git', '.pytest_cache', '__pycache__', 
-                                                '*.pyc', 'logs', '*.log', '.env'))
-        
-        # First ensure any existing service is stopped
-        if not ensure_service_stopped(config_path, temp_dir.name, self.logger):
-            raise RuntimeError("Failed to stop existing service")
-        
-        self.test_class = type(
-            f'TestService_{Path(config_path).stem}',
-            (BaseTestService,),
-            {'config_path': config_path}
-        )
-        self.test_class.setup_class()
-        yield
-        if self.test_class._setup_complete:
-            self.test_class.teardown_class()
-            
-        # Clean up the temporary directory used for stop_service
         try:
-            shutil.rmtree(temp_dir.name, ignore_errors=True)
-            temp_dir.cleanup()
-        except Exception as e:
-            print(f"Warning: Error cleaning up temporary directory: {e}")
+            # Create a temporary directory for stop_service
+            temp_dir = tempfile.TemporaryDirectory(prefix='operate_test_')
+            
+            # Copy necessary files to temp directory
+            shutil.copytree('.', temp_dir.name, dirs_exist_ok=True, 
+                            ignore=shutil.ignore_patterns('.git', '.pytest_cache', '__pycache__', 
+                                                    '*.pyc', 'logs', '*.log', '.env'))
+            
+            # First ensure any existing service is stopped
+            if not ensure_service_stopped(config_path, temp_dir.name, self.logger):
+                raise RuntimeError("Failed to stop existing service")
+            
+            self.test_class = type(
+                f'TestService_{Path(config_path).stem}',
+                (BaseTestService,),
+                {'config_path': config_path}
+            )
+            self.test_class.setup_class()
+            yield
+            if self.test_class._setup_complete:
+                self.test_class.teardown_class()
+                
+        finally:
+            # Clean up the temporary directory
+            if temp_dir:
+                temp_dir_path = temp_dir.name
+                try:
+                    temp_dir.cleanup()
+                except Exception:
+                    self.logger.warning("Built-in cleanup failed, trying custom cleanup...")
+                    cleanup_directory(temp_dir_path, self.logger)
 
     @pytest.mark.parametrize('setup', get_config_files(), indirect=True, ids=lambda x: Path(x).stem)
     def test_agent_full_suite(self, setup):
