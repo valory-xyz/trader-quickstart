@@ -724,8 +724,8 @@ class BaseTestService:
 
                     if "password" in pattern.lower():
                         cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
-                    # elif "eth_newfilter" in pattern.lower():
-                    #     cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
+                    elif "eth_newfilter" in pattern.lower():
+                        cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
                     else:
                         cls.logger.info(f"Sending: {response}", extra={'is_input': True})
                     
