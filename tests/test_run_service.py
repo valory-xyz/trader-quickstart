@@ -678,6 +678,36 @@ def cleanup_directory(path: str, logger: logging.Logger) -> bool:
             time.sleep(2)  # Wait before retry
     
     return False
+
+def check_docker_containers(logger: logging.Logger) -> None:
+    """Check and log all Docker containers status after setup."""
+    try:
+        client = docker.from_env()
+        all_containers = client.containers.list(all=True)  # This gets all containers including stopped ones
+        
+        logger.info("=== Docker Containers Status ===")
+        if not all_containers:
+            logger.warning("No Docker containers found!")
+            return
+
+        for container in all_containers:
+            logger.info(f"Container: {container.name}")
+            logger.info(f"ID: {container.short_id}")
+            logger.info(f"Status: {container.status}")
+            logger.info(f"Image: {container.image.tags}")
+            
+            # Get exit code and logs if container has stopped
+            if container.status == 'exited':
+                inspect = client.api.inspect_container(container.id)
+                exit_code = inspect['State']['ExitCode']
+                logger.info(f"Exit Code: {exit_code}")
+                logs = container.logs(tail=50).decode('utf-8')
+                logger.info(f"Last logs:\n{logs}")
+            
+            logger.info("-" * 50)
+
+    except Exception as e:
+        logger.error(f"Error checking Docker containers: {str(e)}")
 class BaseTestService:
     """Base test service class containing core test logic."""
     config_path = None
@@ -824,7 +854,7 @@ class BaseTestService:
             )
             
             # Redirect pexpect logging to debug level only
-            cls.child.logfile = None  # Disable direct stdout logging
+            cls.child.logfile = sys.stdout  # Disable direct stdout logging
             try:
                 while True:
                     patterns = list(cls.config_settings["prompts"].keys())
@@ -850,7 +880,9 @@ class BaseTestService:
             except pexpect.EOF:
                 cls.logger.info("Initial setup completed")
                 time.sleep(SERVICE_INIT_WAIT)
-                
+
+                check_docker_containers(cls.logger)
+
                 retries = 5
                 while retries > 0:
                     if check_docker_status(cls.logger, cls.config_path):
@@ -892,6 +924,7 @@ class BaseTestService:
     def test_health_check(self):
         """Test service health endpoint"""
         self.logger.info("Testing service health...")
+        check_docker_containers(self.logger)
         status, metrics = check_service_health(self.logger, self.config_path)
         self.logger.info(f"Health check metrics: {metrics}")
         assert status == True, f"Health check failed with metrics: {metrics}"
