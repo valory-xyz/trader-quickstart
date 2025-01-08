@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RPC_URL: ${{ secrets.RPC_URL }}
+      MODIUS_RPC_URL: ${{ secrets.MODIUS_RPC_URL }}
+      OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
+      BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
       BACKUP_WALLET: ${{ secrets.BACKUP_WALLET }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       DOCKER_LOGS_DIR: ${GITHUB_WORKSPACE}/logs
     
     steps:
@@ -85,9 +87,11 @@ jobs:
     - name: Create .env file
       run: |
         echo "RPC_URL=${RPC_URL}" > .env
+        echo "MODIUS_RPC_URL=${MODIUS_RPC_URL}" >> .env
+        echo "OPTIMISM_RPC_URL=${OPTIMISM_RPC_URL}" >> .env
+        echo "BASE_RPC_URL=${BASE_RPC_URL}" >> .env
         echo "BACKUP_WALLET=${BACKUP_WALLET}" >> .env
         echo "TEST_PASSWORD=${TEST_PASSWORD}" >> .env
-        echo "PRIVATE_KEY=${PRIVATE_KEY}" >> .env
         echo "DOCKER_LOGS_DIR=${DOCKER_LOGS_DIR}" >> .env
         
     - name: Install project dependencies
