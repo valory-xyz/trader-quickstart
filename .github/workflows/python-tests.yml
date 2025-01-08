@@ -116,10 +116,6 @@ jobs:
           echo "=== Inspect for $container ==="
           docker inspect $container
         done
-        
-        echo "==== Directory permissions ===="
-        ls -la /logs/
-        ls -la ${GITHUB_WORKSPACE}/logs/
 
     - name: Upload test logs
       if: always()
