@@ -153,16 +153,16 @@ Note: In this case, if the service is staked, then it will not update the on-cha
    cd trader; poetry run python ../report.py; cd ..
    ```
 
-3. Use this command to investigate your agent's logs:
+3. Use the `analyse_logs.py` script to investigate your agent's logs:
 
     ```bash
-    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --reset-db; cd ..
+    cd trader; poetry run python ../analyse_logs.py --agent aea_0 --reset-db; cd ..
     ```
 
-    For example, inspect the state transitions using this command:
+    For example, inspect the state transitions using the following command:
 
     ```bash
-    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --fsm --reset-db; cd ..
+    cd trader; poetry run python ../analyse_logs.py --agent aea_0 --fsm --reset-db; cd ..
     ```
 
     This will output the different state transitions of your agent per period, for example:
@@ -411,7 +411,11 @@ Error: Service terminatation failed with following error; ChainInteractionError(
 
 ## Build deployments without executing the service
 
-The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build`) and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). Then, by default, the script will launch the local Docker Compose deployment. If you just want to build the deployment without executing the service (for example, if you are deploying to a custom Kubernetes cluster), then execute the script as
+The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build_????`) 
+and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). 
+Then, by default, the script will launch the local Docker Compose deployment. 
+If you just want to build the deployment without executing the service 
+(for example, if you are deploying to a custom Kubernetes cluster), then execute the script as:
 
 ```bash
     ./run_service.sh --build-only
