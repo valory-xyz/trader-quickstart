@@ -77,7 +77,12 @@ def find_build_directory(service_dir):
             d for d in os.listdir(service_dir)
             if d.startswith("abci_build_") and os.path.isdir(os.path.join(service_dir, d))
         ]
-        return os.path.join(service_dir, build_dirs[0]) if build_dirs else os.path.join(service_dir, "abci_build")
+        if build_dirs:
+            build_dir = os.path.join(service_dir, build_dirs[0])
+            logs_dir = os.path.join(build_dir, "persistent_data", "logs")
+            if os.path.exists(logs_dir) and os.listdir(logs_dir):
+                return build_dir
+        return os.path.join(service_dir, "abci_build")
     except FileNotFoundError:
         print(f"Service directory '{service_dir}' not found")
         sys.exit(1)
