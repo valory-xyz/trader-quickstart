@@ -21,6 +21,8 @@ import requests
 import docker
 from dotenv import load_dotenv
 from operate.constants import HEALTH_CHECK_URL
+from operate.operate_types import Chain, LedgerType
+
 
 # Initialize colorama and load environment
 init()
@@ -42,6 +44,9 @@ def get_service_config(config_path: str) -> dict:
         
     Returns:
         dict: Dictionary containing service configuration with container name and health check URL
+        
+    Raises:
+        ValueError: If no matching service configuration is found
     """
     # Service configuration mappings
     SERVICE_CONFIGS = {
@@ -50,19 +55,13 @@ def get_service_config(config_path: str) -> dict:
             "health_check_url": HEALTH_CHECK_URL,
         },
         "modius": {
-            "container_name": "optimus",
+            "container_name": "optimus", 
             "health_check_url": HEALTH_CHECK_URL,
         },
         "traderpearl": {
             "container_name": "traderpearl",
             "health_check_url": HEALTH_CHECK_URL,
         }
-    }
-    
-    # Default configuration
-    DEFAULT_CONFIG = {
-        "container_name": "traderpearl",
-        "health_check_url": HEALTH_CHECK_URL,
     }
     
     # Convert config path to lowercase for case-insensitive matching
@@ -73,8 +72,7 @@ def get_service_config(config_path: str) -> dict:
         if service_name in config_path_lower:
             return config
             
-    # Return default configuration if no match found
-    return DEFAULT_CONFIG
+    raise ValueError(f"No matching service configuration found for {config_path}")
 
 def check_docker_status(logger: logging.Logger, config_path: str) -> bool:
     """Check if Docker containers are running properly."""
@@ -315,12 +313,13 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
             
             if "modius" in config_type.lower():
                 original_amount = required_amount
-                required_amount = 0.6  # Fixed amount for Modius
+                required_amount = 0.6
                 logger.info(f"Modius detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
             if "optimus" in config_type.lower():
                 original_amount = required_amount
-                required_amount = 100  # Set to 1.2 ETH (1200000000000000000 wei) for Optimus
+                required_amount = 100
                 logger.info(f"Optimus detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
+            
             try:
                 w3 = Web3(Web3.HTTPProvider(rpc_url))
                 amount_wei = w3.to_wei(required_amount, 'ether')
@@ -342,14 +341,14 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
                         raise Exception(f"Tenderly API error: {result['error']}")
                         
                     chain_id = w3.eth.chain_id
-                    token_name = "ETH" if chain_id in [1, 5, 11155111, 8453, 34443, 10] else "xDAI"
+                    chain = Chain.from_id(chain_id)
+                    token_name = "ETH" if chain.ledger_type == LedgerType.ETHEREUM else "xDAI"
                     
                     logger.info(f"Successfully funded {required_amount} {token_name} to {wallet_type} {wallet_address}")
 
-                    # Add delay after funding to ensure transaction is processed
                     if "optimus" in config_type.lower():
                         logger.info("Adding additional delay for Optimus safe creation...")
-                        time.sleep(20)  # Extra delay for Optimus configuration
+                        time.sleep(5)
 
                     new_balance = w3.eth.get_balance(wallet_address)
                     logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} {token_name}")
@@ -399,14 +398,14 @@ def check_shutdown_logs(logger: logging.Logger, config_path: str) -> bool:
 
 def ensure_service_stopped(config_path: str, temp_dir: str, logger: logging.Logger) -> bool:
     """
-    Stop service only if it exists, with retry and verification.
+    Stop service only if it exists, with verification.
     Returns True if service is confirmed stopped (or wasn't running).
     """
     try:
         # First check if Docker daemon is running
         try:
             client = docker.from_env()
-            client.ping()  # Will raise exception if Docker daemon isn't running
+            client.ping()
         except Exception as docker_err:
             logger.error(f"Docker daemon not accessible: {str(docker_err)}")
             logger.error("Please ensure Docker is running before starting the tests")
@@ -423,42 +422,32 @@ def ensure_service_stopped(config_path: str, temp_dir: str, logger: logging.Logg
             
         logger.info(f"Found {len(containers)} running containers, stopping service")
         
-        for attempt in range(2):
-            process = pexpect.spawn(
-                f'bash ./stop_service.sh {config_path}',
-                encoding='utf-8',
-                timeout=30,
-                cwd=temp_dir
-            )
-            process.expect(pexpect.EOF)
-            time.sleep(CONTAINER_STOP_WAIT)
-            
-            # Check if successfully stopped
-            if not client.containers.list(filters={"name": container_name}):
-                logger.info("Service stopped successfully")
-                return True
-                
-            # Force stop on final attempt
-            if attempt == 1:
-                for container in containers:
-                    try:
-                        container.stop(timeout=30)
-                        container.remove()
-                    except Exception as container_err:
-                        logger.error(f"Error forcing container stop: {str(container_err)}")
-                    
-            time.sleep(10)
+        # Single attempt with proper force stop
+        process = pexpect.spawn(
+            f'bash ./stop_service.sh {config_path}',
+            encoding='utf-8',
+            timeout=30,
+            cwd=temp_dir
+        )
+        process.expect(pexpect.EOF)
+        time.sleep(CONTAINER_STOP_WAIT)
         
-        # Final check
+        # Check if any containers are still running
         remaining_containers = client.containers.list(filters={"name": container_name})
         if remaining_containers:
-            logger.error("Failed to stop all containers even after force stop attempt")
-            return False
-            
+            logger.info("Some containers still running after stop_service, forcing stop...")
+            for container in remaining_containers:
+                try:
+                    container.stop(timeout=30)
+                    container.remove(force=True)
+                except Exception as container_err:
+                    logger.error(f"Error forcing container stop: {str(container_err)}")
+                    return False
+        
         return True
         
     except RuntimeError:
-        raise  # Re-raise the Docker daemon error
+        raise
     except Exception as e:
         logger.error(f"Error stopping service: {str(e)}")
         return False
@@ -542,8 +531,8 @@ def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
         "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test'),
-        "BACKUP_WALLET":  validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
-        "STAKING_CHOICE":  '1'
+        "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
+        "STAKING_CHOICE": '1'
     }
     
     # Common prompts used across all services
@@ -555,8 +544,7 @@ def get_base_config() -> dict:
         "Press enter to continue": "\n",
         "press enter": "\n",
         r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"],
-        "Please enter Tenderly": "\n",
-        "Please enter Coingecko API Key": "\n",
+        r"Please enter": "\n",
     }
     
     return {"config": base_config, "prompts": base_prompts}
@@ -566,7 +554,7 @@ def get_config_specific_settings(config_path: str) -> dict:
     # Get base configuration
     base = get_base_config()
     base_config = base["config"]
-    prompts = base["prompts"].copy()  # Create a copy of base prompts
+    prompts = base["prompts"].copy()
     
     if "modius" in config_path.lower():
         # Modius specific settings
@@ -609,25 +597,14 @@ def get_config_specific_settings(config_path: str) -> dict:
                 logger.info("Using Mode RPC URL as default")
                 return test_config["MODIUS_RPC_URL"]
 
-        def multi_chain_funding_handler(output: str, logger: logging.Logger) -> str:
-            """Handle native token funding across multiple chains."""
-            rpc_url = get_chain_rpc(output, logger)
-            logger.info(f"Funding with RPC : {rpc_url}")
-            return handle_native_funding(output, logger, rpc_url, "optimus")
-
-        def multi_chain_token_funding_handler(output: str, logger: logging.Logger) -> str:
-            """Handle ERC20 token funding across multiple chains."""
-            rpc_url = get_chain_rpc(output, logger)
-            logger.info(f"Token funding with RPC : {rpc_url}")
-            return handle_erc20_funding(output, logger, rpc_url)
-
-        # Add Optimus-specific prompts
         prompts.update({
             r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"],
             r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"],
             r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
-            r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": multi_chain_funding_handler,
-            r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)": multi_chain_token_funding_handler,
+            r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                lambda output, logger: create_funding_handler(get_chain_rpc(output, logger), "optimus")(output, logger),
+            r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
+                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger)
         })
         
     else:
@@ -665,35 +642,6 @@ def cleanup_directory(path: str, logger: logging.Logger) -> bool:
         logger.debug(f"Cleanup failed: {e}")
         return False
 
-def check_docker_containers(logger: logging.Logger) -> None:
-    """Check and log all Docker containers status after setup."""
-    try:
-        client = docker.from_env()
-        all_containers = client.containers.list(all=True)  # This gets all containers including stopped ones
-        
-        logger.info("=== Docker Containers Status ===")
-        if not all_containers:
-            logger.warning("No Docker containers found!")
-            return
-
-        for container in all_containers:
-            logger.info(f"Container: {container.name}")
-            logger.info(f"ID: {container.short_id}")
-            logger.info(f"Status: {container.status}")
-            logger.info(f"Image: {container.image.tags}")
-            
-            # Get exit code and logs if container has stopped
-            if container.status == 'exited':
-                inspect = client.api.inspect_container(container.id)
-                exit_code = inspect['State']['ExitCode']
-                logger.info(f"Exit Code: {exit_code}")
-                logs = container.logs(tail=50).decode('utf-8')
-                logger.info(f"Last logs:\n{logs}")
-            
-            logger.info("-" * 50)
-
-    except Exception as e:
-        logger.error(f"Error checking Docker containers: {str(e)}")
 class BaseTestService:
     """Base test service class containing core test logic."""
     config_path = None
@@ -862,7 +810,6 @@ class BaseTestService:
                 cls.logger.info("Initial setup completed")
                 time.sleep(SERVICE_INIT_WAIT)
 
-                check_docker_containers(cls.logger)
 
                 retries = 5
                 while retries > 0:
@@ -905,7 +852,6 @@ class BaseTestService:
     def test_health_check(self):
         """Test service health endpoint"""
         self.logger.info("Testing service health...")
-        check_docker_containers(self.logger)
         status, metrics = check_service_health(self.logger, self.config_path)
         self.logger.info(f"Health check metrics: {metrics}")
         assert status == True, f"Health check failed with metrics: {metrics}"
