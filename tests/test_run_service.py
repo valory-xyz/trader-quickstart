@@ -48,8 +48,9 @@ def get_service_config(config_path: str) -> dict:
     Raises:
         ValueError: If no matching service configuration is found
     """
-    # Service configuration mappings
+    # Service configuration mappings with aliases
     SERVICE_CONFIGS = {
+        # Optimus service and variants
         "optimus": {
             "container_name": "optimus",
             "health_check_url": HEALTH_CHECK_URL,
@@ -58,19 +59,30 @@ def get_service_config(config_path: str) -> dict:
             "container_name": "optimus", 
             "health_check_url": HEALTH_CHECK_URL,
         },
+        # Traderpearl service and variants
         "traderpearl": {
             "container_name": "traderpearl",
             "health_check_url": HEALTH_CHECK_URL,
         }
     }
     
+    # Additional name mappings
+    SERVICE_ALIASES = {
+        "predict_trader": "traderpearl"
+    }
+    
     # Convert config path to lowercase for case-insensitive matching
     config_path_lower = config_path.lower()
     
-    # Find matching service configuration
+    # Check for direct service match first
     for service_name, config in SERVICE_CONFIGS.items():
         if service_name in config_path_lower:
             return config
+            
+    # Check aliases if no direct match found
+    for alias, service_name in SERVICE_ALIASES.items():
+        if alias in config_path_lower:
+            return SERVICE_CONFIGS[service_name]
             
     raise ValueError(f"No matching service configuration found for {config_path}")
 
