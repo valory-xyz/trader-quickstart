@@ -105,7 +105,7 @@ Services can become staked by invoking the `stake()` contract method, where serv
 Once the command has completed, i.e. the service is running, you can see the live logs with:
 
 ```bash
-docker logs trader_abci_0 --follow
+docker logs $(docker ps --filter "name=trader" --format "{{.Names}}" | grep "_abci" | head -n 1) --follow
 ```
 
 To stop your agent, use:
