@@ -319,7 +319,7 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
                 logger.info(f"Modius detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
             if "optimus" in config_type.lower():
                 original_amount = required_amount
-                required_amount = 44  # Set to 1.2 ETH (1200000000000000000 wei) for Optimus
+                required_amount = 100  # Set to 1.2 ETH (1200000000000000000 wei) for Optimus
                 logger.info(f"Optimus detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
             try:
                 w3 = Web3(Web3.HTTPProvider(rpc_url))
