@@ -111,6 +111,9 @@ MULTI_TRADE_LOOKBACK_DAYS = TRADES_LOOKBACK_DAYS
 SECONDS_PER_DAY = 60 * 60 * 24
 
 OUTPUT_WIDTH = 80
+TRADER_CONTAINER_PREFIX = "trader"
+AGENT_CONTAINER_IDENTIFIER = "abci"
+NODE_CONTAINER_IDENTIFIER = "tm"
 
 
 class ColorCode:
@@ -238,19 +241,19 @@ def _warning_message(current_value: int, threshold: int = 0, message: str = "") 
 
 def _get_agent_status() -> str:
     client = docker.from_env()
-    trader_abci_container = (
-        client.containers.get("trader_abci_0")
-        if "trader_abci_0" in [c.name for c in client.containers.list()]
-        else None
-    )
-    trader_tm_container = (
-        client.containers.get("trader_tm_0")
-        if "trader_tm_0" in [c.name for c in client.containers.list()]
-        else None
-    )
+    agent_running = node_running = service_running = False
+    for container in client.containers.list():
+        container_name = container.name
+        if TRADER_CONTAINER_PREFIX in container_name:
+            if AGENT_CONTAINER_IDENTIFIER in container_name:
+                agent_running = True
+            if NODE_CONTAINER_IDENTIFIER in container_name:
+                node_running = True
+            if agent_running and node_running:
+                service_running = True
+                break
 
-    is_running = trader_abci_container and trader_tm_container
-    return _color_bool(is_running, "Running", "Stopped")
+    return _color_bool(service_running, "Running", "Stopped")
 
 
 def _parse_args() -> Any:
