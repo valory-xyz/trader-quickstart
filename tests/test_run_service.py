@@ -623,7 +623,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         # Default PredictTrader settings
         test_config = {
             **base_config,  # Include base config
-            "RPC_URL": os.getenv('RPC_URL', ''),
+            "RPC_URL": os.getenv('GNOSIS_RPC_URL', ''),
             "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         }
 
