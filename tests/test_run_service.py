@@ -350,7 +350,7 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
                     if "optimus" in config_type.lower():
                         logger.info("Adding additional delay for Optimus safe creation...")
                         time.sleep(20)  # Extra delay for Optimus configuration
-                        
+
                     new_balance = w3.eth.get_balance(wallet_address)
                     logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} {token_name}")
                     return ""
@@ -515,7 +515,7 @@ def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
         "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test'),
-        "BACKUP_WALLET":  "0x5d1D0b1d5790B1c88cC1e94366D3B242991DC05d",
+        "BACKUP_WALLET":  "0x802D8097eC1D49808F3c2c866020442891adde57",
         "STAKING_CHOICE":  '1'
     }
     
@@ -608,7 +608,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         test_config = {
             **base_config,  # Include base config
             "RPC_URL": os.getenv('RPC_URL', ''),
-            "BACKUP_WALLET": "0x5d1D0b1d5790B1c88cC1e94366D3B242991DC05d",
+            "BACKUP_WALLET": "0x802D8097eC1D49808F3c2c866020442891adde57",
         }
 
         funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader")
