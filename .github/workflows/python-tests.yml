@@ -17,10 +17,10 @@ jobs:
       DOCKER_LOGS_DIR: ${GITHUB_WORKSPACE}/logs
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4  # Updated from v3
     
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5  # Updated from v4
       with:
         python-version: '3.10'
         
@@ -97,7 +97,6 @@ jobs:
         python -m pip install --upgrade pip
         poetry env use python3.10
         poetry install --no-interaction
-        
 
     - name: Run tests
       run: |  
@@ -121,10 +120,11 @@ jobs:
 
     - name: Upload test logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated from v3
       with:
         name: test-logs
         path: |
           logs/
           /logs/
           .env
+        retention-days: 30  # Added retention period
