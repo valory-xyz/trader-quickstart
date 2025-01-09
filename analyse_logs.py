@@ -14,6 +14,10 @@ def _parse_args():
         help="The service directory containing build directories (default: 'trader_service')."
     )
     parser.add_argument(
+        "--from-dir",
+        help="Path to the logs directory."
+    )
+    parser.add_argument(
         "--agent",
         default="aea_0",
         help="The agent name to analyze (default: 'aea_0')."
@@ -21,12 +25,48 @@ def _parse_args():
     parser.add_argument(
         "--reset-db",
         action="store_true",
-        help="Reset the database before running analysis."
+        help="Use this flag to disable resetting the log database."
     )
     parser.add_argument(
-        "--from-dir",
-        help="Path to the logs directory (if not provided, will auto-detect)."
+        "--start-time",
+        help="Start time in `YYYY-MM-DD H:M:S,MS` format."
     )
+    parser.add_argument(
+        "--end-time",
+        help="End time in `YYYY-MM-DD H:M:S,MS` format."
+    )
+    parser.add_argument(
+        "--log-level",
+        choices=["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level."
+    )
+    parser.add_argument(
+        "--period",
+        type=int,
+        help="Period ID."
+    )
+    parser.add_argument(
+        "--round",
+        help="Round name."
+    )
+    parser.add_argument(
+        "--behaviour",
+        help="Behaviour name filter."
+    )
+    parser.add_argument(
+        "--fsm",
+        action="store_true",
+        help="Print only the FSM execution path."
+    )
+    parser.add_argument(
+        "--include-regex",
+        help="Regex pattern to include in the result."
+    )
+    parser.add_argument(
+        "--exclude-regex",
+        help="Regex pattern to exclude from the result."
+    )
+
     return parser.parse_args()
 
 
@@ -43,16 +83,34 @@ def find_build_directory(service_dir):
         sys.exit(1)
 
 
-def run_analysis(logs_dir, agent, reset_db):
+def run_analysis(logs_dir, **kwargs):
     """Run the log analysis command."""
     command = [
         "poetry", "run", "autonomy", "analyse", "logs",
         "--from-dir", logs_dir,
-        "--agent", agent,
-        "--fsm",
     ]
-    if reset_db:
-        command.append("--reset-db")
+    if kwargs.get("agent"):
+        command.extend(["--agent", kwargs.get("agent")])
+    if kwargs.get("reset_db"):
+        command.extend(["--reset-db"])
+    if kwargs.get("start_time"):
+        command.extend(["--start-time", kwargs.get("start_time")])
+    if kwargs.get("end_time"):
+        command.extend(["--end-time", kwargs.get("end_time")])
+    if kwargs.get("log_level"):
+        command.extend(["--log-level", kwargs.get("log_level")])
+    if kwargs.get("period"):
+        command.extend(["--period", kwargs.get("period")])
+    if kwargs.get("round"):
+        command.extend(["--round", kwargs.get("round")])
+    if kwargs.get("behaviour"):
+        command.extend(["--behaviour", kwargs.get("behaviour")])
+    if kwargs.get("fsm"):
+        command.extend(["--fsm"])
+    if kwargs.get("include_regex"):
+        command.extend(["--include-regex", kwargs.get("include_regex")])
+    if kwargs.get("exclude_regex"):
+        command.extend(["--exclude-regex", kwargs.get("exclude_regex")])
 
     try:
         subprocess.run(command, check=True)
@@ -84,4 +142,4 @@ if __name__ == "__main__":
             sys.exit(1)
 
     # Run the analysis
-    run_analysis(logs_dir, args.agent, args.reset_db)
+    run_analysis(logs_dir, **vars(args))
