@@ -73,13 +73,16 @@ def _parse_args():
 def find_build_directory(service_dir):
     """Find the appropriate build directory within the service directory."""
     try:
+        # create a list of all build directories
         build_dirs = [
             d for d in os.listdir(service_dir)
             if d.startswith("abci_build_") and os.path.isdir(os.path.join(service_dir, d))
         ]
-        if build_dirs:
-            build_dir = os.path.join(service_dir, build_dirs[0])
+        # iterate through the build directories to find the one that contains logs
+        for build_dir in build_dirs:
+            build_dir = os.path.join(service_dir, build_dir)
             logs_dir = os.path.join(build_dir, "persistent_data", "logs")
+            # Check if the logs folder exists and contains files
             if os.path.exists(logs_dir) and os.listdir(logs_dir):
                 return build_dir
         return os.path.join(service_dir, "abci_build")
