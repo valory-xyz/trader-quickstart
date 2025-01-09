@@ -508,9 +508,9 @@ def get_config_files():
 def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
-        "TEST_PASSWORD": os.getenv('TEST_PASSWORD', ''),
-        "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
-        "STAKING_CHOICE": os.getenv('STAKING_CHOICE', '1')
+        "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test'),
+        "BACKUP_WALLET":  "0x5d1D0b1d5790B1c88cC1e94366D3B242991DC05d",
+        "STAKING_CHOICE":  '1'
     }
     
     # Common prompts used across all services
@@ -602,7 +602,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         test_config = {
             **base_config,  # Include base config
             "RPC_URL": os.getenv('RPC_URL', ''),
-            "BACKUP_WALLET": os.getenv('BACKUP_WALLET', '0x4e9a8fE0e0499c58a53d3C2A2dE25aaCF9b925A8'),
+            "BACKUP_WALLET": "0x5d1D0b1d5790B1c88cC1e94366D3B242991DC05d",
         }
 
         funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader")
@@ -868,9 +868,9 @@ class BaseTestService:
                         output = cls.child.before + cls.child.after
                         response = response(output, cls.logger)
 
-                    if "password" in pattern.lower():
+                    if "password1" in pattern.lower():
                         cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
-                    elif "eth_newfilter" in pattern.lower():
+                    elif "eth_newfilter1" in pattern.lower():
                         cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
                     else:
                         cls.logger.info(f"Sending: {response}", extra={'is_input': True})
