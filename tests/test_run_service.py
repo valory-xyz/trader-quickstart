@@ -87,60 +87,66 @@ def get_service_config(config_path: str) -> dict:
     raise ValueError(f"No matching service configuration found for {config_path}")
 
 def check_docker_status(logger: logging.Logger, config_path: str) -> bool:
-    """Check if Docker containers are running properly."""
+    """
+    Check if Docker ABCI containers are running properly.
+    Only checks containers ending with 'abci_0', ignoring Tendermint containers.
+    """
     service_config = get_service_config(config_path)
-    container_name = service_config["container_name"]
+    container_base_name = service_config["container_name"]
+    abci_container_name = f"{container_base_name}_abci_0"
     
     max_retries = 3
     retry_delay = 20
     
     for attempt in range(max_retries):
-        logger.info(f"Checking Docker status (attempt {attempt + 1}/{max_retries})")
+        logger.info(f"Checking ABCI container status (attempt {attempt + 1}/{max_retries})")
         try:
             client = docker.from_env()
             
-            all_containers = client.containers.list(all=True, filters={"name": container_name})
-            running_containers = client.containers.list(filters={"name": container_name})
+            # Only look for ABCI container
+            abci_containers = client.containers.list(all=True, filters={"name": abci_container_name})
+            running_abci = client.containers.list(filters={"name": abci_container_name})
             
-            if not all_containers:
-                logger.error(f"No {container_name} containers found (attempt {attempt + 1}/{max_retries})")
+            if not abci_containers:
+                logger.error(f"No {abci_container_name} container found (attempt {attempt + 1}/{max_retries})")
                 if attempt == max_retries - 1:
                     return False
                 logger.info(f"Waiting {retry_delay} seconds before retry...")
                 time.sleep(retry_delay)
                 continue
             
-            for container in all_containers:
-                logger.info(f"Container {container.name} status: {container.status}")
-                
-                if container.status == "exited":
-                    inspect = client.api.inspect_container(container.id)
-                    exit_code = inspect['State']['ExitCode']
-                    logger.error(f"Container {container.name} exited with code {exit_code}")
-                    logs = container.logs(tail=50).decode('utf-8')
-                    logger.error(f"Container logs:\n{logs}")
-                
-                elif container.status == "restarting":
-                    logger.error(f"Container {container.name} is restarting. Last logs:")
-                    logs = container.logs(tail=50).decode('utf-8')
-                    logger.error(f"Container logs:\n{logs}")
+            # Should only be one ABCI container
+            abci_container = abci_containers[0]
+            logger.info(f"ABCI Container {abci_container.name} status: {abci_container.status}")
             
-            if not running_containers:
+            if abci_container.status == "exited":
+                inspect = client.api.inspect_container(abci_container.id)
+                exit_code = inspect['State']['ExitCode']
+                logger.error(f"ABCI Container {abci_container.name} exited with code {exit_code}")
+                logs = abci_container.logs(tail=50).decode('utf-8')
+                logger.error(f"ABCI Container logs:\n{logs}")
+                
+            elif abci_container.status == "restarting":
+                logger.error(f"ABCI Container {abci_container.name} is restarting. Last logs:")
+                logs = abci_container.logs(tail=50).decode('utf-8')
+                logger.error(f"ABCI Container logs:\n{logs}")
+            
+            if not running_abci:
                 if attempt == max_retries - 1:
                     return False
-                logger.info(f"Waiting {retry_delay} seconds for containers to start...")
+                logger.info(f"Waiting {retry_delay} seconds for ABCI container to start...")
                 time.sleep(retry_delay)
                 continue
             
-            all_running = all(c.status == "running" for c in running_containers)
-            if all_running:
-                logger.info(f"All {container_name} containers are running")
+            # Check if ABCI container is running
+            if abci_container.status == "running":
+                logger.info(f"ABCI Container {abci_container.name} is running")
                 return True
             
             if attempt == max_retries - 1:
                 return False
                 
-            logger.info(f"Some containers not running, waiting {retry_delay} seconds...")
+            logger.info(f"ABCI container not running, waiting {retry_delay} seconds...")
             time.sleep(retry_delay)
             
         except Exception as e:
