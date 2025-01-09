@@ -1,42 +1,12 @@
 {
-    "name": "Optimus",
+    "name": "Modius",
     "agent_id": 40,
     "hash": "bafybeihqho73he6mirkodg4ubom6ngf2nkgebhmxr435yxpsxgsthu5nvy",
-    "description": "Optimus",
+    "description": "Modius",
     "image": "https://gateway.autonolas.tech/ipfs/bafybeiaakdeconw7j5z76fgghfdjmsr6tzejotxcwnvmp3nroaw3glgyve",
     "service_version": "v0.18.1",
-    "home_chain": "optimistic",
+    "home_chain": "mode",
     "configurations": {
-        "optimistic": {
-            "nft": "bafybeiaakdeconw7j5z76fgghfdjmsr6tzejotxcwnvmp3nroaw3glgyve",
-            "threshold": 1,
-            "use_mech_marketplace": false,
-            "fund_requirements": {
-                "0x0000000000000000000000000000000000000000": {
-                    "agent": 5000000000000000,
-                    "safe": 15000000000000000
-                },
-                "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85": {
-                    "agent": 0,
-                    "safe": 40000000
-                }
-            }
-        },
-        "base": {
-            "nft": "bafybeiaakdeconw7j5z76fgghfdjmsr6tzejotxcwnvmp3nroaw3glgyve",
-            "threshold": 1,
-            "use_mech_marketplace": false,
-            "fund_requirements": {
-                "0x0000000000000000000000000000000000000000": {
-                    "agent": 5000000000000000,
-                    "safe": 15000000000000000
-                },
-                "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": {
-                    "agent": 0,
-                    "safe": 40000000
-                }
-            }
-        },
         "mode": {
             "nft": "bafybeiaakdeconw7j5z76fgghfdjmsr6tzejotxcwnvmp3nroaw3glgyve",
             "threshold": 1,
@@ -55,7 +25,7 @@
     },
     "staking_programs": {
         "no_staking": "0x0000000000000000000000000000000000000000",
-        "optimus_alpha": "0x88996bbdE7f982D93214881756840cE2c77C4992"
+        "optimus_alpha": "0x5fc25f50E96857373C64dC0eDb1AbCBEd4587e91"
     },
     "env_variables": {
         "SAFE_CONTRACT_ADDRESSES": {
@@ -103,7 +73,7 @@
         "STAKING_ACTIVITY_CHECKER_CONTRACT_ADDRESS": {
             "name": "",
             "description": "",
-            "value": "0x7Fd1F4b764fA41d19fe3f63C85d12bf64d2bbf68",
+            "value": "0x07bc3C23DbebEfBF866Ca7dD9fAA3b7356116164",
             "provision_type": "fixed"
         },
         "MIN_SWAP_AMOUNT_THRESHOLD": {
@@ -115,19 +85,19 @@
         "ALLOWED_CHAINS": {
             "name": "",
             "description": "",
-            "value": "[\"optimism\",\"mode\",\"base\"]",
+            "value": "[\"mode\"]",
             "provision_type": "fixed"
         },
         "TARGET_INVESTMENT_CHAINS": {
             "name": "",
             "description": "",
-            "value": "[\"optimism\",\"mode\",\"base\"]",
+            "value": "[\"mode\"]",
             "provision_type": "fixed"
         },
         "INITIAL_ASSETS": {
             "name": "",
             "description": "",
-            "value": "{\"optimism\":{\"0x0000000000000000000000000000000000000000\":\"ETH\",\"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85\":\"USDC\"}}",
+            "value": "{\"mode\":{\"0x0000000000000000000000000000000000000000\":\"ETH\",\"0xd988097fb8612cc24eeC14542bC03424c656005f\":\"USDC\"}}",
             "provision_type": "fixed"
         },
         "SELECTED_STRATEGIES": {
