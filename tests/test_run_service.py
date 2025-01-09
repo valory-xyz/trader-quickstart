@@ -403,7 +403,15 @@ def ensure_service_stopped(config_path: str, temp_dir: str, logger: logging.Logg
     Returns True if service is confirmed stopped (or wasn't running).
     """
     try:
-        client = docker.from_env()
+        # First check if Docker daemon is running
+        try:
+            client = docker.from_env()
+            client.ping()  # Will raise exception if Docker daemon isn't running
+        except Exception as docker_err:
+            logger.error(f"Docker daemon not accessible: {str(docker_err)}")
+            logger.error("Please ensure Docker is running before starting the tests")
+            raise RuntimeError("Docker daemon not running or not accessible. Please start Docker first.") from docker_err
+
         service_config = get_service_config(config_path)
         container_name = service_config["container_name"]
         
@@ -433,13 +441,24 @@ def ensure_service_stopped(config_path: str, temp_dir: str, logger: logging.Logg
             # Force stop on final attempt
             if attempt == 1:
                 for container in containers:
-                    container.stop(timeout=30)
-                    container.remove()
+                    try:
+                        container.stop(timeout=30)
+                        container.remove()
+                    except Exception as container_err:
+                        logger.error(f"Error forcing container stop: {str(container_err)}")
                     
             time.sleep(10)
         
-        return not client.containers.list(filters={"name": container_name})
+        # Final check
+        remaining_containers = client.containers.list(filters={"name": container_name})
+        if remaining_containers:
+            logger.error("Failed to stop all containers even after force stop attempt")
+            return False
+            
+        return True
         
+    except RuntimeError:
+        raise  # Re-raise the Docker daemon error
     except Exception as e:
         logger.error(f"Error stopping service: {str(e)}")
         return False
@@ -511,11 +530,19 @@ def get_config_files():
     
     return [str(f) for f in config_files]
 
+def validate_backup_owner(backup_owner: str) -> str:
+    """Validate and normalize backup owner address."""
+    if not isinstance(backup_owner, str):
+        raise ValueError("Backup owner must be a string")
+    if not Web3.is_address(backup_owner):
+        raise ValueError(f"Invalid backup owner address: {backup_owner}")
+    return Web3.to_checksum_address(backup_owner)
+
 def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
         "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test'),
-        "BACKUP_WALLET":  "0x802D8097eC1D49808F3c2c866020442891adde57",
+        "BACKUP_WALLET":  validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         "STAKING_CHOICE":  '1'
     }
     
@@ -608,7 +635,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         test_config = {
             **base_config,  # Include base config
             "RPC_URL": os.getenv('RPC_URL', ''),
-            "BACKUP_WALLET": "0x802D8097eC1D49808F3c2c866020442891adde57",
+            "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         }
 
         funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader")
