@@ -650,7 +650,7 @@ def get_config_specific_settings(config_path: str) -> dict:
 
 def cleanup_directory(path: str, logger: logging.Logger) -> bool:
     """
-    Simple directory cleanup using shutil.rmtree with readonly handler.
+    Platform-agnostic directory cleanup.
     """
     def remove_readonly(func, path, _):
         os.chmod(path, 0o666)
@@ -802,7 +802,7 @@ class BaseTestService:
                 containers = client.containers.list(filters={"name": container_name})
                 
                 if containers:
-                    cls.logger.warning(f"Found running containers after stop_service, forcing removal...")
+                    cls.logger.warning("Found running containers after stop_service, forcing removal...")
                     for container in containers:
                         container.stop(timeout=30)
                         container.remove()
@@ -813,12 +813,7 @@ class BaseTestService:
             os.chdir(cls.original_cwd)
             if cls.temp_dir:
                 temp_dir_path = cls.temp_dir.name
-                try:
-                    cls.temp_dir.cleanup()
-                except Exception:
-                    cls.logger.warning("Built-in cleanup failed, trying custom cleanup...")
-                    cleanup_directory(temp_dir_path, cls.logger)
-                
+                cleanup_directory(temp_dir_path, cls.logger)
             cls.logger.info("Cleanup completed")
             cls._setup_complete = False
             
