@@ -840,8 +840,6 @@ if [[ -n "$containers" ]]; then
   docker rm -f $containers
 fi
 
-docker network prune
-
 try_read_storage
 
 if [ "$ATTENDED" = true ]; then
