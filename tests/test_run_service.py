@@ -345,6 +345,12 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
                     token_name = "ETH" if chain_id in [1, 5, 11155111, 8453, 34443, 10] else "xDAI"
                     
                     logger.info(f"Successfully funded {required_amount} {token_name} to {wallet_type} {wallet_address}")
+
+                    # Add delay after funding to ensure transaction is processed
+                    if "optimus" in config_type.lower():
+                        logger.info("Adding additional delay for Optimus safe creation...")
+                        time.sleep(20)  # Extra delay for Optimus configuration
+                        
                     new_balance = w3.eth.get_balance(wallet_address)
                     logger.info(f"New balance: {w3.from_wei(new_balance, 'ether')} {token_name}")
                     return ""
