@@ -9,7 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      RPC_URL: ${{ secrets.RPC_URL }}
+      GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
       MODIUS_RPC_URL: ${{ secrets.MODIUS_RPC_URL }}
       OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
       BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
@@ -85,7 +85,7 @@ jobs:
         
     - name: Create .env file
       run: |
-        echo "RPC_URL=${RPC_URL}" > .env
+        echo "GNOSIS_RPC_URL=${GNOSIS_RPC_URL}" > .env
         echo "MODIUS_RPC_URL=${MODIUS_RPC_URL}" >> .env
         echo "OPTIMISM_RPC_URL=${OPTIMISM_RPC_URL}" >> .env
         echo "BASE_RPC_URL=${BASE_RPC_URL}" >> .env
