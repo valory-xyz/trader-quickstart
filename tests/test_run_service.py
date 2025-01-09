@@ -650,67 +650,20 @@ def get_config_specific_settings(config_path: str) -> dict:
 
 def cleanup_directory(path: str, logger: logging.Logger) -> bool:
     """
-    Cross-platform directory cleanup with retry logic.
-    Optimized for Ubuntu CI environment.
+    Simple directory cleanup using shutil.rmtree with readonly handler.
     """
     def remove_readonly(func, path, _):
-        """Error handler for read-only files."""
-        try:
-            if os.path.isfile(path):
-                os.chmod(path, 0o666)  # Read/write for owner, group, others
-            elif os.path.isdir(path):
-                os.chmod(path, 0o777)  # Read/write/execute for owner, group, others
-            func(path)
-        except Exception as e:
-            logger.warning(f"Cleanup chmod failed for {path}: {e}")
+        os.chmod(path, 0o666)
+        func(path)
 
-    for attempt in range(3):
-        try:
-            if os.path.exists(path):
-                # Check if path is already unlinked/deleted but still mounted
-                if os.path.ismount(path):
-                    logger.warning(f"Path {path} is a mountpoint, attempting cleanup...")
-                    
-                # Reset permissions recursively first
-                try:
-                    process = pexpect.spawn(f'find {path} -type d -exec chmod 755 {{}} \\;', encoding='utf-8')
-                    process.expect(pexpect.EOF)
-                    process = pexpect.spawn(f'find {path} -type f -exec chmod 644 {{}} \\;', encoding='utf-8')
-                    process.expect(pexpect.EOF)
-                except Exception as e:
-                    logger.warning(f"Permission reset failed: {e}")
-
-                # Try standard cleanup
-                shutil.rmtree(path, onerror=remove_readonly)
-                logger.info(f"Successfully cleaned up {path}")
-                return True
-                
-        except Exception as e:
-            logger.warning(f"Cleanup attempt {attempt + 1} failed: {e}")
-            
-            try:
-                # More aggressive cleanup attempts
-                if attempt == 0:
-                    # First retry - force permissions
-                    process = pexpect.spawn(f'chmod -R 777 {path}', encoding='utf-8')
-                    process.expect(pexpect.EOF)
-                elif attempt == 1:
-                    # Second retry - force using find
-                    process = pexpect.spawn(f'find {path} -delete', encoding='utf-8')
-                    process.expect(pexpect.EOF)
-                time.sleep(1)
-                
-            except Exception as chmod_err:
-                logger.warning(f"Force cleanup failed: {chmod_err}")
-            
-            if attempt == 2:  # Final attempt
-                logger.error(f"All cleanup attempts failed for {path}")
-                # Don't raise exception, just log and return False
-                return False
-            
-            time.sleep(2)  # Wait before retry
-    
-    return False
+    try:
+        if os.path.exists(path):
+            shutil.rmtree(path, onerror=remove_readonly)
+            return True
+        return True
+    except Exception as e:
+        logger.debug(f"Cleanup failed: {e}")
+        return False
 
 def check_docker_containers(logger: logging.Logger) -> None:
     """Check and log all Docker containers status after setup."""
