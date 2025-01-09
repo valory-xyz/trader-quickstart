@@ -15,7 +15,7 @@ def _parse_args():
     )
     parser.add_argument(
         "--from-dir",
-        help="Path to the logs directory."
+        help="Path to the logs directory. If not provided, it is auto-detected."
     )
     parser.add_argument(
         "--agent",

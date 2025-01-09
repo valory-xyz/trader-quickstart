@@ -153,7 +153,7 @@ Note: In this case, if the service is staked, then it will not update the on-cha
    cd trader; poetry run python ../report.py; cd ..
    ```
 
-3. Use the `analyse_logs` to investigate your agent's logs:
+3. Use the `analyse_logs.py` script to investigate your agent's logs:
 
     ```bash
     cd trader; poetry run python ../analyse_logs.py --agent aea_0 --reset-db; cd ..
