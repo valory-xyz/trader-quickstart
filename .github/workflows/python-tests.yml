@@ -9,17 +9,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      RPC_URL: ${{ secrets.RPC_URL }}
-      BACKUP_WALLET: ${{ secrets.BACKUP_WALLET }}
+      GNOSIS_RPC_URL: ${{ secrets.GNOSIS_RPC_URL }}
+      MODIUS_RPC_URL: ${{ secrets.MODIUS_RPC_URL }}
+      OPTIMISM_RPC_URL: ${{ secrets.OPTIMISM_RPC_URL }}
+      BASE_RPC_URL: ${{ secrets.BASE_RPC_URL }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
       DOCKER_LOGS_DIR: ${GITHUB_WORKSPACE}/logs
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4  # Updated from v3
     
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5  # Updated from v4
       with:
         python-version: '3.10'
         
@@ -84,10 +85,11 @@ jobs:
         
     - name: Create .env file
       run: |
-        echo "RPC_URL=${RPC_URL}" > .env
-        echo "BACKUP_WALLET=${BACKUP_WALLET}" >> .env
+        echo "GNOSIS_RPC_URL=${GNOSIS_RPC_URL}" > .env
+        echo "MODIUS_RPC_URL=${MODIUS_RPC_URL}" >> .env
+        echo "OPTIMISM_RPC_URL=${OPTIMISM_RPC_URL}" >> .env
+        echo "BASE_RPC_URL=${BASE_RPC_URL}" >> .env
         echo "TEST_PASSWORD=${TEST_PASSWORD}" >> .env
-        echo "PRIVATE_KEY=${PRIVATE_KEY}" >> .env
         echo "DOCKER_LOGS_DIR=${DOCKER_LOGS_DIR}" >> .env
         
     - name: Install project dependencies
@@ -95,12 +97,11 @@ jobs:
         python -m pip install --upgrade pip
         poetry env use python3.10
         poetry install --no-interaction
-        
 
     - name: Run tests
       run: |  
         # Run the tests with debug logging
-        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=DEBUG
+        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=INFO
 
     - name: Debug container failure
       if: failure()
@@ -116,17 +117,14 @@ jobs:
           echo "=== Inspect for $container ==="
           docker inspect $container
         done
-        
-        echo "==== Directory permissions ===="
-        ls -la /logs/
-        ls -la ${GITHUB_WORKSPACE}/logs/
 
     - name: Upload test logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated from v3
       with:
         name: test-logs
         path: |
           logs/
           /logs/
           .env
+        retention-days: 30  # Added retention period
