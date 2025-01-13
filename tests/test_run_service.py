@@ -90,10 +90,13 @@ def check_docker_status(logger: logging.Logger, config_path: str) -> bool:
     """
     Check if Docker ABCI containers are running properly.
     Only checks containers ending with 'abci_0', ignoring Tendermint containers.
+    Handles container names with format: {trimmed_service_name}{unique_id}_abci_0
     """
     service_config = get_service_config(config_path)
     container_base_name = service_config["container_name"]
-    abci_container_name = f"{container_base_name}_abci_0"
+    
+    # Use filters with just "_abci_0" suffix to catch all ABCI containers
+    abci_suffix = "_abci_0"
     
     max_retries = 3
     retry_delay = 20
@@ -103,12 +106,19 @@ def check_docker_status(logger: logging.Logger, config_path: str) -> bool:
         try:
             client = docker.from_env()
             
-            # Only look for ABCI container
-            abci_containers = client.containers.list(all=True, filters={"name": abci_container_name})
-            running_abci = client.containers.list(filters={"name": abci_container_name})
+            # List all containers that have the ABCI suffix and start with the base name
+            all_containers = client.containers.list(all=True)
+            abci_containers = [c for c in all_containers 
+                             if c.name.endswith(abci_suffix) and 
+                             c.name.startswith(container_base_name)]
+            
+            running_containers = client.containers.list()
+            running_abci = [c for c in running_containers 
+                          if c.name.endswith(abci_suffix) and 
+                          c.name.startswith(container_base_name)]
             
             if not abci_containers:
-                logger.error(f"No {abci_container_name} container found (attempt {attempt + 1}/{max_retries})")
+                logger.error(f"No ABCI container found with base name {container_base_name} (attempt {attempt + 1}/{max_retries})")
                 if attempt == max_retries - 1:
                     return False
                 logger.info(f"Waiting {retry_delay} seconds before retry...")
