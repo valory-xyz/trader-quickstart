@@ -558,7 +558,7 @@ def validate_backup_owner(backup_owner: str) -> str:
 def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
-        "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test'),
+        "TEST_PASSWORD": "secret",
         "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         "STAKING_CHOICE": '1'
     }
