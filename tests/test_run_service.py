@@ -568,7 +568,7 @@ def get_base_config() -> dict:
         "input your password": base_config["TEST_PASSWORD"],
         "confirm your password": base_config["TEST_PASSWORD"],
         "Enter your choice": base_config["STAKING_CHOICE"],
-        "backup owner": base_config["BACKUP_WALLET"],
+        "Please input your backup owner (leave empty to skip)": base_config["BACKUP_WALLET"],  # More specific match
         "Press enter to continue": "\n",
         "press enter": "\n",
         r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"],
