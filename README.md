@@ -21,7 +21,7 @@ Ensure your machine satisfies the requirements:
 ## Resource Requirements
 
 - You need xDAI on Gnosis Chain in one of your wallets.
-- You need an RPC for your agent instance. We recommend [Nodies RPC](https://www.nodies.app/).
+- You need an RPC for your agent instance. We recommend [Quicknode RPC](https://www.quicknode.com/).
 - (From release v0.16.0 onwards) You will need a Subgraph API key that can be obtained at [The Graph](https://thegraph.com/studio/apikeys/).
 
 ## Run the Service
@@ -105,7 +105,7 @@ Services can become staked by invoking the `stake()` contract method, where serv
 Once the command has completed, i.e. the service is running, you can see the live logs with:
 
 ```bash
-docker logs trader_abci_0 --follow
+docker logs $(docker ps --filter "name=trader" --format "{{.Names}}" | grep "_abci" | head -n 1) --follow
 ```
 
 To stop your agent, use:
@@ -153,16 +153,16 @@ Note: In this case, if the service is staked, then it will not update the on-cha
    cd trader; poetry run python ../report.py; cd ..
    ```
 
-3. Use this command to investigate your agent's logs:
+3. Use the `analyse_logs.py` script to investigate your agent's logs:
 
     ```bash
-    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --reset-db; cd ..
+    cd trader; poetry run python ../analyse_logs.py --agent aea_0 --reset-db; cd ..
     ```
 
-    For example, inspect the state transitions using this command:
+    For example, inspect the state transitions using the following command:
 
     ```bash
-    cd trader; poetry run autonomy analyse logs --from-dir trader_service/abci_build/persistent_data/logs/ --agent aea_0 --fsm --reset-db; cd ..
+    cd trader; poetry run python ../analyse_logs.py --agent aea_0 --fsm --reset-db; cd ..
     ```
 
     This will output the different state transitions of your agent per period, for example:
@@ -411,7 +411,11 @@ Error: Service terminatation failed with following error; ChainInteractionError(
 
 ## Build deployments without executing the service
 
-The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build`) and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). Then, by default, the script will launch the local Docker Compose deployment. If you just want to build the deployment without executing the service (for example, if you are deploying to a custom Kubernetes cluster), then execute the script as
+The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build_????`) 
+and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). 
+Then, by default, the script will launch the local Docker Compose deployment. 
+If you just want to build the deployment without executing the service 
+(for example, if you are deploying to a custom Kubernetes cluster), then execute the script as:
 
 ```bash
     ./run_service.sh --build-only

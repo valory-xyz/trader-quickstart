@@ -737,7 +737,7 @@ directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.21.4"
+service_version="v0.22.0"
 
 # Define constants for on-chain interaction
 gnosis_chain_id=100
@@ -832,10 +832,15 @@ command -v docker >/dev/null 2>&1 ||
   exit 1
 }
 
-docker rm -f abci0 node0 trader_abci_0 trader_tm_0 &> /dev/null ||
+containers=$(docker ps --filter name=trader_* -aq) &> /dev/null ||
 { echo >&2 "Docker is not running!";
   exit 1
 }
+if [[ -n "$containers" ]]; then
+  docker rm -f $containers
+fi
+
+docker network prune --force
 
 try_read_storage
 
@@ -1275,8 +1280,7 @@ export DISABLE_TRADING=false
 export STOP_TRADING_IF_STAKING_KPI_MET=true
 export RESET_PAUSE_DURATION=45
 export MECH_WRAPPED_NATIVE_TOKEN_ADDRESS=$WXDAI_ADDRESS
-export MECH_CHAIN_ID=ethereum
-export TOOLS_ACCURACY_HASH=QmebjcPizAdVFSUAfMBgAGFJhLPVBMvV68LxhSq4LPvv9d
+export TOOLS_ACCURACY_HASH=QmZSkE49cnp3KeR9r6bp3hP4M2LPAmG4beHq4isz55ghv5
 
 if [ -n "$SUBGRAPH_API_KEY" ]; then
     export CONDITIONAL_TOKENS_SUBGRAPH_URL="https://gateway-arbitrum.network.thegraph.com/api/$SUBGRAPH_API_KEY/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2"
@@ -1287,9 +1291,9 @@ if [ -n "$SUBGRAPH_API_KEY" ]; then
 fi
 
 service_dir="trader_service"
-build_dir="abci_build"
+directory=$(ls -d "$service_dir"/abci_build_???? 2>/dev/null || echo "$service_dir/abci_build")
+build_dir=$(basename "$directory")
 build_dir_k8s="abci_build_k8s"
-directory="$service_dir/$build_dir"
 
 if [ -d $directory ]
 then
@@ -1329,10 +1333,12 @@ if [[ -d "$build_dir_k8s" ]]; then
     echo "Directory removed: $build_dir"
 fi
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build --kubernetes "../../$keys_json_path" --n $n_agents -ltm
+build_dir=$(ls -d abci_build_???? 2>/dev/null || echo "abci_build")
 mv $build_dir $build_dir_k8s
 echo "Kubernetes deployment built on ./trader/$service_dir/$build_dir_k8s"
 
 export OPEN_AUTONOMY_PRIVATE_KEY_PASSWORD="$password" && poetry run autonomy deploy build "../../$keys_json_path" --n $n_agents -ltm
+build_dir=$(ls -d abci_build_???? 2>/dev/null || echo "abci_build")
 echo "Docker Compose deployment built on ./trader/$service_dir/$build_dir"
 
 cd ..
@@ -1340,8 +1346,15 @@ cd ..
 # warm start is disabled as no global weights are provided to calibrate the tools' weights
 # warm_start
 
-add_volume_to_service_docker_compose "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$path_to_store"
-add_volume_to_service_k8s "$PWD/trader_service/abci_build_k8s/build.yaml"
+directory="$service_dir/$build_dir"
+if [ "$build_dir" = "abci_build" ]; then
+    suffix="abci_build"
+else
+    suffix=${build_dir##*_}
+fi
+abci_0="trader${suffix}_abci_0"
+add_volume_to_service_docker_compose "$PWD/$directory/docker-compose.yaml" "$abci_0" "/data" "$path_to_store"
+add_volume_to_service_k8s "$PWD/$service_dir/$build_dir_k8s/build.yaml"
 sudo chown -R $(whoami) "$path_to_store"
 
 if [[ "$build_only" == true ]]; then
