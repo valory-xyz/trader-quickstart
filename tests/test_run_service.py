@@ -558,20 +558,20 @@ def validate_backup_owner(backup_owner: str) -> str:
 def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
-        "TEST_PASSWORD": "secret",
+        "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test'),
         "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         "STAKING_CHOICE": '1'
     }
     
     # Common prompts used across all services
     base_prompts = {
-        "input your password": base_config["TEST_PASSWORD"],
-        "confirm your password": base_config["TEST_PASSWORD"],
-        "Enter your choice": base_config["STAKING_CHOICE"],
-        "backup owner": base_config["BACKUP_WALLET"],
-        "Press enter to continue": "\n",
-        "press enter": "\n",
-        r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"],
+        r"input your password": base_config["TEST_PASSWORD"] + "\n",
+        r"confirm your password": base_config["TEST_PASSWORD"] + "\n",
+        r"Enter your choice": base_config["STAKING_CHOICE"] + "\n",
+        r"backup owner \(leave empty to skip\)": base_config["BACKUP_WALLET"] + "\n",  # Escape parentheses
+        r"Press enter to continue": "\n",
+        r"press enter": "\n",
+        r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"] + "\n",
         r"Please enter": "\n",
     }
     
@@ -591,14 +591,13 @@ def get_config_specific_settings(config_path: str) -> dict:
             "RPC_URL": os.getenv('MODIUS_RPC_URL'),
         }
 
-        funding_handler = create_funding_handler(test_config["RPC_URL"], "modius")
-        token_funding_handler = create_token_funding_handler(test_config["RPC_URL"])
-
         # Add Modius-specific prompts
         prompts.update({
-            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
-            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler,
-            r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)": token_funding_handler,
+                r"eth_newFilter \[hidden input\]": test_config["RPC_URL"] + "\n",
+                r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                    lambda output, logger: create_funding_handler(test_config["RPC_URL"], "modius")(output, logger),
+                r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
+                    lambda output, logger: create_token_funding_handler(test_config["RPC_URL"])(output, logger)
         })
         
     elif "optimus" in config_path.lower():
@@ -626,9 +625,9 @@ def get_config_specific_settings(config_path: str) -> dict:
                 return test_config["MODIUS_RPC_URL"]
 
         prompts.update({
-            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"],
-            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"],
-            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
+            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"] + "\n",
+            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"] + "\n",
+            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"] + "\n",
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
                 lambda output, logger: create_funding_handler(get_chain_rpc(output, logger), "optimus")(output, logger),
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
@@ -639,16 +638,14 @@ def get_config_specific_settings(config_path: str) -> dict:
         # Default PredictTrader settings
         test_config = {
             **base_config,  # Include base config
-            "RPC_URL": os.getenv('GNOSIS_RPC_URL', ''),
-            "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
+            "RPC_URL": os.getenv('GNOSIS_RPC_URL', '')
         }
-
-        funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader")
 
         # Add PredictTrader-specific prompts
         prompts.update({
-            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
-            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler,
+            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"] + "\n",
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger)
         })
 
     return {"prompts": prompts, "test_config": test_config}
@@ -802,6 +799,7 @@ class BaseTestService:
         try:
             cls.logger.info(f"Starting run_service.py test with config: {cls.config_path}")
             
+            # Basic spawn with consistent environment
             cls.child = pexpect.spawn(
                 f'bash ./run_service.sh {cls.config_path}',
                 encoding='utf-8',
@@ -824,15 +822,28 @@ class BaseTestService:
                     if callable(response):
                         output = cls.child.before + cls.child.after
                         response = response(output, cls.logger)
-
-                    if "password" in pattern.lower():
-                        cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
-                    elif "eth_newfilter" in pattern.lower():
-                        cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
-                    else:
-                        cls.logger.info(f"Sending: {response}", extra={'is_input': True})
                     
-                    cls.child.sendline(response)
+                    # Ensure consistent line endings
+                    if not response.endswith('\n'):
+                        response += '\n' 
+
+
+                    # Special handling for backup owner
+                    if "backup owner" in pattern.lower():
+                        time.sleep(1)  # Small delay before
+                        cls.child.sendline(response)
+                        time.sleep(1)  # Small delay after
+                    else:
+                        if "password" in pattern.lower():
+                            cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
+                        elif "eth_newfilter" in pattern.lower():
+                            cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
+                        else:
+                            cls.logger.info(f"Sending: {response}", extra={'is_input': True})
+                        cls.child.sendline(response)
+                    
+                    # Small delay between inputs
+                    time.sleep(0.5)
                     
             except pexpect.EOF:
                 cls.logger.info("Initial setup completed")
