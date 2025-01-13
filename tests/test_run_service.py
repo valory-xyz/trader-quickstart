@@ -591,14 +591,13 @@ def get_config_specific_settings(config_path: str) -> dict:
             "RPC_URL": os.getenv('MODIUS_RPC_URL'),
         }
 
-        funding_handler = create_funding_handler(test_config["RPC_URL"], "modius")
-        token_funding_handler = create_token_funding_handler(test_config["RPC_URL"])
-
         # Add Modius-specific prompts
         prompts.update({
-            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"]  + "\n",
-            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler  + "\n",
-            r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)": token_funding_handler  + "\n",
+                r"eth_newFilter \[hidden input\]": test_config["RPC_URL"] + "\n",
+                r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                    lambda output, logger: create_funding_handler(test_config["RPC_URL"], "modius")(output, logger),
+                r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
+                    lambda output, logger: create_token_funding_handler(test_config["RPC_URL"])(output, logger)
         })
         
     elif "optimus" in config_path.lower():
@@ -626,13 +625,13 @@ def get_config_specific_settings(config_path: str) -> dict:
                 return test_config["MODIUS_RPC_URL"]
 
         prompts.update({
-            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"]  + "\n",
-            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"]  + "\n",
-            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"]  + "\n",
+            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"] + "\n",
+            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"] + "\n",
+            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"] + "\n",
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
-                lambda output, logger: create_funding_handler(get_chain_rpc(output, logger), "optimus")(output, logger)  + "\n",
+                lambda output, logger: create_funding_handler(get_chain_rpc(output, logger), "optimus")(output, logger),
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
-                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger)  + "\n"
+                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger)
         })
         
     else:
@@ -642,12 +641,11 @@ def get_config_specific_settings(config_path: str) -> dict:
             "RPC_URL": os.getenv('GNOSIS_RPC_URL', '')
         }
 
-        funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader") 
-
         # Add PredictTrader-specific prompts
         prompts.update({
-            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"]  + "\n",
-            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler  + "\n",
+            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"] + "\n",
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger)
         })
 
     return {"prompts": prompts, "test_config": test_config}
