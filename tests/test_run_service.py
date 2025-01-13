@@ -830,7 +830,7 @@ class BaseTestService:
                         cls.logger.info(f"Iteration: {cls._iteration_counter}")
                         cls.logger.info(f"Current pattern: {pattern}")
                         cls.logger.info(f"Response to be sent: {response}")
-                        cls.logger.info(f"Base config backup wallet: {validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57")}")
+                        cls.logger.info(f"Base config backup wallet: 0x802D8097eC1D49808F3c2c866020442891adde57")
                         cls.logger.info("Full output context:")
                         cls.logger.info(output)    
 
