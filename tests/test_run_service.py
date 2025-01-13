@@ -802,20 +802,12 @@ class BaseTestService:
             cls.logger.info(f"Starting run_service.py test with config: {cls.config_path}")
             
             # Basic spawn with consistent environment
-            spawn_env = {
-                **cls.temp_env,
-                'TERM': 'xterm-256color',
-                'LANG': 'en_US.UTF-8',
-                'LC_ALL': 'en_US.UTF-8',
-            }
-            
             cls.child = pexpect.spawn(
                 f'bash ./run_service.sh {cls.config_path}',
                 encoding='utf-8',
                 timeout=600,
-                env=spawn_env,
-                echo=False,  # Disable echo for consistent behavior
-                cwd=".",
+                env=cls.temp_env,
+                cwd="."
             )
             
             # Redirect pexpect logging to debug level only
