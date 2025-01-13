@@ -558,8 +558,7 @@ def validate_backup_owner(backup_owner: str) -> str:
 def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
-        "TEST_PASSWORD": "secret",
-        "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
+        "TEST_PASSWORD": "test_secret",
         "STAKING_CHOICE": '1'
     }
     
@@ -568,7 +567,7 @@ def get_base_config() -> dict:
         "input your password": base_config["TEST_PASSWORD"],
         "confirm your password": base_config["TEST_PASSWORD"],
         "Enter your choice": base_config["STAKING_CHOICE"],
-        "Please input your backup owner (leave empty to skip)": base_config["BACKUP_WALLET"],  # More specific match
+        "Please input your backup owner (leave empty to skip)": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),  # Fixed: Use proper backup wallet address
         "Press enter to continue": "\n",
         "press enter": "\n",
         r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"],
@@ -639,8 +638,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         # Default PredictTrader settings
         test_config = {
             **base_config,  # Include base config
-            "RPC_URL": os.getenv('GNOSIS_RPC_URL', ''),
-            "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
+            "RPC_URL": os.getenv('GNOSIS_RPC_URL')
         }
 
         funding_handler = create_funding_handler(test_config["RPC_URL"], "predict_trader")
@@ -824,6 +822,17 @@ class BaseTestService:
                     if callable(response):
                         output = cls.child.before + cls.child.after
                         response = response(output, cls.logger)
+
+                    if "backup owner" in pattern.lower():
+                        cls.logger.info("=" * 80)
+                        cls.logger.info("BACKUP OWNER info")
+                        cls.logger.info("=" * 80)
+                        cls.logger.info(f"Iteration: {cls._iteration_counter}")
+                        cls.logger.info(f"Current pattern: {pattern}")
+                        cls.logger.info(f"Response to be sent: {response}")
+                        cls.logger.info(f"Base config backup wallet: {validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57")}")
+                        cls.logger.info("Full output context:")
+                        cls.logger.info(output)    
 
                     if "password" in pattern.lower():
                         cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
