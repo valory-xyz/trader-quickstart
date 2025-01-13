@@ -801,11 +801,18 @@ class BaseTestService:
         try:
             cls.logger.info(f"Starting run_service.py test with config: {cls.config_path}")
             
+            # Basic spawn with consistent environment
             cls.child = pexpect.spawn(
                 f'bash ./run_service.sh {cls.config_path}',
                 encoding='utf-8',
                 timeout=600,
-                env=cls.temp_env,
+                env={
+                    **cls.temp_env,
+                    'TERM': 'xterm-256color',
+                    'LANG': 'en_US.UTF-8',
+                    'LC_ALL': 'en_US.UTF-8'
+                },
+                echo=False,  # Disable echo for cleaner I/O
                 cwd="."
             )
             
@@ -824,14 +831,23 @@ class BaseTestService:
                         output = cls.child.before + cls.child.after
                         response = response(output, cls.logger)
 
-                    if "password" in pattern.lower():
-                        cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
-                    elif "eth_newfilter" in pattern.lower():
-                        cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
+
+                    # Special handling for backup owner
+                    if "backup owner" in pattern.lower():
+                        time.sleep(1)  # Small delay before
+                        cls.child.sendline(response)
+                        time.sleep(1)  # Small delay after
                     else:
-                        cls.logger.info(f"Sending: {response}", extra={'is_input': True})
+                        if "password" in pattern.lower():
+                            cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
+                        elif "eth_newfilter" in pattern.lower():
+                            cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
+                        else:
+                            cls.logger.info(f"Sending: {response}", extra={'is_input': True})
+                        cls.child.sendline(response)
                     
-                    cls.child.sendline(response)
+                    # Small delay between inputs
+                    time.sleep(0.5)
                     
             except pexpect.EOF:
                 cls.logger.info("Initial setup completed")
