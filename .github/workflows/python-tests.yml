@@ -101,7 +101,7 @@ jobs:
     - name: Run tests
       run: |  
         # Run the tests with debug logging
-        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=DEBUG
+        poetry run pytest -v tests/test_run_service.py -s --log-cli-level=INFO
 
     - name: Debug container failure
       if: failure()
