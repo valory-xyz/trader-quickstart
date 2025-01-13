@@ -22,7 +22,7 @@ import docker
 from dotenv import load_dotenv
 from operate.constants import HEALTH_CHECK_URL
 from operate.operate_types import Chain, LedgerType
-
+import unittest.mock
 
 # Initialize colorama and load environment
 init()
@@ -36,21 +36,8 @@ CONTAINER_STOP_WAIT = 20
 os.environ['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
 
 def get_service_config(config_path: str) -> dict:
-    """
-    Get service-specific configuration.
-    
-    Args:
-        config_path (str): Path to the config file
-        
-    Returns:
-        dict: Dictionary containing service configuration with container name and health check URL
-        
-    Raises:
-        ValueError: If no matching service configuration is found
-    """
-    # Service configuration mappings with aliases
+    """Get service-specific configuration."""
     SERVICE_CONFIGS = {
-        # Optimus service and variants
         "optimus": {
             "container_name": "optimus",
             "health_check_url": HEALTH_CHECK_URL,
@@ -59,14 +46,16 @@ def get_service_config(config_path: str) -> dict:
             "container_name": "optimus", 
             "health_check_url": HEALTH_CHECK_URL,
         },
-        # Traderpearl service and variants
         "traderpearl": {
             "container_name": "traderpearl",
+            "health_check_url": HEALTH_CHECK_URL,
+        },
+        "memeooorr": {
+            "container_name": "memeooorr",
             "health_check_url": HEALTH_CHECK_URL,
         }
     }
     
-    # Additional name mappings
     SERVICE_ALIASES = {
         "predict_trader": "traderpearl"
     }
@@ -329,13 +318,18 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
             required_amount = float(match.group(2))
             wallet_type = "EOA" if "EOA" in pattern else "Safe"
             
-            if "modius" in config_type.lower():
+            # Add buffer based on service type
+            if "memeooorr" in config_type.lower():
+                original_amount = required_amount
+                required_amount = 5.0  # Increased funding for Memeooorr
+                logger.info(f"Memeooorr detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
+            elif "modius" in config_type.lower():
                 original_amount = required_amount
                 required_amount = 0.6
                 logger.info(f"Modius detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
-            if "optimus" in config_type.lower():
+            elif "optimus" in config_type.lower():
                 original_amount = required_amount
-                required_amount = 100
+                required_amount = 44
                 logger.info(f"Optimus detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
             
             try:
@@ -577,7 +571,7 @@ def get_config_specific_settings(config_path: str) -> dict:
     if "modius" in config_path.lower():
         # Modius specific settings
         test_config = {
-            **base_config,  # Include base config
+            **base_config,
             "RPC_URL": os.getenv('MODIUS_RPC_URL'),
         }
 
@@ -594,7 +588,7 @@ def get_config_specific_settings(config_path: str) -> dict:
     elif "optimus" in config_path.lower():
         # Optimus settings with multiple RPCs
         test_config = {
-            **base_config,  # Include base config
+            **base_config,
             "MODIUS_RPC_URL": os.getenv('MODIUS_RPC_URL'),
             "OPTIMISM_RPC_URL": os.getenv('OPTIMISM_RPC_URL'),
             "BASE_RPC_URL": os.getenv('BASE_RPC_URL'),
@@ -603,18 +597,14 @@ def get_config_specific_settings(config_path: str) -> dict:
         def get_chain_rpc(output: str, logger: logging.Logger) -> str:
             """Get RPC URL based on chain prefix in the output."""
             if "[mode]" in output:
-                logger.info("Using Mode RPC URL")
                 return test_config["MODIUS_RPC_URL"]
             elif "[base]" in output:
-                logger.info("Using Base RPC URL")
                 return test_config["BASE_RPC_URL"]
             elif "[optimistic]" in output:
-                logger.info("Using Optimism RPC URL")
                 return test_config["OPTIMISM_RPC_URL"]
-            else:
-                logger.info("Using Mode RPC URL as default")
-                return test_config["MODIUS_RPC_URL"]
+            return test_config["MODIUS_RPC_URL"]
 
+        # Add Optimus-specific prompts
         prompts.update({
             r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"],
             r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"],
@@ -624,12 +614,28 @@ def get_config_specific_settings(config_path: str) -> dict:
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
                 lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger)
         })
+
+    elif "memeooorr" in config_path.lower():
+        # Memeooorr specific settings
+        test_config = {
+            **base_config,
+            "BASE_RPC_URL": os.getenv('BASE_RPC_URL'),
+        }
+        
+        funding_handler = create_funding_handler(test_config["BASE_RPC_URL"], "memeooorr")
+        
+        # Add Memeooorr-specific prompts
+        prompts.update({
+            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
+            r"Please enter.*": "",  # Handles all "Please enter" prompts with empty string
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": funding_handler,
+        })
         
     else:
         # Default PredictTrader settings
         test_config = {
-            **base_config,  # Include base config
-            "RPC_URL": os.getenv('GNOSIS_RPC_URL', ''),
+            **base_config,
+            "RPC_URL": os.getenv('RPC_URL', ''),
             "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         }
 
@@ -672,6 +678,28 @@ class BaseTestService:
     _setup_complete = False
 
     @classmethod
+    def _setup_twitter_patch(cls):
+        """Setup patch for Twitter cookies function that works in subprocesses"""
+        cls.logger.info("Setting up Twitter patch for Memeooorr service")
+        
+        def mock_get_twitter_cookies(*args, **kwargs):
+            """Mock function that returns empty string and logs when called"""
+            cls.logger.info("Mock get_twitter_cookies called in process: %s", os.getpid())
+            return ""
+        
+        # Create the patcher with our logging mock
+        cls.twitter_patcher = unittest.mock.patch(
+            'operate.services.manage.get_twitter_cookies',
+            mock_get_twitter_cookies
+        )
+
+        #  //with  unittest.mock.patch context  patching
+        
+        # Start the patcher
+        cls.twitter_mock = cls.twitter_patcher.start()
+        cls.logger.info("Twitter patch set up successfully in main process: %s", os.getpid())
+
+    @classmethod
     def setup_class(cls):
         """Setup for all tests"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -708,11 +736,15 @@ class BaseTestService:
         git_dir = Path(cls.original_cwd) / '.git'
         if git_dir.exists():
             shutil.copytree(git_dir, Path(cls.temp_dir.name) / '.git', symlinks=True)    
-            
+        if "memeooorr" in cls.config_path.lower():
+            cls._setup_twitter_patch()
+
         # Switch to temporary directory
         os.chdir(cls.temp_dir.name)
         cls.logger.info(f"Changed working directory to: {cls.temp_dir.name}")
         
+        
+
         # Setup environment
         cls._setup_environment()
         
@@ -754,6 +786,11 @@ class BaseTestService:
     def teardown_class(cls):
         """Cleanup after all tests"""
         try:
+            # Stop Twitter patches if they exist
+            if "memeooorr" in cls.config_path.lower() and hasattr(cls, 'twitter_patcher'):
+                cls.twitter_patcher.stop()
+                cls.logger.info("Stopped Twitter patch")
+
             cls.logger.info("Starting test cleanup...")
             
             # Always try to stop the service first
@@ -774,7 +811,6 @@ class BaseTestService:
                         container.remove()
             except Exception as e:
                 cls.logger.error(f"Error stopping service: {str(e)}")
-            
             # Clean up resources
             os.chdir(cls.original_cwd)
             if cls.temp_dir:
@@ -799,7 +835,10 @@ class BaseTestService:
                 env=cls.temp_env,
                 cwd="."
             )
-            
+            from operate.services.utils.memeooorr import get_twitter_cookies 
+            # get_twitter_cookies()
+
+
             # Redirect pexpect logging to debug level only
             cls.child.logfile = sys.stdout  # Disable direct stdout logging
             try:
