@@ -50,7 +50,6 @@ from web3 import HTTPProvider, Web3
 from operate.constants import (
     OPERATE_HOME,
     STAKING_TOKEN_JSON_URL,
-    ACTIVITY_CHECKER_JSON_URL,
     SERVICE_REGISTRY_TOKEN_UTILITY_JSON_URL,
     MECH_CONTRACT_JSON_URL,
 )
@@ -65,7 +64,6 @@ MECH_REQUESTS_PER_EPOCH_THRESHOLD = 10
 TRADES_LOOKBACK_DAYS = 3
 MULTI_TRADE_LOOKBACK_DAYS = TRADES_LOOKBACK_DAYS
 SECONDS_PER_DAY = 60 * 60 * 24
-
 OUTPUT_WIDTH = 80
 
 
@@ -194,16 +192,15 @@ def _warning_message(current_value: int, threshold: int = 0, message: str = "") 
 
 def _get_agent_status() -> str:
     client = docker.from_env()
-    trader_abci_container = (
-        client.containers.get("trader_abci_0")
-        if "trader_abci_0" in [c.name for c in client.containers.list()]
-        else None
-    )
-    trader_tm_container = (
-        client.containers.get("trader_tm_0")
-        if "trader_tm_0" in [c.name for c in client.containers.list()]
-        else None
-    )
+    trader_abci_container = None
+    trader_tm_container = None
+    for container in client.containers.list():
+        if container.name.startswith("traderpearl") and container.name.endswith("abci_0"):
+            trader_abci_container = container
+        elif container.name.startswith("traderpearl") and container.name.endswith("tm_0"):
+            trader_tm_container = container
+        if trader_abci_container and trader_tm_container:
+            break
 
     is_running = trader_abci_container and trader_tm_container
     return _color_bool(is_running, "Running", "Stopped")
@@ -286,7 +283,7 @@ if __name__ == "__main__":
         if is_staked:
 
             activity_checker_address = staking_token_contract.functions.activityChecker().call()
-            activity_checker_data = requests.get(ACTIVITY_CHECKER_JSON_URL).json()
+            activity_checker_data = requests.get(STAKING_TOKEN_JSON_URL).json()
 
             activity_checker_abi = activity_checker_data.get("abi", [])
             activity_checker_contract = w3.eth.contract(

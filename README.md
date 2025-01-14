@@ -16,8 +16,7 @@ A quickstart to run OLAS agents
 Ensure your machine satisfies the requirements:
 
 - Python `==3.10`
-- [Poetry](https://python-poetry.org/docs/) `>=1.4.0`
-- [Docker Engine](https://docs.docker.com/engine/install/) `<25.0.0`
+- [Poetry](https://python-poetry.org/docs/) `>=1.8.0`
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Resource Requirements
