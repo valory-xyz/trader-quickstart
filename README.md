@@ -41,6 +41,10 @@ where `agent_config.json` is the path to your agent configuration file. Check th
 | Agent | Config path | Docs |
 | --- | --- | --- |
 | Trader | `configs/config_predict_trader.json` | [Trader README](scripts/predict_trader/README.md) |
+| Mech | `configs/config_mech.json` | [Mech README](https://github.com/valory-xyz/mech) |
+| Optimus | `configs/config_optimus.json` | [Optimus README](https://github.com/valory-xyz/optimus) |
+| Modius | `configs/config_modius.json` | [Modius README](https://github.com/valory-xyz/modius-quickstart) |
+| Memeooorr | `configs/config_memeooorr.json` | [Memeooorr README](https://github.com/dvilelaf/meme-ooorr) |
 
 Answer `1) No staking` when prompted:
 
