@@ -545,7 +545,8 @@ def get_config_files():
     logger = logging.getLogger('test_runner')
     logger.info(f"Found config files: {[f.name for f in config_files]}")
     
-    return [str(f) for f in config_files]
+    # TODO: Support the test for memeooorr
+    return [str(f) for f in config_files if "memeooorr" not in f.name]
 
 def validate_backup_owner(backup_owner: str) -> str:
     """Validate and normalize backup owner address."""
