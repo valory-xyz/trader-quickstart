@@ -2226,7 +2226,7 @@ nicer-shell = ["ipython"]
 
 [[package]]
 name = "olas-operate-middleware"
-version = "0.2.0-rc92"
+version = "0.2.0-rc100"
 description = ""
 optional = false
 python-versions = "<3.12,>=3.9"
@@ -2270,8 +2270,8 @@ web3 = "==6.1.0"
 [package.source]
 type = "git"
 url = "https://github.com/valory-xyz/olas-operate-app.git"
-reference = "5de9dcf85b422f90554236a458510938b1029a86"
-resolved_reference = "5de9dcf85b422f90554236a458510938b1029a86"
+reference = "dc07fdcf05a907641d4c9af3e57d17612df6498d"
+resolved_reference = "dc07fdcf05a907641d4c9af3e57d17612df6498d"
 
 [[package]]
 name = "open-aea"
@@ -3964,4 +3964,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "50ea2a1d24701edabf64cde4dd7593cb24aa28c1564e4a57c99bc42b219b422f"
+content-hash = "6ec35dcb353af60b58b9c130e7c7722afdcfa4e7b40c4f574f34931be76b7d15"
