@@ -49,8 +49,9 @@ from web3 import HTTPProvider, Web3
 
 from operate.constants import (
     OPERATE_HOME,
-    STAKING_TOKEN_JSON_URL,
+    STAKING_TOKEN_INSTANCE_ABI_PATH,
     SERVICE_REGISTRY_TOKEN_UTILITY_JSON_URL,
+    MECH_ACTIVITY_CHECKER_JSON_URL,
     MECH_CONTRACT_JSON_URL,
 )
 from operate.quickstart.run_service import load_local_config
@@ -255,7 +256,7 @@ if __name__ == "__main__":
         w3 = Web3(HTTPProvider(rpc))
 
         staking_token_address = config.staking_vars["CUSTOM_STAKING_ADDRESS"]
-        staking_token_data = requests.get(STAKING_TOKEN_JSON_URL).json()
+        staking_token_data = requests.get(STAKING_TOKEN_INSTANCE_ABI_PATH).json()
 
         staking_token_abi = staking_token_data.get("abi", [])
         staking_token_contract = w3.eth.contract(
@@ -263,7 +264,7 @@ if __name__ == "__main__":
         )
 
         staking_state = StakingState(
-            staking_token_contract.functions.getServiceStakingState(
+            staking_token_contract.functions.getStakingState(
                 service_id
             ).call()
         )
@@ -274,7 +275,7 @@ if __name__ == "__main__":
         )
         _print_status("Is service staked?", _color_bool(is_staked, "Yes", "No"))
         if is_staked:
-            _print_status("Staking program", env_file_vars.get("STAKING_PROGRAM"))  # type: ignore
+            _print_status("Staking program", config.staking_vars.get("STAKING_PROGRAM"))  # type: ignore
         if staking_state == StakingState.STAKED:
             _print_status("Staking state", staking_state.name)
         elif staking_state == StakingState.EVICTED:
@@ -283,7 +284,7 @@ if __name__ == "__main__":
         if is_staked:
 
             activity_checker_address = staking_token_contract.functions.activityChecker().call()
-            activity_checker_data = requests.get(STAKING_TOKEN_JSON_URL).json()
+            activity_checker_data = requests.get(MECH_ACTIVITY_CHECKER_JSON_URL).json()
 
             activity_checker_abi = activity_checker_data.get("abi", [])
             activity_checker_contract = w3.eth.contract(
@@ -302,7 +303,7 @@ if __name__ == "__main__":
                 abi=service_registry_token_utility_abi,
             )
 
-            mech_contract_address = config.staking_vars["MECH_CONTRACT_ADDRESS"]
+            mech_contract_address = activity_checker_contract.functions.agentMech().call()
             mech_contract_data = requests.get(MECH_CONTRACT_JSON_URL).json()
 
             mech_contract_abi = mech_contract_data.get("abi", [])
@@ -316,7 +317,7 @@ if __name__ == "__main__":
                     operator_address, service_id
                 ).call()
             )
-            agent_id = int(config.staking_vars["AGENT_ID"].strip())
+            agent_id = int(config.staking_vars["AGENT_ID"])
             agent_bond = service_registry_token_utility_contract.functions.getAgentBond(
                 service_id, agent_id
             ).call()
