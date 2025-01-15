@@ -6,7 +6,7 @@ A quickstart to run OLAS agents
 
 ## Compatible Systems
 
-- Windows 10/11: WSL2 / Git BASH
+- Windows 10/11: WSL2 (Recommended) / Git BASH
 - Mac ARM / Intel
 - Linux
 - Raspberry Pi 4
@@ -16,13 +16,13 @@ A quickstart to run OLAS agents
 Ensure your machine satisfies the requirements:
 
 - Python `==3.10`
-- [Poetry](https://python-poetry.org/docs/) `>=1.8.0`
+- [Poetry](https://python-poetry.org/docs/) `>=1.8.3`
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Resource Requirements
 
 - You need native assets of the chain on which your agent will run in one of your wallets.
-- You need an RPC of that chain for your agent instance. We recommend [Nodies RPC](https://www.nodies.app/).
+- You need an RPC for your agent instance. We recommend [Quicknode RPC](https://www.quicknode.com/).
 
 ## Run the Service
 
