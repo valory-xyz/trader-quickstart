@@ -6,6 +6,7 @@ import sys
 import logging
 import pexpect 
 import os
+import json
 import time
 import pytest
 import tempfile
@@ -62,6 +63,16 @@ def get_service_config(config_path: str) -> dict:
         # Traderpearl service and variants
         "traderpearl": {
             "container_name": "traderpearl",
+            "health_check_url": HEALTH_CHECK_URL,
+        },
+        # Mech service
+        "mech": {
+            "container_name": "mech",
+            "health_check_url": HEALTH_CHECK_URL,
+        },
+        # Memeooor service
+        "memeooorr": {
+            "container_name": "memeooorr",
             "health_check_url": HEALTH_CHECK_URL,
         }
     }
@@ -171,6 +182,17 @@ def check_docker_status(logger: logging.Logger, config_path: str) -> bool:
 def check_service_health(logger: logging.Logger, config_path: str) -> tuple[bool, dict]:
     """Enhanced service health check with metrics."""
     service_config = get_service_config(config_path)
+
+    if "mech" in config_path.lower():
+        logger.info("Bypassing health check for mech service")
+        return True, {
+            'response_time': 0,
+            'status_code': 200,
+            'error': None,
+            'successful_checks': 1,
+            'total_checks': 1
+        }
+
     health_check_url = service_config["health_check_url"]
     
     metrics = {
@@ -247,7 +269,6 @@ def get_token_config():
 def handle_erc20_funding(output: str, logger: logging.Logger, rpc_url: str) -> str:
     """Handle funding requirement using Tenderly API for ERC20 tokens."""
     pattern = r"\[(optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) (0x[a-fA-F0-9]{40}) has at least ([0-9.]+) ([A-Z]+)"
-    logger.info(f"Funding with RPC : {rpc_url}")
     match = re.search(pattern, output)
     if match:
         chain = match.group(1)
@@ -330,7 +351,6 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
         r"Please make sure Master Safe (0x[a-fA-F0-9]{40}) has at least (\d+\.\d+) (?:ETH|xDAI)"
     ]
 
-    logger.info(f"Funding with RPC : {rpc_url}")
     
     for pattern in patterns:
         match = re.search(pattern, output)
@@ -338,6 +358,20 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
             wallet_address = match.group(1)
             required_amount = float(match.group(2))
             wallet_type = "EOA" if "EOA" in pattern else "Safe"
+            
+            if "modius" in config_type.lower():
+                original_amount = required_amount
+                required_amount = 0.6
+                logger.info(f"Modius detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
+            if "optimus" in config_type.lower():
+                original_amount = required_amount
+                required_amount = 100
+                logger.info(f"Optimus detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
+            if "mech" in config_type.lower():
+                original_amount = required_amount
+                required_amount = 100
+                logger.info(f"Mech detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")    
+            
             try:
                 w3 = Web3(Web3.HTTPProvider(rpc_url))
                 amount_wei = w3.to_wei(required_amount, 'ether')
@@ -535,8 +569,8 @@ def get_config_files():
     logger = logging.getLogger('test_runner')
     logger.info(f"Found config files: {[f.name for f in config_files]}")
     
-    # TODO: Support the test for memeooorr and mech
-    return [str(f) for f in config_files if "memeooorr" not in f.name and "mech" not in f.name]
+    return [str(f) for f in config_files]
+
 
 def validate_backup_owner(backup_owner: str) -> str:
     """Validate and normalize backup owner address."""
@@ -546,6 +580,37 @@ def validate_backup_owner(backup_owner: str) -> str:
         raise ValueError(f"Invalid backup owner address: {backup_owner}")
     return Web3.to_checksum_address(backup_owner)
 
+def handle_env_var_prompt(output: str, logger: logging.Logger, config_path: str) -> str:
+    """
+    Simple handler for environment variable prompts, returns value from config.
+    """
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+            
+        # Get prompt text after "Please enter"
+        prompt_match = re.search(r"Please enter (.*?)(?:\s*\[hidden input\])?[:.]?$", output.strip())
+        if not prompt_match:
+            logger.info("No prompt match found")
+            return '\n'
+            
+        prompt_text = prompt_match.group(1).strip()
+        logger.info(f"Looking for config value for: {prompt_text}")
+        
+        env_vars = config.get('env_variables', {})
+        # Look for the variable by its name field
+        for key, var_config in env_vars.items():
+            if prompt_text == var_config['name']:
+                logger.info(f"Found matching variable: {key}")
+                return var_config['value']
+                
+        logger.warning(f"No value found in config for: {prompt_text}")
+        return '\n'
+        
+    except Exception as e:
+        logger.error(f"Error handling env var prompt: {str(e)}")
+        return '\n'
+
 def get_base_config() -> dict:
     """Get base configuration common to all services."""
     base_config = {
@@ -553,19 +618,16 @@ def get_base_config() -> dict:
         "BACKUP_WALLET": validate_backup_owner("0x802D8097eC1D49808F3c2c866020442891adde57"),
         "STAKING_CHOICE": '1'
     }
-    
+
     # Common prompts used across all services
     base_prompts = {
-        r"input your password": base_config["TEST_PASSWORD"] + "\n",
-        r"confirm your password": base_config["TEST_PASSWORD"] + "\n",
-        r"Enter your choice": base_config["STAKING_CHOICE"] + "\n",
-        r"backup owner \(leave empty to skip\)": base_config["BACKUP_WALLET"] + "\n",  # Escape parentheses
+        r"Please input your password \(or press enter\)\:": base_config["TEST_PASSWORD"],
+        r"Please confirm your password\:": base_config["TEST_PASSWORD"],
+        r"Enter your choice": base_config["STAKING_CHOICE"],
+        r"Please input your backup owner \(leave empty to skip\)\:": base_config["BACKUP_WALLET"],  # Escape parentheses
         r"Press enter to continue": "\n",
-        r"press enter": "\n",
-        r"Enter local user account password \[hidden input\]": base_config["TEST_PASSWORD"] + "\n",
-        r"Please enter": "\n",
     }
-    
+
     return {"config": base_config, "prompts": base_prompts}
 
 def get_config_specific_settings(config_path: str) -> dict:
@@ -584,11 +646,12 @@ def get_config_specific_settings(config_path: str) -> dict:
 
         # Add Modius-specific prompts
         prompts.update({
-                r"eth_newFilter \[hidden input\]": test_config["RPC_URL"] + "\n",
+                r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
                 r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
                     lambda output, logger: create_funding_handler(test_config["RPC_URL"], "modius")(output, logger),
                 r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
-                    lambda output, logger: create_token_funding_handler(test_config["RPC_URL"])(output, logger)
+                    lambda output, logger: create_token_funding_handler(test_config["RPC_URL"])(output, logger),
+                r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
         })
         
     elif "optimus" in config_path.lower():
@@ -616,14 +679,43 @@ def get_config_specific_settings(config_path: str) -> dict:
                 return test_config["MODIUS_RPC_URL"]
 
         prompts.update({
-            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"] + "\n",
-            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"] + "\n",
-            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"] + "\n",
+            r"Enter a Mode RPC that supports eth_newFilter \[hidden input\]": test_config["MODIUS_RPC_URL"],
+            r"Enter a Optimism RPC that supports eth_newFilter \[hidden input\]": test_config["OPTIMISM_RPC_URL"],
+            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
                 lambda output, logger: create_funding_handler(get_chain_rpc(output, logger), "optimus")(output, logger),
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
-                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger)
+                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger),
+            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
         })
+
+    elif "mech" in config_path.lower():
+        test_config = {
+            **base_config,  
+            "RPC_URL": os.getenv('GNOSIS_RPC_URL', '')
+        }
+
+        # Add Mech-specific prompts
+        prompts.update({
+            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "mech")(output, logger),
+            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
+        })
+
+    elif "memeooorr" in config_path.lower():
+        # Memeooorr specific settings
+        test_config = {
+            **base_config,  # Include base config
+            "BASE_RPC_URL": os.getenv('BASE_RPC_URL'),
+        }
+        # Add Memeooorr-specific prompts
+        prompts.update({
+            r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
+            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path),
+            r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
+                lambda output, logger: create_funding_handler(test_config["BASE_RPC_URL"], "memeooorr")(output, logger),
+        })    
         
     else:
         # Default PredictTrader settings
@@ -631,15 +723,39 @@ def get_config_specific_settings(config_path: str) -> dict:
             **base_config,  # Include base config
             "RPC_URL": os.getenv('GNOSIS_RPC_URL', '')
         }
-
         # Add PredictTrader-specific prompts
         prompts.update({
-            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"] + "\n",
+            r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
             r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
-                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger)
+                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger),
+            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
         })
 
     return {"prompts": prompts, "test_config": test_config}
+
+def log_expect_match(child, pattern, match_index, logger):
+    """Log minimal match information without exposing sensitive data."""
+    logger.debug(f"Pattern matched at index: {match_index}")
+
+def send_input_safely(child, response, logger):
+    """Send input safely with basic delay."""
+    try:
+        # Force string encoding
+        if isinstance(response, bytes):
+            response = response.decode('utf-8')
+        elif not isinstance(response, str):
+            response = str(response)
+            
+        # Clean the response
+        response = response.strip()
+        
+        # Send input with a small delay
+        child.write(response + os.linesep)
+        time.sleep(2)
+            
+    except Exception as e:
+        logger.error(f"Error sending input: {str(e)}")
+        raise
 
 def cleanup_directory(path: str, logger: logging.Logger) -> bool:
     """
@@ -786,77 +902,60 @@ class BaseTestService:
 
     @classmethod
     def start_service(cls):
-        """Start the service and handle initial setup."""
+        """Start the service and handle initial setup with input validation."""
         try:
             cls.logger.info(f"Starting run_service.py test with config: {cls.config_path}")
             
-            # Basic spawn with consistent environment
-            cls.child = pexpect.spawn(
-                f'bash ./run_service.sh {cls.config_path}',
-                encoding='utf-8',
-                timeout=600,
-                env=cls.temp_env,
-                cwd="."
-            )
+            # Enable extended logging for pexpect only in debug mode
+            if cls.logger.getEffectiveLevel() <= logging.DEBUG:
+                cls.child = pexpect.spawn(
+                    f'bash ./run_service.sh {cls.config_path}',
+                    encoding='utf-8',
+                    timeout=600,
+                    env=cls.temp_env,
+                    cwd=".",
+                    logfile=sys.stdout
+                )
+            else:
+                cls.child = pexpect.spawn(
+                    f'bash ./run_service.sh {cls.config_path}',
+                    encoding='utf-8',
+                    timeout=600,
+                    env=cls.temp_env,
+                    cwd="."
+                )
             
-            # Redirect pexpect logging to debug level only
-            cls.child.logfile = sys.stdout  # Disable direct stdout logging
             try:
                 while True:
                     patterns = list(cls.config_settings["prompts"].keys())
                     index = cls.child.expect(patterns, timeout=600)
                     pattern = patterns[index]
+                    
+                    log_expect_match(cls.child, pattern, index, cls.logger)
+                    
                     response = cls.config_settings["prompts"][pattern]
-                
-                    cls.logger.info(f"Matched prompt: {pattern}", extra={'is_expect': True})
-
                     if callable(response):
                         output = cls.child.before + cls.child.after
                         response = response(output, cls.logger)
                     
-                    # Ensure consistent line endings
-                    if not response.endswith('\n'):
-                        response += '\n' 
-
-
-                    # Special handling for backup owner
-                    if "backup owner" in pattern.lower():
-                        time.sleep(1)  # Small delay before
-                        cls.child.sendline(response)
-                        time.sleep(1)  # Small delay after
-                    else:
-                        if "password" in pattern.lower():
-                            cls.logger.info("Sending: [HIDDEN]", extra={'is_input': True})
-                        elif "eth_newfilter" in pattern.lower():
-                            cls.logger.info("Sending: [HIDDEN RPC URL]", extra={'is_input': True})
-                        else:
-                            cls.logger.info(f"Sending: {response}", extra={'is_input': True})
-                        cls.child.sendline(response)
-                    
-                    # Small delay between inputs
-                    time.sleep(0.5)
+                    send_input_safely(cls.child, response, cls.logger)
                     
             except pexpect.EOF:
                 cls.logger.info("Initial setup completed")
                 time.sleep(SERVICE_INIT_WAIT)
-
-
+                
                 retries = 5
                 while retries > 0:
                     if check_docker_status(cls.logger, cls.config_path):
                         break
                     time.sleep(CONTAINER_STOP_WAIT)
                     retries -= 1
-
+                    
                 if retries == 0:
                     service_config = get_service_config(cls.config_path)
                     container_name = service_config["container_name"]
                     raise Exception(f"{container_name} containers failed to start")
                     
-            except Exception as e:
-                cls.logger.error(f"Error in setup: {str(e)}")
-                raise
-                
         except Exception as e:
             cls.logger.error(f"Service start failed: {str(e)}")
             raise

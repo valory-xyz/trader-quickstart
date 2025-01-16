@@ -1,7 +1,7 @@
 {
     "name": "Memeooorr",
     "agent_id": 43,
-    "hash": "bafybeia34pecf46znvghrbq32trmjwurgxk5ybrslgx6c4xwkmoeqhhsta",
+    "hash": "bafybeicpoldxi2xsjbczckmhdinp3x4rttiz3mtw7slpaqs5zw3pdvzamq",
     "description": "Memeooorr @twitter_handle",
     "image": "https://gateway.autonolas.tech/ipfs/QmQYDGMg8m91QQkTWSSmANs5tZwKrmvUCawXZfXVVWQPcu",
     "service_version": "v0.2.0-alpha16",
@@ -54,12 +54,6 @@
             "value": "",
             "provision_type": "user"
         },
-        "TWIKIT_COOKIES": {
-            "name": "Twitter cookies",
-            "description": "Stringified Twitter cookies of the agent",
-            "value": "",
-            "provision_type": "user"
-        },
         "GENAI_API_KEY": {
             "name": "Gemini api key",
             "description": "Gemini api key to allow the agent to use Gemini",
@@ -100,6 +94,12 @@
             "name": "Twitter cookies path",
             "description": "",
             "value": "/logs/twikit_cookies.json",
+            "provision_type": "fixed"
+        },
+        "TWIKIT_SKIP_CONNECTION": {
+            "description": "Skip instantiating twikit connection",
+            "name": "Twitter cookies path",
+            "value": "true",
             "provision_type": "fixed"
         }
     }
