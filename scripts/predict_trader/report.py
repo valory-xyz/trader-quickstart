@@ -230,7 +230,12 @@ if __name__ == "__main__":
     service = get_service_from_config(template_path)
     chain_config = service.chain_configs["gnosis"]
     agent_address = service.keys[0].address
-    operator_address = operator_wallet_data["address"]
+    if "safes" in operator_wallet_data and "gnosis" in operator_wallet_data["safes"]:
+        operator_address = operator_wallet_data["safes"]["gnosis"]
+    else:
+        print("Operate wallet not found.")
+        sys.exit(1)
+
     safe_address = chain_config.chain_data.multisig
     service_id = chain_config.chain_data.token
     rpc = chain_config.ledger_config.rpc
