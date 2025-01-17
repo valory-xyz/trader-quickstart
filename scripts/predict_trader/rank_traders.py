@@ -21,13 +21,14 @@
 
 
 import datetime
+import requests
 import sys
 from argparse import ArgumentParser
 from collections import defaultdict
 from string import Template
 from typing import Any
 
-import requests
+from operate.operate_types import Chain
 from operate.quickstart.run_service import load_local_config
 from scripts.utils import get_subgraph_api_key
 from scripts.predict_trader.trades import MarketAttribute, MarketState, parse_user, wei_to_xdai
@@ -310,7 +311,7 @@ if __name__ == "__main__":
     user_args = _parse_args()
 
     config = load_local_config()
-    rpc = config.gnosis_rpc
+    rpc = config.rpc[Chain.GNOSIS.value]
 
     print("Querying Thegraph...")
     all_trades_json = _query_omen_xdai_subgraph(

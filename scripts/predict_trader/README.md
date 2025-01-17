@@ -13,19 +13,19 @@ A quickstart for the trader agent for AI prediction markets on Gnosis at https:/
 1. Use the `trades` command to display information about placed trades by a given address:
 
     ```bash
-    poetry run python scripts/predict_trader/trades.py --creator YOUR_SAFE_ADDRESS
+    poetry run python -m scripts.predict_trader.trades --creator YOUR_SAFE_ADDRESS
     ```
 
     Or restrict the search to specific dates by defining the "from" and "to" dates:
 
     ```bash
-    poetry run python scripts/predict_trader/trades.py --creator YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00
+    poetry run python -m scripts.predict_trader.trades --creator YOUR_SAFE_ADDRESS --from-date 2023-08-15:03:50:00 --to-date 2023-08-20:13:45:00
     ```
 
 2. Use the `report` command to display a summary of the service status:
 
    ```bash
-   poetry run python scripts/predict_trader/report.py
+   poetry run python -m scripts.predict_trader.report
    ```
 
 3. Use this command to investigate your agent's logs:

@@ -338,16 +338,6 @@ def handle_native_funding(output: str, logger: logging.Logger, rpc_url: str, con
             wallet_address = match.group(1)
             required_amount = float(match.group(2))
             wallet_type = "EOA" if "EOA" in pattern else "Safe"
-            
-            if "modius" in config_type.lower():
-                original_amount = required_amount
-                required_amount = 0.6
-                logger.info(f"Modius detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
-            if "optimus" in config_type.lower():
-                original_amount = required_amount
-                required_amount = 100
-                logger.info(f"Optimus detected: Increasing funding from {original_amount} ETH to {required_amount} ETH for gas buffer")
-            
             try:
                 w3 = Web3(Web3.HTTPProvider(rpc_url))
                 amount_wei = w3.to_wei(required_amount, 'ether')

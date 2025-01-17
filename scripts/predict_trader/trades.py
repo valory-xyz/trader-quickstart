@@ -31,6 +31,7 @@ from pathlib import Path
 from string import Template
 from typing import Any, Dict, Optional
 
+from operate.operate_types import Chain
 from operate.quickstart.run_service import load_local_config
 from scripts.predict_trader.mech_events import get_mech_requests
 from scripts.utils import get_service_from_config, get_subgraph_api_key
@@ -850,7 +851,7 @@ if __name__ == "__main__":
     user_args = _parse_args()
 
     config = load_local_config()
-    rpc = config.gnosis_rpc
+    rpc = config.rpc[Chain.GNOSIS.value]
 
     mech_requests = get_mech_requests(
         user_args.creator,
