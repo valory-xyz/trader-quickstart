@@ -2270,8 +2270,8 @@ web3 = "==6.1.0"
 [package.source]
 type = "git"
 url = "https://github.com/valory-xyz/olas-operate-app.git"
-reference = "f877f0eeb0ffc307971963c958fd7c45502666e9"
-resolved_reference = "f877f0eeb0ffc307971963c958fd7c45502666e9"
+reference = "da4cf634f0eeb4a6e82a75fe0fbf14eea3eb3c40"
+resolved_reference = "da4cf634f0eeb4a6e82a75fe0fbf14eea3eb3c40"
 
 [[package]]
 name = "open-aea"
@@ -3964,4 +3964,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "36747e1450d775c51a534b61bde1660e1285f8aabe48d0b7f32faeba222d8d35"
+content-hash = "fe0495167e1c13e045a529cb7b7d4b4f6e9cfb04cedaa789e51c317ec0c79c20"

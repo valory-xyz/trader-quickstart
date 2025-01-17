@@ -35,6 +35,7 @@ def get_subgraph_api_key() -> str:
         return subgraph_api_key_path.read_text()
     
     subgraph_api_key = input("Please enter your subgraph api key: ")
+    subgraph_api_key_path.parent.mkdir(parents=True, exist_ok=True)
     subgraph_api_key_path.write_text(subgraph_api_key)
     return subgraph_api_key 
 

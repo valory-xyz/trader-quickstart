@@ -116,8 +116,33 @@ Services can become staked by invoking the `stake()` contract method, where serv
 Once the command has completed, i.e. the service is running, you can see the live logs with:
 
 ```bash
-docker logs <agent_name>_abci_0 --follow
+docker logs $(docker ps --filter "name=<agent_name>" --format "{{.Names}}" | grep "_abci" | head -n 1) --follow
 ```
+Replace `<agent_name>` with the name of the agent. For example: `trader`.
+
+You can also use this command to investigate your agent's logs:
+
+```bash
+./analyse_logs.sh <agent_config.json> --agent=aea_0 --reset-db
+```
+
+For example, inspect the state transitions using this command:
+
+```bash
+./analyse_logs.sh <agent_config.json> --agent=aea_0 --reset-db --fsm
+```
+
+This will output the different state transitions of your agent per period, for example:
+
+![Trader FSM transitions](images/trader_fsm_transitions.png)
+
+For more options on the above command run:
+
+```bash
+./analyse_logs.sh --help
+```
+
+or take a look at the [command documentation](https://docs.autonolas.network/open-autonomy/advanced_reference/commands/autonomy_analyse/#autonomy-analyse-logs).
 
 To stop your agent, use:
 
@@ -125,12 +150,12 @@ To stop your agent, use:
 ./stop_service.sh <agent_config.json>
 ```
 
-### Claim accrued OLAS
+### Claim accrued OLAS staking rewards
 
-If your service is staked, you can claim accrued OLAS through the script
+If your service is staked, you can claim accrued OLAS staking rewards through the script
 
 ```bash
-./claim_olas.sh <agent_config.json>
+./claim_staking_rewards.sh <agent_config.json>
 ```
 
 The accrued OLAS will be transferred to your service Safe without having to unstake your service.
@@ -279,7 +304,11 @@ Error: Service terminatation failed with following error; ChainInteractionError(
 TODO: support this
 ## Build deployments without executing the service
 
-The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build`) and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). Then, by default, the script will launch the local Docker Compose deployment. If you just want to build the deployment without executing the service (for example, if you are deploying to a custom Kubernetes cluster), then execute the script as
+The script builds both a Docker Compose deployment (on `./trader/trader_service/abci_build_????`) 
+and a Kubernetes deployment (on `./trader/trader_service/abci_build_k8s`). 
+Then, by default, the script will launch the local Docker Compose deployment. 
+If you just want to build the deployment without executing the service 
+(for example, if you are deploying to a custom Kubernetes cluster), then execute the script as:
 
 ```bash
     ./run_service.sh --build-only
