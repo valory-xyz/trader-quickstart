@@ -1,10 +1,10 @@
 {
     "name": "Trader Agent",
     "agent_id": 14,
-    "hash": "bafybeifzqsbzidvhhiruhk7jf4v7tpxarvbatl72adq2omhxqgosul3uli",
+    "hash": "bafybeidr735y3y7sto7t7bdzxf4xwvnk4h4xgzr5gkssa34hu6mu2bukoq",
     "description": "Trader agent for omen prediction markets",
     "image": "https://operate.olas.network/_next/image?url=%2Fimages%2Fprediction-agent.png&w=3840&q=75",
-    "service_version": "v0.18.7",
+    "service_version": "v0.23.0",
     "home_chain": "gnosis",
     "configurations": {
         "gnosis": {
@@ -29,7 +29,12 @@
         "quickstart_beta_expert_4": "0xaD9d891134443B443D7F30013c7e14Fe27F2E029",
         "quickstart_beta_expert_5": "0xE56dF1E563De1B10715cB313D514af350D207212",
         "quickstart_beta_expert_6": "0x2546214aEE7eEa4bEE7689C81231017CA231Dc93",
-        "quickstart_beta_expert_7": "0xD7A3C8b975f71030135f1a66e9e23164d54fF455"
+        "quickstart_beta_expert_7": "0xD7A3C8b975f71030135f1a66e9e23164d54fF455",
+        "quickstart_beta_expert_8": "0x356C108D49C5eebd21c84c04E9162de41933030c",
+        "quickstart_beta_expert_9": "0x17dBAe44BC5618Cc254055b386A29576b4F87015",
+        "quickstart_beta_expert_10": "0xB0ef657b8302bd2c74B6E6D9B2b4b39145b19c6f",
+        "quickstart_beta_expert_11": "0x3112c1613eAC3dBAE3D4E38CeF023eb9E2C91CF7",
+        "quickstart_beta_expert_12": "0xF4a75F476801B3fBB2e7093aCDcc3576593Cc1fc"
     },
     "env_variables": {
         "GNOSIS_LEDGER_RPC": {
@@ -62,22 +67,58 @@
             "value": "",
             "provision_type": "computed"
         },
-        "USE_MECH_MARKETPLACE": {
-            "name": "Use Mech marketplace",
+        "MECH_MARKETPLACE_CONFIG": {
+            "name": "Mech marketplace config",
             "description": "",
             "value": "",
             "provision_type": "computed"
         },
-        "REQUESTER_STAKING_INSTANCE_ADDRESS": {
-            "name": "Requester staking instance address",
+        "TRADING_STRATEGY": {
+            "name": "Trading strategy",
             "description": "",
+            "value": "bet_amount_per_threshold",
+            "provision_type": "fixed"
+        },
+        "TOOLS_ACCURACY_HASH": {
+            "name": "Tools accuracy hash",
+            "description": "",
+            "value": "QmZSkE49cnp3KeR9r6bp3hP4M2LPAmG4beHq4isz55ghv5",
+            "provision_type": "fixed"
+        },
+        "SUBGRAPH_API_KEY": {
+            "name": "Subgraph API key",
+            "description": "Subgraph API key can be obtained at https://thegraph.com/studio/apikeys/",
             "value": "",
+            "provision_type": "user"
+        },
+        "CONDITIONAL_TOKENS_SUBGRAPH_URL": {
+            "name": "Conditional tokens subgraph URL",
+            "description": "",
+            "value": "https://gateway-arbitrum.network.thegraph.com/api/{SUBGRAPH_API_KEY}/subgraphs/id/7s9rGBffUTL8kDZuxvvpuc46v44iuDarbrADBFw5uVp2",
             "provision_type": "computed"
         },
-        "PRIORITY_MECH_ADDRESS": {
-            "name": "Priority Mech address",
+        "NETWORK_SUBGRAPH_URL": {
+            "name": "Network subgraph URL",
             "description": "",
-            "value": "",
+            "value": "https://gateway-arbitrum.network.thegraph.com/api/{SUBGRAPH_API_KEY}/subgraphs/id/FxV6YUix58SpYmLBwc9gEHkwjfkqwe1X5FJQjn8nKPyA",
+            "provision_type": "computed"
+        },
+        "OMEN_SUBGRAPH_URL": {
+            "name": "Omen subgraph URL",
+            "description": "",
+            "value": "https://gateway-arbitrum.network.thegraph.com/api/{SUBGRAPH_API_KEY}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz",
+            "provision_type": "computed"
+        },
+        "REALITIO_SUBGRAPH_URL": {
+            "name": "Realitio subgraph URL",
+            "description": "",
+            "value": "https://gateway-arbitrum.network.thegraph.com/api/{SUBGRAPH_API_KEY}/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh",
+            "provision_type": "computed"
+        },
+        "TRADES_SUBGRAPH_URL": {
+            "name": "Trades subgraph URL",
+            "description": "",
+            "value": "https://gateway-arbitrum.network.thegraph.com/api/{SUBGRAPH_API_KEY}/subgraphs/id/9fUVQpFwzpdWS9bq5WkAnmKbNNcoBwatMR4yZq81pbbz",
             "provision_type": "computed"
         }
     }

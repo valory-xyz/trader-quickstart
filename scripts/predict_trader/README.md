@@ -31,15 +31,14 @@ A quickstart for the trader agent for AI prediction markets on Gnosis at https:/
 3. Use this command to investigate your agent's logs:
 
     ```bash
-    poetry run autonomy analyse logs --from-dir .operate/services/<service_config_id>/deployment/persistent_data/logs --agent aea_0 --reset-db
+    ./analyse_logs.sh configs/config_predict_trader.json --agent=aea_0 --reset-db
     ```
 
     For example, inspect the state transitions using this command:
 
     ```bash
-    poetry run autonomy analyse logs --from-dir .operate/services/<service_config_id>/deployment/persistent_data/logs --agent aea_0 --fsm --reset-db
+    ./analyse_logs.sh configs/config_predict_trader.json --agent=aea_0 --reset-db --fsm
     ```
-    Replace the `<service_config_id>` with the real folder name in your `./.operate/services` folder.
 
     This will output the different state transitions of your agent per period, for example:
 
@@ -48,7 +47,7 @@ A quickstart for the trader agent for AI prediction markets on Gnosis at https:/
     For more options on the above command run:
 
     ```bash
-    poetry run autonomy analyse logs --help
+    ./analyse_logs.sh --help
     ```
 
     or take a look at the [command documentation](https://docs.autonolas.network/open-autonomy/advanced_reference/commands/autonomy_analyse/#autonomy-analyse-logs).
