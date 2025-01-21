@@ -714,7 +714,7 @@ def get_config_specific_settings(config_path: str) -> dict:
                 lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger)
         })
 
-    return {"prompts": prompts, "test_config": test_config}
+    return {"prompts": prompts}
 
 def log_expect_match(child, pattern, match_index, logger):
     """Log minimal match information without exposing sensitive data."""
@@ -732,7 +732,6 @@ def send_input_safely(child, response, logger):
         # Clean the response
         response = response.strip()
         
-        # Send input with a small delay
         child.write(response + os.linesep)
             
     except Exception as e:
@@ -812,8 +811,6 @@ class BaseTestService:
                 with open(temp_config_path, 'r') as f:
                     config_data = json.load(f)
                 
-                # Update hash
-                config_data['hash'] = "bafybeicpoldxi2xsjbczckmhdinp3x4rttiz3mtw7slpaqs5zw3pdvzamq"
                 
                 # Modify env variables - create new dict instead of modifying
                 if 'env_variables' in config_data:
