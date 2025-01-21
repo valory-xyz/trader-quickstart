@@ -1,7 +1,7 @@
 name: Quickstart Tests
 on:
-  pull_request:  # Removed branches restriction to run on all PRs
-  workflow_dispatch:  # Add manual trigger option
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
