@@ -184,7 +184,7 @@ def check_service_health(logger: logging.Logger, config_path: str) -> tuple[bool
     service_config = get_service_config(config_path)
 
     if "mech" in config_path.lower():
-        logger.info("Bypassing health check for mech service")
+        logger.info("Bypassing health check for mech service because it's not supported")
         return True, {
             'response_time': 0,
             'status_code': 200,
@@ -611,7 +611,7 @@ def handle_env_var_prompt(output: str, logger: logging.Logger, config_path: str)
         logger.error(f"Error handling env var prompt: {str(e)}")
         return '\n'
 
-def get_base_config() -> dict:
+def get_base_config(config_path: str = "") -> dict:
     """Get base configuration common to all services."""
     base_config = {
         "TEST_PASSWORD": os.getenv('TEST_PASSWORD', 'test_secret'),
@@ -624,8 +624,9 @@ def get_base_config() -> dict:
         r"Please input your password \(or press enter\)\:": base_config["TEST_PASSWORD"],
         r"Please confirm your password\:": base_config["TEST_PASSWORD"],
         r"Enter your choice": base_config["STAKING_CHOICE"],
-        r"Please input your backup owner \(leave empty to skip\)\:": base_config["BACKUP_WALLET"],  # Escape parentheses
+        r"Please input your backup owner \(leave empty to skip\)\:": base_config["BACKUP_WALLET"],
         r"Press enter to continue": "\n",
+        r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
     }
 
     return {"config": base_config, "prompts": base_prompts}
@@ -633,7 +634,7 @@ def get_base_config() -> dict:
 def get_config_specific_settings(config_path: str) -> dict:
     """Get config specific prompts and test settings."""
     # Get base configuration
-    base = get_base_config()
+    base = get_base_config(config_path)
     base_config = base["config"]
     prompts = base["prompts"].copy()
     
@@ -650,8 +651,7 @@ def get_config_specific_settings(config_path: str) -> dict:
                 r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
                     lambda output, logger: create_funding_handler(test_config["RPC_URL"], "modius")(output, logger),
                 r"Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
-                    lambda output, logger: create_token_funding_handler(test_config["RPC_URL"])(output, logger),
-                r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
+                    lambda output, logger: create_token_funding_handler(test_config["RPC_URL"])(output, logger)
         })
         
     elif "optimus" in config_path.lower():
@@ -685,8 +685,7 @@ def get_config_specific_settings(config_path: str) -> dict:
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
                 lambda output, logger: create_funding_handler(get_chain_rpc(output, logger), "optimus")(output, logger),
             r"\[(?:optimistic|base|mode)\].*Please make sure Master (?:EOA|Safe) .*has at least.*(?:USDC|OLAS)":
-                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger),
-            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
+                lambda output, logger: create_token_funding_handler(get_chain_rpc(output, logger))(output, logger)
         })
 
     elif "mech" in config_path.lower():
@@ -699,8 +698,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         prompts.update({
             r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
             r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
-                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "mech")(output, logger),
-            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
+                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "mech")(output, logger)
         })
 
     elif "memeooorr" in config_path.lower():
@@ -712,7 +710,6 @@ def get_config_specific_settings(config_path: str) -> dict:
         # Add Memeooorr-specific prompts
         prompts.update({
             r"Enter a Base RPC that supports eth_newFilter \[hidden input\]": test_config["BASE_RPC_URL"],
-            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path),
             r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
                 lambda output, logger: create_funding_handler(test_config["BASE_RPC_URL"], "memeooorr")(output, logger),
         })    
@@ -727,8 +724,7 @@ def get_config_specific_settings(config_path: str) -> dict:
         prompts.update({
             r"eth_newFilter \[hidden input\]": test_config["RPC_URL"],
             r"Please make sure Master (EOA|Safe) .*has at least.*(?:ETH|xDAI)": 
-                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger),
-            r"Please enter .*": lambda output, logger: handle_env_var_prompt(output, logger, config_path)
+                lambda output, logger: create_funding_handler(test_config["RPC_URL"], "predict_trader")(output, logger)
         })
 
     return {"prompts": prompts, "test_config": test_config}
@@ -751,7 +747,6 @@ def send_input_safely(child, response, logger):
         
         # Send input with a small delay
         child.write(response + os.linesep)
-        time.sleep(2)
             
     except Exception as e:
         logger.error(f"Error sending input: {str(e)}")
