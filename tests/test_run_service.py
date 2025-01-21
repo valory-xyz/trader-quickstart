@@ -773,11 +773,7 @@ class BaseTestService:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         cls.log_file = Path(f'test_run_service_{timestamp}.log')
         cls.logger = setup_logging(cls.log_file)
-        
-        # Load config specific settings
-        cls.config_settings = get_config_specific_settings(cls.config_path)
-        cls.logger.info(f"Loaded settings for config: {cls.config_path}")
-        
+            
         # Create temporary directory and store original path
         cls.original_cwd = os.getcwd()
         cls.temp_dir = tempfile.TemporaryDirectory(prefix='operate_test_')
@@ -808,9 +804,53 @@ class BaseTestService:
         # Switch to temporary directory
         os.chdir(cls.temp_dir.name)
         cls.logger.info(f"Changed working directory to: {cls.temp_dir.name}")
+
+        # Handle memeooorr config modifications if needed
+        if "memeooorr" in cls.config_path.lower():
+            temp_config_path = os.path.join(cls.temp_dir.name, 'configs', os.path.basename(cls.config_path))
+            try:
+                with open(temp_config_path, 'r') as f:
+                    config_data = json.load(f)
+                
+                # Update hash
+                config_data['hash'] = "bafybeicpoldxi2xsjbczckmhdinp3x4rttiz3mtw7slpaqs5zw3pdvzamq"
+                
+                # Modify env variables - create new dict instead of modifying
+                if 'env_variables' in config_data:
+                    new_env_variables = {}
+                    for key, value in config_data['env_variables'].items():
+                        if key != 'TWIKIT_COOKIES':  # Skip TWIKIT_COOKIES
+                            new_env_variables[key] = value
+                    
+                    # Add TWIKIT_SKIP_CONNECTION
+                    new_env_variables['TWIKIT_SKIP_CONNECTION'] = {
+                        "name": "Skip Twitter connection",
+                        "description": "Skip Twitter connection for testing",
+                        "value": "true",  
+                        "provision_type": "test"
+                    }
+                    
+                    config_data['env_variables'] = new_env_variables
+                
+                # Write modified config back with read/write permissions for all
+                with open(temp_config_path, 'w') as f:
+                    json.dump(config_data, f, indent=2)
+                
+                # Ensure file permissions are set correctly
+                os.chmod(temp_config_path, 0o666)
+                
+                cls.logger.info(f"Modified memeooorr config in temp dir: {temp_config_path}")
+                
+            except Exception as e:
+                cls.logger.error(f"Error modifying memeooorr config: {str(e)}")
+                raise
         
         # Setup environment
         cls._setup_environment()
+
+        # Load config specific settings
+        cls.config_settings = get_config_specific_settings(cls.config_path)
+        cls.logger.info(f"Loaded settings for config: {cls.config_path}")
         
         # Start the service
         cls.start_service()
