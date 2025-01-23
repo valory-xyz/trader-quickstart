@@ -35,6 +35,8 @@ from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 from web3.datastructures import AttributeDict
 
+from scripts.utils import get_subgraph_api_key
+
 
 SCRIPT_PATH = Path(__file__).resolve().parent
 MECH_EVENTS_JSON_PATH = Path(SCRIPT_PATH.parents[1], "data", "mech_events.json")
@@ -46,6 +48,9 @@ MECH_EVENTS_DB_VERSION = 3
 DEFAULT_MECH_FEE = 10000000000000000
 DEFAULT_FROM_TIMESTAMP = 0
 DEFAULT_TO_TIMESTAMP = 2147483647
+MECH_SUBGRAPH_URL_TEMPLATE = Template(
+    "https://gateway.thegraph.com/api/${subgraph_api_key}/subgraphs/id/4YGoX3iXUni1NBhWJS5xyKcntrAzssfytJK7PQxxQk5g"
+)
 MECH_SUBGRAPH_URL = "https://api.studio.thegraph.com/query/57238/mech/0.0.2"
 SUBGRAPH_HEADERS = {
     "Accept": "application/json, multipart/mixed",
@@ -158,7 +163,7 @@ def _read_mech_events_data_from_file() -> Dict[str, Any]:
         if mech_events_data.get("db_version", 0) < MECH_EVENTS_DB_VERSION:
             current_time = time.strftime("%Y-%m-%d_%H-%M-%S")
             old_db_filename = f"mech_events.{current_time}.old.json"
-            os.rename(MECH_EVENTS_JSON_PATH, Path(MECH_EVENTS_JSON_PATH.parent, old_db_filename))
+            os.rename(MECH_EVENTS_JSON_PATH, MECH_EVENTS_JSON_PATH.parent / old_db_filename)
             mech_events_data = {}
             mech_events_data["db_version"] = MECH_EVENTS_DB_VERSION
     except FileNotFoundError:
@@ -189,12 +194,19 @@ def _write_mech_events_data_to_file(
         last_write_time = now
 
 
+def get_mech_subgraph_url() -> str:
+    """Get the mech subgraph's URL."""
+    subgraph_api_key = get_subgraph_api_key()
+    return MECH_SUBGRAPH_URL_TEMPLATE.substitute(subgraph_api_key=subgraph_api_key)
+
+
 def _query_mech_events_subgraph(
     sender: str, event_cls: type[MechBaseEvent]
 ) -> dict[str, Any]:
     """Query the subgraph."""
 
-    transport = RequestsHTTPTransport(url=MECH_SUBGRAPH_URL)
+    mech_subgraph_url = get_mech_subgraph_url()
+    transport = RequestsHTTPTransport(mech_subgraph_url)
     client = Client(transport=transport, fetch_schema_from_transport=True)
 
     subgraph_event_set_name = f"{event_cls.subgraph_event_name}s"
