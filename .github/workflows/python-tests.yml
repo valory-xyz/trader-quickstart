@@ -1,9 +1,7 @@
 name: Quickstart Tests
 on:
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:  # Add manual trigger option
+  workflow_dispatch:
 
 jobs:
   test:
@@ -17,10 +15,10 @@ jobs:
       DOCKER_LOGS_DIR: ${GITHUB_WORKSPACE}/logs
     
     steps:
-    - uses: actions/checkout@v4  # Updated from v3
+    - uses: actions/checkout@v4
     
     - name: Set up Python 3.10
-      uses: actions/setup-python@v5  # Updated from v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
         
@@ -120,11 +118,11 @@ jobs:
 
     - name: Upload test logs
       if: always()
-      uses: actions/upload-artifact@v4  # Updated from v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-logs
         path: |
           logs/
           /logs/
           .env
-        retention-days: 30  # Added retention period
+        retention-days: 30
