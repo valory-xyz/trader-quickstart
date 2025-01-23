@@ -824,7 +824,7 @@ class BaseTestService:
                         "name": "Skip Twitter connection",
                         "description": "Skip Twitter connection for testing",
                         "value": "true",  
-                        "provision_type": "test"
+                        "provision_type": "fixed"
                     }
                     
                     config_data['env_variables'] = new_env_variables
