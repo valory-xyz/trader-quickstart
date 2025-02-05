@@ -1,3 +1,15 @@
+<h1 align="center">
+<b> 🚨 WARNING: Repository is deprecated 🚨</b>
+</h1>
+
+<p align="center">
+This repository has been deprecated and will not be supported until further notice.
+<br>
+Please use <a href="https://github.com/valory-xyz/quickstart/">the new Quickstart</a>.
+<br>
+If you are already running agents using this quickstart, please use the <a href="https://github.com/valory-xyz/quickstart/tree/main/scripts/predict_trader#migrate-from-trader-quickstart">Migration Script</a> to migrate your agents to the new Quickstart.
+</p>
+
 # trader-quickstart
 
 A quickstart for the trader agent for AI prediction markets on Gnosis at https://github.com/valory-xyz/trader
