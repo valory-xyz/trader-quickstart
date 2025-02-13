@@ -1350,7 +1350,7 @@ directory="$service_dir/$build_dir"
 if [ "$build_dir" = "abci_build" ]; then
     suffix="abci_build"
 else
-    suffix=${build_dir##*_}
+    suffix=${build_dir#*build_}
 fi
 abci_0="trader${suffix}_abci_0"
 add_volume_to_service_docker_compose "$PWD/$directory/docker-compose.yaml" "$abci_0" "/data" "$path_to_store"
