@@ -1,9 +1,9 @@
 <h1 align="center">
-<b> 🚨 WARNING: Repository is deprecated 🚨</b>
+<b> 🚨 WARNING: Repository will be deprecated soon 🚨</b>
 </h1>
 
 <p align="center">
-This repository has been deprecated and will not be supported until further notice.
+This repository will soon be deprecated and further maintenance is not guaranteed moving forward.
 <br>
 If you are using it for the first time, please use <a href="https://github.com/valory-xyz/quickstart/">the new Quickstart</a>.
 <!-- <br>
