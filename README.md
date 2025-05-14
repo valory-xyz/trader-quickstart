@@ -6,8 +6,8 @@
 This repository will soon be deprecated and further maintenance is not guaranteed moving forward.
 <br>
 If you are using it for the first time, please use <a href="https://github.com/valory-xyz/quickstart/">the new Quickstart</a>.
-<!-- <br>
-If you are already running agents using this quickstart, please use the <a href="https://github.com/valory-xyz/quickstart/tree/main/scripts/predict_trader#migrate-from-trader-quickstart">Migration Script</a> to migrate your agents to the new Quickstart. -->
+<br>
+If you are already running agents using this quickstart, please use the <a href="https://github.com/valory-xyz/quickstart/tree/main/scripts/predict_trader#migrate-from-trader-quickstart">Migration Script</a> to migrate your agents to the new Quickstart.
 </p>
 
 # trader-quickstart
