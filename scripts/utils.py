@@ -360,7 +360,7 @@ def send_tx(
                 raise ChainInteractionError(error) from e
             if should_reprice(error):
                 print("Repricing the transaction...")
-                tx_dict = tx_settler._repice(typing.cast(typing.Dict, tx_dict))
+                tx_dict = tx_settler._reprice(typing.cast(typing.Dict, tx_dict))
                 continue
             print(f"Error occurred when interacting with chain: {e}; ")
             print(f"will retry in {sleep}...")
